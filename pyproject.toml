@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "animalcula"
+version = "0.1.0"
+description = "Artificial life simulator with evolved physics-based microscopic creatures"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "PyYAML>=6.0",
+]
+
+[project.scripts]
+animalcula = "animalcula.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

@@ -12,6 +12,9 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - A documented engineering policy for continuous test-driven development
 - A documented local git workflow with frequent, descriptive commits
 - A documented Milestone 1 architecture and delivery direction
+- Initial `uv`-managed Python package scaffold with a headless CLI entrypoint
+- Default YAML configuration and minimal public API surface
+- First passing test suite covering config loading, world stepping, deterministic seeding, and CLI execution
 
 ### Changed
 

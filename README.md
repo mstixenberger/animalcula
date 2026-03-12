@@ -4,7 +4,7 @@ Animalcula is a 2D artificial life simulator centered on evolved, physics-based 
 
 ## Status
 
-The repository is in bootstrap phase. The main design source is `ANIMALCULA_SPEC.md`. Implementation has not started yet; the current work is establishing architecture, workflow, testing rules, and project documentation.
+The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, and an initial passing test suite.
 
 ## Development Priorities
 
@@ -49,6 +49,14 @@ Milestone 1 is to prove that hand-seeded creatures can survive, feed, and reprod
 - See `CONTRIBUTING.md` for engineering workflow and commit expectations.
 - See `CHANGELOG.md` for notable changes.
 
+## Quickstart
+
+```bash
+uv sync --group dev
+uv run pytest
+uv run animalcula run --config config/default.yaml --ticks 10 --seed 42
+```
+
 ## Next Build Step
 
-Bootstrap the Python package, config schema, test suite, and CLI skeleton before implementing the first physics slice.
+Implement the first real simulation slice under TDD: runtime types, world stepping order, and the initial overdamped physics layer.

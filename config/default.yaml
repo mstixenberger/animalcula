@@ -1,0 +1,12 @@
+world:
+  width: 1000.0
+  height: 1000.0
+  grid_resolution: 5.0
+  boundary: toroidal
+
+physics:
+  dt: 0.01
+  default_drag: 1.0
+
+simulation:
+  initial_seed: 42
