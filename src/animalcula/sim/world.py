@@ -50,6 +50,7 @@ class Stats:
     births: int
     deaths: int
     reproductions: int
+    predation_kills: int
     lineage_count: int
     diversity_index: float
 
@@ -74,6 +75,7 @@ class World:
         self.edges = list(edges or [])
         self.creatures = list(creatures or [])
         self.events: list[EventRecord] = []
+        self._predation_kill_ids: set[int] = set()
         self._phase_trace: list[str] = []
         self._rng = random.Random(self.seed)
         self._next_creature_id = self._initial_next_creature_id()
@@ -185,6 +187,7 @@ class World:
         births = sum(1 for event in self.events if event.event_type == "birth")
         deaths = sum(1 for event in self.events if event.event_type == "death")
         reproductions = sum(1 for event in self.events if event.event_type == "reproduction")
+        predation_kills = sum(1 for event in self.events if event.event_type == "predation_kill")
         lineage_counts = Counter(
             genome_hash(creature.genome) for creature in self.creatures if creature.genome is not None
         )
@@ -197,6 +200,7 @@ class World:
             births=births,
             deaths=deaths,
             reproductions=reproductions,
+            predation_kills=predation_kills,
             lineage_count=len(lineage_counts),
             diversity_index=shannon_diversity(dict(lineage_counts)),
         )
@@ -583,6 +587,14 @@ class World:
         dead_creatures = [creature for creature in self.creatures if creature.energy <= 0.0]
         for creature in dead_creatures:
             self._deposit_detritus(creature)
+            if creature.id in self._predation_kill_ids:
+                self._record_event(
+                    "predation_kill",
+                    creature_id=creature.id,
+                    parent_ids=(),
+                    energy=creature.energy,
+                    genome_hash_value=genome_hash(creature.genome),
+                )
             self._record_event(
                 "death",
                 creature_id=creature.id,
@@ -618,6 +630,7 @@ class World:
             )
             for creature in living_creatures
         ]
+        self._predation_kill_ids = {creature_id for creature_id in self._predation_kill_ids if creature_id in {creature.id for creature in self.creatures}}
         self._apply_population_floor()
         return None
 
@@ -761,6 +774,7 @@ class World:
             return creatures
 
         energies = [creature.energy for creature in creatures]
+        self._predation_kill_ids = set()
         for predator_index, predator in enumerate(creatures):
             _, bite_outputs, _ = self._control_outputs_for_creature(predator)
             mouth_nodes = self._mouth_nodes_for_creature(predator)
@@ -778,6 +792,8 @@ class World:
                     )
                     energies[victim_index] -= damage
                     energies[predator_index] += damage * self.config.energy.predation_transfer_efficiency
+                    if energies[victim_index] <= 0.0:
+                        self._predation_kill_ids.add(victim.id)
                     break
 
         return [replace(creature, energy=energy) for creature, energy in zip(creatures, energies, strict=True)]

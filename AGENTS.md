@@ -230,6 +230,7 @@ Current implementation baseline:
 - the energy budget now charges for motor actuation as well as basal upkeep
 - mouths can now scavenge energy directly from detritus patches, not just wait for recycling
 - a first predation slice exists: bite outputs on mouth nodes can drain overlapping victims and transfer energy
+- predation kills now surface as a distinct event type and stats count for headless analysis
 - initial passing pytest suite
 
 ## Update Protocol

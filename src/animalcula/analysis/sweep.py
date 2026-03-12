@@ -46,6 +46,7 @@ def run_sweep(
                 "births": stats.births,
                 "deaths": stats.deaths,
                 "reproductions": stats.reproductions,
+                "predation_kills": stats.predation_kills,
                 "lineage_count": stats.lineage_count,
                 "diversity_index": stats.diversity_index,
                 "interestingness": interestingness_score(
@@ -54,6 +55,7 @@ def run_sweep(
                     births=stats.births,
                     deaths=stats.deaths,
                     reproductions=stats.reproductions,
+                    predation_kills=stats.predation_kills,
                 ),
             }
         )

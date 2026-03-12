@@ -11,10 +11,18 @@ def interestingness_score(
     births: int,
     deaths: int,
     reproductions: int,
+    predation_kills: int = 0,
 ) -> float:
     if population <= 0:
         return 0.0
-    return float(population) + max(total_energy, 0.0) + (0.5 * births) + deaths + reproductions
+    return (
+        float(population)
+        + max(total_energy, 0.0)
+        + (0.5 * births)
+        + deaths
+        + reproductions
+        + (2.0 * predation_kills)
+    )
 
 
 def shannon_diversity(lineage_counts: dict[str, int]) -> float:

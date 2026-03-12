@@ -69,3 +69,51 @@ def test_seeded_creatures_receive_unique_ids() -> None:
     ids = [creature.id for creature in world.creatures]
 
     assert len(ids) == len(set(ids))
+
+
+def test_world_logs_predation_kill_events() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.scavenging_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.predation_rate=2.0",
+            "energy.predation_transfer_efficiency=1.0",
+        ]
+    )
+    predator_brain = BrainState(
+        input_weights=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.MOUTH,
+        ),
+        NodeState(
+            position=Vec2(100.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, brain=predator_brain),
+        CreatureState(node_indices=(1,), energy=1.0),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+
+    event_types = [event.event_type for event in world.events]
+    assert "predation_kill" in event_types

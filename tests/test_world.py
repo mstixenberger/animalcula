@@ -741,7 +741,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 lineages=0 diversity=0.000"
+        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 predation_kills=0 lineages=0 diversity=0.000"
     )
 
 
@@ -798,6 +798,7 @@ def test_cli_run_command_can_seed_demo_world() -> None:
     assert "population=3" in result.stdout
     assert "births=3" in result.stdout
     assert "lineages=3" in result.stdout
+    assert "predation_kills=0" in result.stdout
 
 
 def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:
