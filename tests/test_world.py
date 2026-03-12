@@ -214,6 +214,7 @@ def test_world_reproduces_energy_rich_creatures() -> None:
     assert len(world.nodes) == 4
     assert len(world.edges) == 2
     assert world.creatures[0].energy == world.creatures[1].energy
+    assert world.nodes[2].radius != world.nodes[0].radius
 
 
 def test_world_stats_report_population_nodes_and_total_energy() -> None:

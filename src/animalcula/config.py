@@ -43,6 +43,12 @@ class EnergyConfig:
 
 
 @dataclass(slots=True, frozen=True)
+class EvolutionConfig:
+    position_mutation_sigma: float
+    radius_mutation_sigma: float
+
+
+@dataclass(slots=True, frozen=True)
 class SimulationConfig:
     initial_seed: int
 
@@ -53,6 +59,7 @@ class Config:
     physics: PhysicsConfig
     environment: EnvironmentConfig
     energy: EnergyConfig
+    evolution: EvolutionConfig
     simulation: SimulationConfig
 
     @classmethod
@@ -72,6 +79,7 @@ class Config:
                 }
             ),
             energy=EnergyConfig(**raw["energy"]),
+            evolution=EvolutionConfig(**raw["evolution"]),
             simulation=SimulationConfig(**raw["simulation"]),
         )
 

@@ -12,6 +12,7 @@ from typing import Callable
 from animalcula.config import Config
 from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
+from animalcula.sim.mutation import mutate_node
 from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
 from animalcula.sim.seeding import build_demo_archetypes
 from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType, Vec2
@@ -311,11 +312,16 @@ class World:
             child_offset = Vec2(2.0 * (creature_index + 1), 2.0 * (creature_index + 1))
             node_index_map: dict[int, int] = {}
             for node_index in creature.node_indices:
-                cloned = replace(
-                    self.nodes[node_index],
-                    position=self.nodes[node_index].position + child_offset,
-                    velocity=Vec2.zero(),
-                    accumulated_force=Vec2.zero(),
+                cloned = mutate_node(
+                    node=replace(
+                        self.nodes[node_index],
+                        position=self.nodes[node_index].position + child_offset,
+                        velocity=Vec2.zero(),
+                        accumulated_force=Vec2.zero(),
+                    ),
+                    rng=self._rng,
+                    position_sigma=self.config.evolution.position_mutation_sigma,
+                    radius_sigma=self.config.evolution.radius_mutation_sigma,
                 )
                 node_index_map[node_index] = len(self.nodes) + len(new_nodes)
                 new_nodes.append(cloned)
