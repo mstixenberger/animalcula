@@ -55,11 +55,13 @@ class Stats:
     deaths: int
     reproductions: int
     speciation_events: int
+    species_extinctions: int
     predation_kills: int
     lineage_count: int
     species_count: int
     diversity_index: float
     mean_nodes_per_creature: float
+    longest_species_lifespan: int
     autotroph_count: int
     herbivore_count: int
     predator_count: int
@@ -93,6 +95,9 @@ class World:
         self.creatures = self._assign_creature_ids(self.creatures)
         self.creatures = self._ensure_creature_genomes(self.creatures)
         self._known_species_ids = set(self._species_labels().values())
+        self._species_first_seen_tick = {species_id: self.tick for species_id in self._known_species_ids}
+        self._species_last_seen_tick = {species_id: self.tick for species_id in self._known_species_ids}
+        self._extinct_species_ids: set[str] = set()
         self.nutrient_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
@@ -245,7 +250,7 @@ class World:
 
         seeded_creatures = self._ensure_creature_genomes(self._assign_creature_ids(imported))
         self.creatures.extend(seeded_creatures)
-        self._known_species_ids.update(self._species_labels().values())
+        self._sync_species_presence()
         for creature in seeded_creatures:
             self._record_event(
                 "birth",
@@ -267,6 +272,7 @@ class World:
         deaths = sum(1 for event in self.events if event.event_type == "death")
         reproductions = sum(1 for event in self.events if event.event_type == "reproduction")
         speciation_events = sum(1 for event in self.events if event.event_type == "speciation")
+        species_extinctions = sum(1 for event in self.events if event.event_type == "species_extinction")
         predation_kills = sum(1 for event in self.events if event.event_type == "predation_kill")
         lineage_counts = Counter(
             genome_hash(creature.genome) for creature in self.creatures if creature.genome is not None
@@ -293,11 +299,13 @@ class World:
             deaths=deaths,
             reproductions=reproductions,
             speciation_events=speciation_events,
+            species_extinctions=species_extinctions,
             predation_kills=predation_kills,
             lineage_count=len(lineage_counts),
             species_count=len(species_counts),
             diversity_index=shannon_diversity(dict(lineage_counts)),
             mean_nodes_per_creature=(len(self.nodes) / len(self.creatures)) if self.creatures else 0.0,
+            longest_species_lifespan=self._longest_species_lifespan(),
             autotroph_count=autotroph_count,
             herbivore_count=herbivore_count,
             predator_count=predator_count,
@@ -359,6 +367,9 @@ class World:
             "nutrient_source_cells": self._nutrient_source_cells,
             "next_creature_id": self._next_creature_id,
             "known_species_ids": sorted(self._known_species_ids),
+            "species_first_seen_tick": self._species_first_seen_tick,
+            "species_last_seen_tick": self._species_last_seen_tick,
+            "extinct_species_ids": sorted(self._extinct_species_ids),
             "grip_latches": [
                 {
                     "creature_a_id": latch.creature_a_id,
@@ -453,6 +464,9 @@ class World:
         world._nutrient_source_cells = [tuple(cell) for cell in payload["nutrient_source_cells"]]
         world._next_creature_id = payload.get("next_creature_id", world._initial_next_creature_id())
         world._known_species_ids = set(payload.get("known_species_ids", world._species_labels().values()))
+        world._species_first_seen_tick = dict(payload.get("species_first_seen_tick", {}))
+        world._species_last_seen_tick = dict(payload.get("species_last_seen_tick", {}))
+        world._extinct_species_ids = set(payload.get("extinct_species_ids", []))
         world.grip_latches = [
             GripLatch(
                 creature_a_id=latch["creature_a_id"],
@@ -479,7 +493,7 @@ class World:
         self.edges.extend(edges)
         seeded_creatures = self._ensure_creature_genomes(self._assign_creature_ids(creatures))
         self.creatures.extend(seeded_creatures)
-        self._known_species_ids.update(self._species_labels().values())
+        self._sync_species_presence()
         for creature in seeded_creatures:
             self._record_event(
                 "birth",
@@ -973,6 +987,14 @@ class World:
             for creature, label in zip(self.creatures, labels, strict=True)
         }
 
+    def _sync_species_presence(self) -> None:
+        species_labels = self._species_labels()
+        current_species_ids = set(species_labels.values())
+        for species_id in current_species_ids:
+            self._species_first_seen_tick.setdefault(species_id, self.tick)
+            self._species_last_seen_tick[species_id] = self.tick
+        self._known_species_ids.update(current_species_ids)
+
     def _record_speciation_events(self) -> None:
         species_labels = self._species_labels()
         current_species_ids = set(species_labels.values())
@@ -990,7 +1012,36 @@ class World:
                 energy=representative.energy,
                 genome_hash_value=genome_hash(representative.genome),
             )
+            self._species_first_seen_tick.setdefault(species_id, self.tick)
+            self._species_last_seen_tick[species_id] = self.tick
+
+        extinct_species_ids = sorted(
+            species_id
+            for species_id in (self._known_species_ids - current_species_ids)
+            if species_id not in self._extinct_species_ids
+        )
+        for species_id in extinct_species_ids:
+            self._record_event(
+                "species_extinction",
+                creature_id=-1,
+                parent_ids=(),
+                energy=0.0,
+                genome_hash_value=species_id,
+            )
+            self._extinct_species_ids.add(species_id)
+            self._species_last_seen_tick.setdefault(species_id, self.tick)
+
+        for species_id in current_species_ids:
+            self._species_last_seen_tick[species_id] = self.tick
         self._known_species_ids.update(current_species_ids)
+
+    def _longest_species_lifespan(self) -> int:
+        if not self._species_first_seen_tick:
+            return 0
+        return max(
+            self._species_last_seen_tick.get(species_id, self.tick) - first_seen
+            for species_id, first_seen in self._species_first_seen_tick.items()
+        )
 
     def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
         updated: list[CreatureState] = []

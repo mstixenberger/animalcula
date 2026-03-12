@@ -12,6 +12,7 @@ def interestingness_score(
     deaths: int,
     reproductions: int,
     speciation_events: int = 0,
+    species_extinctions: int = 0,
     predation_kills: int = 0,
 ) -> float:
     if population <= 0:
@@ -23,6 +24,7 @@ def interestingness_score(
         + deaths
         + reproductions
         + (1.5 * speciation_events)
+        + (0.5 * species_extinctions)
         + (2.0 * predation_kills)
     )
 

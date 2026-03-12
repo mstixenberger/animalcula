@@ -143,3 +143,21 @@ def test_world_logs_speciation_events_for_new_species_clusters() -> None:
 
     event_types = [event.event_type for event in world.events]
     assert "speciation" in event_types
+
+
+def test_world_logs_species_extinction_events() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["creatures.min_population=0"])
+    node = NodeState(
+        position=Vec2(10.0, 10.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    creature = CreatureState(node_indices=(0,), energy=0.0001)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    event_types = [event.event_type for event in world.events]
+    assert "species_extinction" in event_types

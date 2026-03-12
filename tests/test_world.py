@@ -988,6 +988,8 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
     assert stats.deaths == 0
     assert stats.reproductions == 0
     assert stats.speciation_events == 0
+    assert stats.species_extinctions == 0
+    assert stats.longest_species_lifespan == 0
     assert stats.lineage_count == 3
     assert stats.species_count == 3
     assert stats.diversity_index > 0.0
@@ -1044,7 +1046,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 predation_kills=0 species=0 lineages=0 diversity=0.000 complexity=0.00 autotrophs=0 herbivores=0 predators=0"
+        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 predation_kills=0 species=0 lineages=0 diversity=0.000 complexity=0.00 longest_species_lifespan=0 autotrophs=0 herbivores=0 predators=0"
     )
 
 
@@ -1101,6 +1103,7 @@ def test_cli_run_command_can_seed_demo_world() -> None:
     assert "population=3" in result.stdout
     assert "births=3" in result.stdout
     assert "speciations=0" in result.stdout
+    assert "species_extinctions=0" in result.stdout
     assert "species=3" in result.stdout
     assert "lineages=3" in result.stdout
     assert "predation_kills=0" in result.stdout

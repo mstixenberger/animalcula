@@ -77,6 +77,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Motor-topology genome mutation that can convert passive edges into motorized joints
 - Genome-distance species clustering used for species counts and species snapshot grouping
 - Explicit `speciation` events in the lifecycle log, plus speciation counts in headless stats and sweep output
+- Species-extinction events and longest-species-lifespan tracking in the headless species ledger
 
 ### Changed
 

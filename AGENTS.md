@@ -245,6 +245,7 @@ Current implementation baseline:
 - genome mutation can now toggle passive edges into motorized joints, broadening the control topology that evolution can explore
 - species counting and species snapshots now use genome-distance clustering instead of a pure coarse-signature placeholder
 - the lifecycle/event stream now records explicit `speciation` events for newly observed clustered species
+- species turnover tracking now records `species_extinction` events and keeps first-seen/last-seen timing for lifespan metrics
 - initial passing pytest suite
 
 ## Update Protocol
