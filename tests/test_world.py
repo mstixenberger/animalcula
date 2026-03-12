@@ -151,6 +151,40 @@ def test_world_removes_creature_when_energy_is_depleted() -> None:
     assert world.nodes == []
 
 
+def test_world_can_seed_demo_archetypes() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+
+    world.seed_demo_archetypes()
+
+    assert len(world.creatures) == 3
+    assert len(world.nodes) >= 5
+    assert len(world.edges) >= 2
+
+
+def test_demo_archetype_seeding_is_deterministic_for_seed() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world_a = World(config=config, seed=7)
+    world_b = World(config=config, seed=7)
+
+    world_a.seed_demo_archetypes()
+    world_b.seed_demo_archetypes()
+
+    assert world_a.nodes == world_b.nodes
+    assert world_a.edges == world_b.edges
+    assert world_a.creatures == world_b.creatures
+
+
+def test_seeded_demo_world_can_step_without_immediate_extinction() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+    world.seed_demo_archetypes()
+
+    world.step()
+
+    assert len(world.creatures) > 0
+
+
 def test_cli_run_command_advances_the_world() -> None:
     result = subprocess.run(
         [

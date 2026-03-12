@@ -36,6 +36,12 @@ class Grid2D:
     def set_value(self, col: int, row: int, value: float) -> None:
         self.values[(row * self.cols) + col] = value
 
+    def position_for_cell(self, col: int, row: int) -> Vec2:
+        return Vec2(
+            x=(col + 0.5) * self.resolution,
+            y=(row + 0.5) * self.resolution,
+        )
+
     def fill_light_gradient(self, direction: tuple[float, float], intensity: float) -> None:
         direction_length = math.hypot(*direction)
         if direction_length == 0.0:

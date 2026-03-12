@@ -22,6 +22,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Creature energy helpers and a world energy phase with basal cost and photosynthesis
 - Mouth-based nutrient feeding and lifecycle cleanup for depleted creatures
 - Deterministic nutrient source placement in the default world
+- Deterministic starter archetype seeding for demo populations
 
 ### Changed
 

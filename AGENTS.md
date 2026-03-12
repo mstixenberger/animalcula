@@ -192,6 +192,7 @@ Current implementation baseline:
 - simple creature energy accounting with basal cost and photosynthesis
 - mouth-based nutrient feeding and dead-creature lifecycle cleanup
 - deterministic nutrient source placement in the default world
+- deterministic starter archetype seeding for demo worlds
 - initial passing pytest suite
 
 ## Update Protocol

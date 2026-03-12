@@ -11,6 +11,7 @@ from animalcula.config import Config
 from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
+from animalcula.sim.seeding import build_demo_archetypes
 from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType
 
 
@@ -71,6 +72,17 @@ class World:
 
     def random_unit(self) -> float:
         return self._rng.random()
+
+    def seed_demo_archetypes(self) -> None:
+        nodes, edges, creatures = build_demo_archetypes(
+            world_width=self.config.world.width,
+            world_height=self.config.world.height,
+            nutrient_grid=self.nutrient_grid,
+            nutrient_source_cells=self._nutrient_source_cells,
+        )
+        self.nodes.extend(nodes)
+        self.edges.extend(edges)
+        self.creatures.extend(creatures)
 
     def _step_once(self) -> Snapshot:
         self._phase_trace = []
