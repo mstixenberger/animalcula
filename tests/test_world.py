@@ -185,6 +185,19 @@ def test_seeded_demo_world_can_step_without_immediate_extinction() -> None:
     assert len(world.creatures) > 0
 
 
+def test_world_stats_report_population_nodes_and_total_energy() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+    world.seed_demo_archetypes()
+
+    stats = world.stats()
+
+    assert stats.population == 3
+    assert stats.node_count == len(world.nodes)
+    assert stats.edge_count == len(world.edges)
+    assert stats.total_energy > 0.0
+
+
 def test_cli_run_command_advances_the_world() -> None:
     result = subprocess.run(
         [
@@ -204,4 +217,27 @@ def test_cli_run_command_advances_the_world() -> None:
         text=True,
     )
 
-    assert result.stdout.strip() == "tick=3 seed=11"
+    assert result.stdout.strip() == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000"
+
+
+def test_cli_run_command_can_seed_demo_world() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "1",
+            "--seed",
+            "11",
+            "--seed-demo",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "population=3" in result.stdout

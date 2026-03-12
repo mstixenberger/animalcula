@@ -22,6 +22,15 @@ class Snapshot:
     phase_trace: list[str]
 
 
+@dataclass(slots=True, frozen=True)
+class Stats:
+    tick: int
+    population: int
+    node_count: int
+    edge_count: int
+    total_energy: float
+
+
 class World:
     """Headless world facade with deterministic seeded state."""
 
@@ -68,6 +77,15 @@ class World:
             tick=self.tick,
             population=len(self.creatures) if self.creatures else len(self.nodes),
             phase_trace=list(self._phase_trace),
+        )
+
+    def stats(self) -> Stats:
+        return Stats(
+            tick=self.tick,
+            population=len(self.creatures) if self.creatures else len(self.nodes),
+            node_count=len(self.nodes),
+            edge_count=len(self.edges),
+            total_energy=sum(creature.energy for creature in self.creatures),
         )
 
     def random_unit(self) -> float:

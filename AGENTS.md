@@ -193,6 +193,7 @@ Current implementation baseline:
 - mouth-based nutrient feeding and dead-creature lifecycle cleanup
 - deterministic nutrient source placement in the default world
 - deterministic starter archetype seeding for demo worlds
+- world stats reporting and richer CLI run summaries
 - initial passing pytest suite
 
 ## Update Protocol

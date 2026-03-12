@@ -4,7 +4,7 @@ Animalcula is a 2D artificial life simulator centered on evolved, physics-based 
 
 ## Status
 
-The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, spring-connected node integration, grid-backed environment fields, a first creature energy loop, nutrient feeding, lifecycle cleanup on depletion, deterministic nutrient sources, deterministic starter archetypes, and a passing test suite.
+The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, spring-connected node integration, grid-backed environment fields, a first creature energy loop, nutrient feeding, lifecycle cleanup on depletion, deterministic nutrient sources, deterministic starter archetypes, world stats reporting, and a passing test suite.
 
 ## Development Priorities
 
@@ -55,8 +55,9 @@ Milestone 1 is to prove that hand-seeded creatures can survive, feed, and reprod
 uv sync --group dev
 uv run pytest
 uv run animalcula run --config config/default.yaml --ticks 10 --seed 42
+uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-demo
 ```
 
 ## Next Build Step
 
-Build upward from the viable seeded world into orchestration and observability: richer CLI output, snapshots, and broader config/state coverage.
+Build upward from the observable seeded world into persistence and orchestration: snapshots, checkpoints, and broader config/state coverage.
