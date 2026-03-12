@@ -85,6 +85,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Focused phase-1 sweep configs for economy and trophic-balance tuning
 - A living tuning note in `docs/tuning/phase1.md` with current viability findings and validation commands
 - A spec-aligned seeded triangle predator archetype with a mouth, gripper, and three motorized edges
+- A minimal local `animalcula view` command backed by a Tk debug viewer and richer render snapshots
 
 ### Changed
 
@@ -94,3 +95,4 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Species and phenotype snapshot exports now expose richer morphology and motion summaries
 - Active grip latches now contribute to the per-tick energy budget
 - The default starter trio now matches the spec more closely: passive alga, grazer, and triangular predator instead of a mislabeled light-feeding generalist
+- `World.snapshot()` now carries read-only render payloads so local visualization can stay decoupled from mutable sim internals

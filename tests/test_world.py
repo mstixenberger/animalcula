@@ -35,6 +35,12 @@ def test_world_step_advances_tick_and_returns_snapshot() -> None:
         "energy",
         "lifecycle",
     ]
+    assert snapshot.world_width == config.world.width
+    assert snapshot.world_height == config.world.height
+    assert snapshot.total_energy == 0.0
+    assert snapshot.nodes == ()
+    assert snapshot.edges == ()
+    assert snapshot.creatures == ()
 
 
 def test_world_rejects_negative_steps() -> None:
@@ -114,6 +120,21 @@ def test_world_step_updates_creature_energy_from_light() -> None:
     world.step()
 
     assert world.creatures[0].energy > 1.0
+
+
+def test_world_snapshot_contains_renderable_creature_graph() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+    world.seed_demo_archetypes()
+
+    snapshot = world.snapshot()
+
+    assert snapshot.population == 3
+    assert len(snapshot.nodes) == len(world.nodes)
+    assert len(snapshot.edges) == len(world.edges)
+    assert len(snapshot.creatures) == len(world.creatures)
+    assert all(node.creature_id is not None for node in snapshot.nodes)
+    assert {creature.trophic_role for creature in snapshot.creatures} >= {"autotroph", "herbivore", "predator"}
 
 
 def test_world_sensing_tracks_field_gradients() -> None:
@@ -1134,6 +1155,24 @@ def test_cli_run_command_can_seed_demo_world() -> None:
     assert "predation_kills=0" in result.stdout
     assert "complexity=" in result.stdout
     assert "predators=" in result.stdout
+
+
+def test_cli_view_help_describes_minimal_debug_viewer() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "view",
+            "--help",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "minimal local debug viewer" in result.stdout
+    assert "--steps-per-frame" in result.stdout
 
 
 def test_cli_species_command_reads_checkpoint_species_snapshots(tmp_path: Path) -> None:

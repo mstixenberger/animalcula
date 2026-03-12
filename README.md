@@ -71,6 +71,7 @@ uv run animalcula nursery --ticks 100 --seed 42 --out checkpoints/nursery.json
 uv run animalcula nursery --ticks 100 --seed 42 --top 5 --save-top checkpoints/top_creatures.json --out checkpoints/nursery.json
 uv run animalcula run --config config/default.yaml --ticks 0 --seed 42 --seed-from checkpoints/top_creatures.json
 uv run animalcula run --config config/turbo.yaml --ticks 300 --seed 42 --seed-demo --turbo
+uv run animalcula view --config config/default.yaml --seed 42 --seed-demo
 uv run python scripts/tune_phase1.py --ticks 1000 --seeds 41,42,43 --workers 4 --turbo --out /tmp/animalcula_phase1.jsonl
 ```
 

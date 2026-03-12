@@ -9,6 +9,7 @@ from pathlib import Path
 from animalcula.analysis.sweep import run_sweep
 from animalcula.config import Config
 from animalcula.sim.world import World
+from animalcula.viz.debug_viewer import launch_viewer
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -27,6 +28,23 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--log-stats", default=None)
     run_parser.add_argument("--log-every", type=int, default=1)
     run_parser.add_argument("--turbo", action="store_true")
+
+    view_parser = subparsers.add_parser(
+        "view",
+        help="Open the minimal local debug viewer",
+        description="Open the minimal local debug viewer.",
+    )
+    view_parser.add_argument("--config", default="config/default.yaml")
+    view_parser.add_argument("--seed", type=int, default=None)
+    view_parser.add_argument("--seed-demo", action="store_true")
+    view_parser.add_argument("--resume", default=None)
+    view_parser.add_argument("--seed-from", default=None)
+    view_parser.add_argument("--set", action="append", default=[])
+    view_parser.add_argument("--turbo", action="store_true")
+    view_parser.add_argument("--steps-per-frame", type=int, default=1)
+    view_parser.add_argument("--frame-delay-ms", type=int, default=33)
+    view_parser.add_argument("--canvas-width", type=int, default=900)
+    view_parser.add_argument("--canvas-height", type=int, default=900)
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
@@ -72,20 +90,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "run":
-        if args.resume is not None:
-            world = World.load(args.resume)
-            world.turbo = args.turbo
-            if args.set:
-                world.config = world.config.with_overrides(args.set)
-        else:
-            config = Config.from_yaml(args.config)
-            if args.set:
-                config = config.with_overrides(args.set)
-            world = World(config=config, seed=args.seed, turbo=args.turbo)
-        if args.seed_from is not None and args.resume is None:
-            world.seed_from_exported_genomes(args.seed_from)
-        if args.seed_demo and args.resume is None:
-            world.seed_demo_archetypes()
+        world = _load_or_create_world(args)
         if args.log_stats is not None:
             _run_with_stats_log(world=world, ticks=args.ticks, log_path=args.log_stats, log_every=args.log_every)
         else:
@@ -94,6 +99,17 @@ def main() -> int:
             world.save(args.save)
         stats = world.stats()
         print(_format_stats(world.seed, stats))
+        return 0
+
+    if args.command == "view":
+        world = _load_or_create_world(args)
+        launch_viewer(
+            world,
+            steps_per_frame=max(1, args.steps_per_frame),
+            frame_delay_ms=max(1, args.frame_delay_ms),
+            canvas_width=max(200, args.canvas_width),
+            canvas_height=max(200, args.canvas_height),
+        )
         return 0
 
     if args.command == "report":
@@ -228,6 +244,23 @@ def _run_with_stats_log(world: World, ticks: int, log_path: str, log_every: int)
             )
 
     output.write_text("\n".join(records) + ("\n" if records else ""), encoding="utf-8")
+
+def _load_or_create_world(args: argparse.Namespace) -> World:
+    if args.resume is not None:
+        world = World.load(args.resume)
+        world.turbo = args.turbo
+        if args.set:
+            world.config = world.config.with_overrides(args.set)
+    else:
+        config = Config.from_yaml(args.config)
+        if args.set:
+            config = config.with_overrides(args.set)
+        world = World(config=config, seed=args.seed, turbo=args.turbo)
+    if args.seed_from is not None and args.resume is None:
+        world.seed_from_exported_genomes(args.seed_from)
+    if args.seed_demo and args.resume is None:
+        world.seed_demo_archetypes()
+    return world
 
 
 if __name__ == "__main__":

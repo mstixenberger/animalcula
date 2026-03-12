@@ -42,6 +42,39 @@ class Snapshot:
     tick: int
     population: int
     phase_trace: list[str]
+    world_width: float
+    world_height: float
+    total_energy: float
+    nodes: tuple["NodeSnapshot", ...]
+    edges: tuple["EdgeSnapshot", ...]
+    creatures: tuple["CreatureSnapshot", ...]
+
+
+@dataclass(slots=True, frozen=True)
+class NodeSnapshot:
+    x: float
+    y: float
+    radius: float
+    node_type: str
+    creature_id: int | None
+
+
+@dataclass(slots=True, frozen=True)
+class EdgeSnapshot:
+    ax: float
+    ay: float
+    bx: float
+    by: float
+    has_motor: bool
+
+
+@dataclass(slots=True, frozen=True)
+class CreatureSnapshot:
+    creature_id: int
+    energy: float
+    trophic_role: str
+    center_x: float
+    center_y: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -261,10 +294,51 @@ class World:
             )
 
     def snapshot(self) -> Snapshot:
+        node_to_creature = {
+            node_index: creature.id
+            for creature in self.creatures
+            for node_index in creature.node_indices
+        }
+        node_snapshots = tuple(
+            NodeSnapshot(
+                x=node.position.x,
+                y=node.position.y,
+                radius=node.radius,
+                node_type=node.node_type.value,
+                creature_id=node_to_creature.get(node_index),
+            )
+            for node_index, node in enumerate(self.nodes)
+        )
+        edge_snapshots = tuple(
+            EdgeSnapshot(
+                ax=self.nodes[edge.a].position.x,
+                ay=self.nodes[edge.a].position.y,
+                bx=self.nodes[edge.b].position.x,
+                by=self.nodes[edge.b].position.y,
+                has_motor=edge.has_motor,
+            )
+            for edge in self.edges
+        )
+        creature_snapshots = tuple(
+            CreatureSnapshot(
+                creature_id=creature.id,
+                energy=creature.energy,
+                trophic_role=self._trophic_role(creature),
+                center_x=self._creature_centroid(creature).x if self._creature_centroid(creature) is not None else 0.0,
+                center_y=self._creature_centroid(creature).y if self._creature_centroid(creature) is not None else 0.0,
+            )
+            for creature in self.creatures
+        )
         return Snapshot(
             tick=self.tick,
             population=len(self.creatures) if self.creatures else len(self.nodes),
             phase_trace=list(self._phase_trace),
+            world_width=self.config.world.width,
+            world_height=self.config.world.height,
+            total_energy=sum(creature.energy for creature in self.creatures),
+            nodes=node_snapshots,
+            edges=edge_snapshots,
+            creatures=creature_snapshots,
         )
 
     def stats(self) -> Stats:
