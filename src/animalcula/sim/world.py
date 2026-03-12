@@ -16,6 +16,7 @@ from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, motor_cost, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.genome import (
+    cluster_species,
     coarse_species_signature,
     decode_genome,
     encode_creature_genome,
@@ -140,9 +141,10 @@ class World:
         Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
     def species_snapshots(self) -> list[dict[str, float | int | str]]:
+        species_labels = self._species_labels()
         grouped: dict[str, list[CreatureState]] = {}
         for creature in self.creatures:
-            species_id = coarse_species_signature(creature.genome)
+            species_id = species_labels.get(creature.id, coarse_species_signature(creature.genome))
             grouped.setdefault(species_id, []).append(creature)
 
         snapshots: list[dict[str, float | int | str]] = []
@@ -161,6 +163,7 @@ class World:
         return snapshots
 
     def phenotype_snapshots(self) -> list[dict[str, float | int | str]]:
+        species_labels = self._species_labels()
         snapshots: list[dict[str, float | int | str]] = []
         for creature in self.creatures:
             node_states = [self.nodes[node_index] for node_index in creature.node_indices]
@@ -177,7 +180,7 @@ class World:
                 {
                     "tick": self.tick,
                     "creature_id": creature.id,
-                    "species_id": coarse_species_signature(creature.genome),
+                    "species_id": species_labels.get(creature.id, coarse_species_signature(creature.genome)),
                     "num_nodes": len(creature.node_indices),
                     "num_edges": edge_count,
                     "mean_segment_length": (
@@ -264,11 +267,7 @@ class World:
         lineage_counts = Counter(
             genome_hash(creature.genome) for creature in self.creatures if creature.genome is not None
         )
-        species_counts = Counter(
-            coarse_species_signature(creature.genome)
-            for creature in self.creatures
-            if creature.genome is not None
-        )
+        species_counts = Counter(self._species_labels().values())
         autotroph_count = 0
         herbivore_count = 0
         predator_count = 0
@@ -954,6 +953,15 @@ class World:
             )
             ensured.append(replace(creature, genome=genome))
         return ensured
+
+    def _species_labels(self) -> dict[int, str]:
+        if not self.creatures:
+            return {}
+        labels = cluster_species(tuple(creature.genome for creature in self.creatures))
+        return {
+            creature.id: label
+            for creature, label in zip(self.creatures, labels, strict=True)
+        }
 
     def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
         updated: list[CreatureState] = []

@@ -114,6 +114,73 @@ def _resize_brain_for_outputs(
     )
 
 
+def genome_distance(left: CreatureGenome | None, right: CreatureGenome | None) -> float:
+    if left is None and right is None:
+        return 0.0
+    if left is None or right is None:
+        return 1_000.0
+
+    distance = 0.0
+    distance += abs(len(left.nodes) - len(right.nodes))
+    distance += abs(len(left.edges) - len(right.edges))
+
+    for node_type in MUTABLE_NODE_TYPES:
+        distance += abs(
+            sum(1 for node in left.nodes if node.node_type == node_type)
+            - sum(1 for node in right.nodes if node.node_type == node_type)
+        )
+
+    distance += abs(sum(1 for edge in left.edges if edge.has_motor) - sum(1 for edge in right.edges if edge.has_motor))
+
+    if left.nodes and right.nodes:
+        left_mean_radius = sum(node.radius for node in left.nodes) / len(left.nodes)
+        right_mean_radius = sum(node.radius for node in right.nodes) / len(right.nodes)
+        distance += abs(left_mean_radius - right_mean_radius)
+
+    if left.brain is None and right.brain is None:
+        return distance
+    if left.brain is None or right.brain is None:
+        return distance + 5.0
+
+    distance += abs(left.brain.output_size - right.brain.output_size) * 0.5
+    if len(left.brain.biases) == len(right.brain.biases):
+        distance += (
+            sum(abs(a - b) for a, b in zip(left.brain.biases, right.brain.biases, strict=True))
+            / max(len(left.brain.biases), 1)
+        ) * 0.1
+        distance += (
+            sum(abs(a - b) for a, b in zip(left.brain.time_constants, right.brain.time_constants, strict=True))
+            / max(len(left.brain.time_constants), 1)
+        ) * 0.05
+    return distance
+
+
+def cluster_species(
+    genomes: tuple[CreatureGenome | None, ...],
+    threshold: float = 1.5,
+) -> tuple[str, ...]:
+    labels = [""] * len(genomes)
+    species_index = 0
+
+    for start_index in range(len(genomes)):
+        if labels[start_index]:
+            continue
+        species_index += 1
+        label = f"species-{species_index:03d}"
+        labels[start_index] = label
+        stack = [start_index]
+        while stack:
+            current = stack.pop()
+            for other in range(len(genomes)):
+                if labels[other]:
+                    continue
+                if genome_distance(genomes[current], genomes[other]) <= threshold:
+                    labels[other] = label
+                    stack.append(other)
+
+    return tuple(labels)
+
+
 def encode_creature_genome(
     *,
     nodes: list[NodeState],

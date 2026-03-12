@@ -1,6 +1,13 @@
 import random
 
-from animalcula.sim.genome import CreatureGenome, decode_genome, encode_creature_genome, mutate_genome
+from animalcula.sim.genome import (
+    CreatureGenome,
+    cluster_species,
+    decode_genome,
+    encode_creature_genome,
+    genome_distance,
+    mutate_genome,
+)
 from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
 
 
@@ -282,3 +289,39 @@ def test_mutate_genome_can_toggle_a_motorized_edge() -> None:
     assert mutated.edges[0].has_motor is True
     assert mutated.brain is not None
     assert mutated.brain.output_size == 1
+
+
+def test_genome_distance_is_zero_for_identical_genomes() -> None:
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(),
+        brain=None,
+    )
+
+    assert genome_distance(genome, genome) == 0.0
+
+
+def test_cluster_species_groups_similar_genomes() -> None:
+    genome_a = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(),
+        brain=None,
+    )
+    genome_b = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.05, node_type=NodeType.BODY),),
+        edges=(),
+        brain=None,
+    )
+    genome_c = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.MOUTH),
+            CreatureGenome.NodeGene(position=Vec2(2.0, 0.0), radius=1.0, node_type=NodeType.GRIPPER),
+        ),
+        edges=(CreatureGenome.EdgeGene(a=0, b=1, rest_length=2.0, stiffness=1.0),),
+        brain=None,
+    )
+
+    labels = cluster_species((genome_a, genome_b, genome_c), threshold=0.5)
+
+    assert labels[0] == labels[1]
+    assert labels[0] != labels[2]
