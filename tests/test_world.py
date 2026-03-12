@@ -114,6 +114,43 @@ def test_world_step_updates_creature_energy_from_light() -> None:
     assert world.creatures[0].energy > 1.0
 
 
+def test_world_step_updates_creature_energy_from_nutrients() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    node = NodeState(
+        position=Vec2(100.0, 100.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+        node_type=NodeType.MOUTH,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+    world.nutrient_grid.set_value(col=20, row=20, value=2.0)
+
+    world.step()
+
+    assert world.creatures[0].energy > 1.0
+
+
+def test_world_removes_creature_when_energy_is_depleted() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    node = NodeState(
+        position=Vec2(10.0, 10.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    creature = CreatureState(node_indices=(0,), energy=0.0005)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    assert world.creatures == []
+    assert world.nodes == []
+
+
 def test_cli_run_command_advances_the_world() -> None:
     result = subprocess.run(
         [

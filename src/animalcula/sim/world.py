@@ -8,7 +8,7 @@ import random
 from typing import Callable
 
 from animalcula.config import Config
-from animalcula.sim.energy import basal_cost, photosynthesis_gain
+from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
 from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType
@@ -112,17 +112,29 @@ class World:
             receptor_nodes = [
                 node for node in creature_nodes if node.node_type == NodeType.PHOTORECEPTOR
             ]
+            mouth_nodes = [node for node in creature_nodes if node.node_type == NodeType.MOUTH]
             if receptor_nodes:
                 average_light = sum(
                     self.light_grid.sample(node.position) for node in receptor_nodes
                 ) / len(receptor_nodes)
             else:
                 average_light = 0.0
+            if mouth_nodes:
+                average_nutrients = sum(
+                    self.nutrient_grid.sample(node.position) for node in mouth_nodes
+                ) / len(mouth_nodes)
+            else:
+                average_nutrients = 0.0
 
             gain = photosynthesis_gain(
                 light_level=average_light,
                 receptor_count=len(receptor_nodes),
                 photosynthesis_rate=self.config.energy.photosynthesis_rate,
+            )
+            gain += feeding_gain(
+                nutrient_level=average_nutrients,
+                mouth_count=len(mouth_nodes),
+                feed_rate=self.config.energy.feed_rate,
             )
             cost = basal_cost(
                 node_count=len(creature_nodes),
@@ -133,4 +145,33 @@ class World:
         self.creatures = updated_creatures
 
     def _apply_lifecycle(self) -> None:
+        if not self.creatures:
+            return None
+
+        living_creatures = [creature for creature in self.creatures if creature.energy > 0.0]
+        if len(living_creatures) == len(self.creatures):
+            return None
+
+        live_node_indices = sorted(
+            {index for creature in living_creatures for index in creature.node_indices}
+        )
+        node_index_map = {old: new for new, old in enumerate(live_node_indices)}
+        self.nodes = [self.nodes[index] for index in live_node_indices]
+        self.edges = [
+            EdgeState(
+                a=node_index_map[edge.a],
+                b=node_index_map[edge.b],
+                rest_length=edge.rest_length,
+                stiffness=edge.stiffness,
+            )
+            for edge in self.edges
+            if edge.a in node_index_map and edge.b in node_index_map
+        ]
+        self.creatures = [
+            replace(
+                creature,
+                node_indices=tuple(node_index_map[index] for index in creature.node_indices),
+            )
+            for creature in living_creatures
+        ]
         return None

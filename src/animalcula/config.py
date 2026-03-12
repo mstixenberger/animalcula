@@ -36,6 +36,7 @@ class EnvironmentConfig:
 @dataclass(slots=True, frozen=True)
 class EnergyConfig:
     basal_cost_per_node: float
+    feed_rate: float
     photosynthesis_rate: float
 
 

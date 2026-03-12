@@ -18,6 +18,7 @@ environment:
 
 energy:
   basal_cost_per_node: 0.001
+  feed_rate: 0.01
   photosynthesis_rate: 0.005
 
 simulation:

@@ -1,6 +1,6 @@
 import math
 
-from animalcula.sim.energy import basal_cost, photosynthesis_gain
+from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 
 
 def test_basal_cost_scales_with_node_count() -> None:
@@ -15,3 +15,13 @@ def test_photosynthesis_gain_scales_with_light_and_receptors() -> None:
     )
 
     assert math.isclose(gain, 0.8)
+
+
+def test_feeding_gain_scales_with_nutrients_and_mouths() -> None:
+    gain = feeding_gain(
+        nutrient_level=1.5,
+        mouth_count=2,
+        feed_rate=0.25,
+    )
+
+    assert math.isclose(gain, 0.75)

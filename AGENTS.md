@@ -190,6 +190,7 @@ Current implementation baseline:
 - spring-connected edge accumulation for body structure
 - grid-backed nutrient and light field infrastructure
 - simple creature energy accounting with basal cost and photosynthesis
+- mouth-based nutrient feeding and dead-creature lifecycle cleanup
 - initial passing pytest suite
 
 ## Update Protocol
