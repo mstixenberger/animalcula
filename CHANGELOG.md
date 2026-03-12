@@ -34,6 +34,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Brain-equipped deterministic starter archetypes in the demo population
 - Motorized edges driven by brain outputs for simple joint actuation
 - Offspring brain weights, biases, and time constants mutate during reproduction
+- Sequential YAML-driven parameter sweep command with JSONL result export
 
 ### Changed
 

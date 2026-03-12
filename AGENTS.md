@@ -204,6 +204,7 @@ Current implementation baseline:
 - demo archetypes now include deterministic starter brains where appropriate
 - motorized edges driven by brain outputs for simple joint actuation
 - offspring brain weights, biases, and taus mutate during reproduction
+- sequential YAML-driven parameter sweep command for headless exploration
 - initial passing pytest suite
 
 ## Update Protocol

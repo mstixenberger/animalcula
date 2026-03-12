@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 
+from animalcula.analysis.sweep import run_sweep
 from animalcula.config import Config
 from animalcula.sim.world import World
 
@@ -23,6 +24,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
+
+    sweep_parser = subparsers.add_parser("sweep", help="Run a sequential parameter sweep")
+    sweep_parser.add_argument("--config", default="config/default.yaml")
+    sweep_parser.add_argument("--sweep", required=True)
+    sweep_parser.add_argument("--ticks", type=int, default=1)
+    sweep_parser.add_argument("--seed", type=int, default=None)
+    sweep_parser.add_argument("--seed-demo", action="store_true")
+    sweep_parser.add_argument("--out", required=True)
 
     return parser
 
@@ -53,6 +62,18 @@ def main() -> int:
     if args.command == "report":
         world = World.load(args.checkpoint)
         print(_format_stats(world.seed, world.stats()))
+        return 0
+
+    if args.command == "sweep":
+        completed = run_sweep(
+            config_path=args.config,
+            sweep_path=args.sweep,
+            ticks=args.ticks,
+            seed=args.seed,
+            seed_demo=args.seed_demo,
+            out_path=args.out,
+        )
+        print(f"completed={completed} out={args.out}")
         return 0
 
     parser.error(f"unknown command: {args.command}")

@@ -60,8 +60,9 @@ uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-d
 uv run animalcula run --resume checkpoints/demo.json --ticks 100
 uv run animalcula run --config config/default.yaml --ticks 1 --seed 42 --seed-demo --set energy.reproduction_threshold=0.1
 uv run animalcula report checkpoints/demo.json
+uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --out results.jsonl
 ```
 
 ## Next Build Step
 
-Build upward from the first mutation-bearing joint-actuated brain loop into broader evolution: richer mutation operators, better motor mappings, reproduction controls, and better headless tooling.
+Build upward from the sweep-capable mutation-bearing brain loop into broader evolution: richer mutation operators, better motor mappings, reproduction controls, and better headless tooling.
