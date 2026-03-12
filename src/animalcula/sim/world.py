@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from dataclasses import replace
+import json
+from pathlib import Path
 import random
 from typing import Callable
 
@@ -12,7 +14,7 @@ from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
 from animalcula.sim.seeding import build_demo_archetypes
-from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType
+from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType, Vec2
 
 
 @dataclass(slots=True, frozen=True)
@@ -87,6 +89,87 @@ class World:
             edge_count=len(self.edges),
             total_energy=sum(creature.energy for creature in self.creatures),
         )
+
+    def save(self, path: str | Path) -> None:
+        payload = {
+            "config": self.config.to_dict(),
+            "seed": self.seed,
+            "tick": self.tick,
+            "nodes": [
+                {
+                    "position": [node.position.x, node.position.y],
+                    "velocity": [node.velocity.x, node.velocity.y],
+                    "accumulated_force": [
+                        node.accumulated_force.x,
+                        node.accumulated_force.y,
+                    ],
+                    "drag_coeff": node.drag_coeff,
+                    "radius": node.radius,
+                    "node_type": node.node_type.value,
+                }
+                for node in self.nodes
+            ],
+            "edges": [
+                {
+                    "a": edge.a,
+                    "b": edge.b,
+                    "rest_length": edge.rest_length,
+                    "stiffness": edge.stiffness,
+                }
+                for edge in self.edges
+            ],
+            "creatures": [
+                {
+                    "node_indices": list(creature.node_indices),
+                    "energy": creature.energy,
+                }
+                for creature in self.creatures
+            ],
+            "nutrient_grid": self.nutrient_grid.values,
+            "light_grid": self.light_grid.values,
+            "nutrient_source_cells": self._nutrient_source_cells,
+        }
+        Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    @classmethod
+    def load(cls, path: str | Path) -> "World":
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        world = cls(
+            config=Config.from_dict(payload["config"]),
+            seed=payload["seed"],
+            nodes=[
+                NodeState(
+                    position=Vec2(*node["position"]),
+                    velocity=Vec2(*node["velocity"]),
+                    accumulated_force=Vec2(*node["accumulated_force"]),
+                    drag_coeff=node["drag_coeff"],
+                    radius=node["radius"],
+                    node_type=NodeType(node["node_type"]),
+                )
+                for node in payload["nodes"]
+            ],
+            edges=[
+                EdgeState(
+                    a=edge["a"],
+                    b=edge["b"],
+                    rest_length=edge["rest_length"],
+                    stiffness=edge["stiffness"],
+                )
+                for edge in payload["edges"]
+            ],
+            creatures=[
+                CreatureState(
+                    node_indices=tuple(creature["node_indices"]),
+                    energy=creature["energy"],
+                )
+                for creature in payload["creatures"]
+            ],
+        )
+        world.tick = payload["tick"]
+        world.nutrient_grid.values = payload["nutrient_grid"]
+        world.light_grid.values = payload["light_grid"]
+        world._nutrient_source_cells = [tuple(cell) for cell in payload["nutrient_source_cells"]]
+        return world
 
     def random_unit(self) -> float:
         return self._rng.random()

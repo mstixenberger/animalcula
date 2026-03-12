@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -56,6 +57,10 @@ class Config:
     @classmethod
     def from_yaml(cls, path: str | Path) -> "Config":
         raw = _load_yaml(path)
+        return cls.from_dict(raw)
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> "Config":
         return cls(
             world=WorldConfig(**raw["world"]),
             physics=PhysicsConfig(**raw["physics"]),
@@ -68,6 +73,9 @@ class Config:
             energy=EnergyConfig(**raw["energy"]),
             simulation=SimulationConfig(**raw["simulation"]),
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 def _load_yaml(path: str | Path) -> dict[str, Any]:

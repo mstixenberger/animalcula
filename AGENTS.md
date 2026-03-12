@@ -194,6 +194,7 @@ Current implementation baseline:
 - deterministic nutrient source placement in the default world
 - deterministic starter archetype seeding for demo worlds
 - world stats reporting and richer CLI run summaries
+- JSON checkpoint save/load for headless workflow continuity
 - initial passing pytest suite
 
 ## Update Protocol
