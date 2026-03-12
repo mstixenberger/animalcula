@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 import math
+
+
+class NodeType(str, Enum):
+    BODY = "body"
+    MOUTH = "mouth"
+    PHOTORECEPTOR = "photoreceptor"
 
 
 @dataclass(slots=True, frozen=True)
@@ -44,6 +51,7 @@ class NodeState:
     accumulated_force: Vec2
     drag_coeff: float
     radius: float
+    node_type: NodeType = NodeType.BODY
 
 
 @dataclass(slots=True, frozen=True)
@@ -52,3 +60,9 @@ class EdgeState:
     b: int
     rest_length: float
     stiffness: float
+
+
+@dataclass(slots=True, frozen=True)
+class CreatureState:
+    node_indices: tuple[int, ...]
+    energy: float

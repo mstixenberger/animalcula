@@ -34,6 +34,12 @@ class EnvironmentConfig:
 
 
 @dataclass(slots=True, frozen=True)
+class EnergyConfig:
+    basal_cost_per_node: float
+    photosynthesis_rate: float
+
+
+@dataclass(slots=True, frozen=True)
 class SimulationConfig:
     initial_seed: int
 
@@ -43,6 +49,7 @@ class Config:
     world: WorldConfig
     physics: PhysicsConfig
     environment: EnvironmentConfig
+    energy: EnergyConfig
     simulation: SimulationConfig
 
     @classmethod
@@ -57,6 +64,7 @@ class Config:
                     "light_direction": tuple(raw["environment"]["light_direction"]),
                 }
             ),
+            energy=EnergyConfig(**raw["energy"]),
             simulation=SimulationConfig(**raw["simulation"]),
         )
 

@@ -189,6 +189,7 @@ Current implementation baseline:
 - node-level overdamped dynamics helpers
 - spring-connected edge accumulation for body structure
 - grid-backed nutrient and light field infrastructure
+- simple creature energy accounting with basal cost and photosynthesis
 - initial passing pytest suite
 
 ## Update Protocol

@@ -13,6 +13,8 @@ def test_loads_default_config() -> None:
     assert config.physics.dt == 0.01
     assert config.environment.light_intensity_max == 1.0
     assert config.environment.light_direction == (1.0, 0.0)
+    assert config.energy.basal_cost_per_node == 0.001
+    assert config.energy.photosynthesis_rate == 0.005
     assert config.simulation.initial_seed == 42
 
 

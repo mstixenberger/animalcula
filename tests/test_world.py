@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from animalcula import Config, World
-from animalcula.sim.types import EdgeState, NodeState, Vec2
+from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType, Vec2
 
 
 def test_world_uses_default_seed_when_none_is_provided() -> None:
@@ -30,6 +30,7 @@ def test_world_step_advances_tick_and_returns_snapshot() -> None:
         "sensing",
         "brain",
         "physics",
+        "energy",
         "lifecycle",
     ]
 
@@ -93,6 +94,24 @@ def test_world_step_applies_edge_springs_before_integration() -> None:
 
     assert world.nodes[0].position.x > 0.0
     assert world.nodes[1].position.x < 3.0
+
+
+def test_world_step_updates_creature_energy_from_light() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    node = NodeState(
+        position=Vec2(995.0, 500.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    assert world.creatures[0].energy > 1.0
 
 
 def test_cli_run_command_advances_the_world() -> None:

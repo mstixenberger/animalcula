@@ -19,6 +19,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Phase-ordered world stepping with basic node integration under test
 - Edge runtime types and spring accumulation for connected body structure
 - Grid-backed environment fields with a static directional light gradient
+- Creature energy helpers and a world energy phase with basal cost and photosynthesis
 
 ### Changed
 

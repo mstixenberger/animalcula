@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import replace
 import random
 from typing import Callable
 
 from animalcula.config import Config
+from animalcula.sim.energy import basal_cost, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
-from animalcula.sim.types import EdgeState, NodeState
+from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType
 
 
 @dataclass(slots=True, frozen=True)
@@ -28,12 +30,14 @@ class World:
         seed: int | None = None,
         nodes: list[NodeState] | None = None,
         edges: list[EdgeState] | None = None,
+        creatures: list[CreatureState] | None = None,
     ) -> None:
         self.config = config
         self.seed = config.simulation.initial_seed if seed is None else seed
         self.tick = 0
         self.nodes = list(nodes or [])
         self.edges = list(edges or [])
+        self.creatures = list(creatures or [])
         self._phase_trace: list[str] = []
         self._rng = random.Random(self.seed)
         self.nutrient_grid = Grid2D(
@@ -60,7 +64,7 @@ class World:
     def snapshot(self) -> Snapshot:
         return Snapshot(
             tick=self.tick,
-            population=len(self.nodes),
+            population=len(self.creatures) if self.creatures else len(self.nodes),
             phase_trace=list(self._phase_trace),
         )
 
@@ -73,6 +77,7 @@ class World:
         self._run_phase("sensing", self._sense_environment)
         self._run_phase("brain", self._update_brains)
         self._run_phase("physics", self._apply_physics)
+        self._run_phase("energy", self._apply_energy)
         self._run_phase("lifecycle", self._apply_lifecycle)
         self.tick += 1
         return self.snapshot()
@@ -99,6 +104,33 @@ class World:
             apply_overdamped_dynamics(node=node, dt=self.config.physics.dt)
             for node in self.nodes
         ]
+
+    def _apply_energy(self) -> None:
+        updated_creatures: list[CreatureState] = []
+        for creature in self.creatures:
+            creature_nodes = [self.nodes[index] for index in creature.node_indices]
+            receptor_nodes = [
+                node for node in creature_nodes if node.node_type == NodeType.PHOTORECEPTOR
+            ]
+            if receptor_nodes:
+                average_light = sum(
+                    self.light_grid.sample(node.position) for node in receptor_nodes
+                ) / len(receptor_nodes)
+            else:
+                average_light = 0.0
+
+            gain = photosynthesis_gain(
+                light_level=average_light,
+                receptor_count=len(receptor_nodes),
+                photosynthesis_rate=self.config.energy.photosynthesis_rate,
+            )
+            cost = basal_cost(
+                node_count=len(creature_nodes),
+                basal_cost_per_node=self.config.energy.basal_cost_per_node,
+            )
+            updated_creatures.append(replace(creature, energy=creature.energy + gain - cost))
+
+        self.creatures = updated_creatures
 
     def _apply_lifecycle(self) -> None:
         return None

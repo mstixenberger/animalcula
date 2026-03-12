@@ -16,5 +16,9 @@ environment:
   light_intensity_max: 1.0
   light_direction: [1.0, 0.0]
 
+energy:
+  basal_cost_per_node: 0.001
+  photosynthesis_rate: 0.005
+
 simulation:
   initial_seed: 42
