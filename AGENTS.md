@@ -210,6 +210,7 @@ Current implementation baseline:
 - stable creature IDs and an append-only event log for birth, death, and reproduction
 - event counts exposed through stats, CLI reporting, and sweep results
 - interestingness scoring now rewards lifecycle activity, not just static population/energy
+- checkpoint-backed CLI event export for direct observation of run history
 - initial passing pytest suite
 
 ## Update Protocol

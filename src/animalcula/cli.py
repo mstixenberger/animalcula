@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 
 from animalcula.analysis.sweep import run_sweep
 from animalcula.config import Config
@@ -24,6 +25,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
+
+    events_parser = subparsers.add_parser("events", help="Print checkpoint events as JSON lines")
+    events_parser.add_argument("checkpoint")
 
     sweep_parser = subparsers.add_parser("sweep", help="Run a sequential parameter sweep")
     sweep_parser.add_argument("--config", default="config/default.yaml")
@@ -62,6 +66,22 @@ def main() -> int:
     if args.command == "report":
         world = World.load(args.checkpoint)
         print(_format_stats(world.seed, world.stats()))
+        return 0
+
+    if args.command == "events":
+        world = World.load(args.checkpoint)
+        for event in world.events:
+            print(
+                json.dumps(
+                    {
+                        "tick": event.tick,
+                        "event_type": event.event_type,
+                        "creature_id": event.creature_id,
+                        "parent_ids": list(event.parent_ids),
+                        "energy": event.energy,
+                    }
+                )
+            )
         return 0
 
     if args.command == "sweep":

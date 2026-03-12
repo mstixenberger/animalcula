@@ -469,6 +469,45 @@ def test_cli_report_command_reads_checkpoint(tmp_path: Path) -> None:
     assert "births=3" in result.stdout
 
 
+def test_cli_events_command_reads_checkpoint_events(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "saved-world.json"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "1",
+            "--seed",
+            "11",
+            "--seed-demo",
+            "--save",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "events",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "\"event_type\": \"birth\"" in result.stdout
+
+
 def test_cli_run_command_accepts_config_overrides() -> None:
     result = subprocess.run(
         [

@@ -4,7 +4,7 @@ Animalcula is a 2D artificial life simulator centered on evolved, physics-based 
 
 ## Status
 
-The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, spring-connected node integration, grid-backed environment fields, a first creature energy loop, nutrient feeding, lifecycle cleanup on depletion, deterministic nutrient sources, deterministic starter archetypes, a CTRNN brain runtime with simple sensor-to-motor integration, motorized edges with brain-driven actuation, stable creature IDs, an append-only event log for births/deaths/reproduction, event-aware stats/reporting/sweep output, lifecycle-aware sweep scoring, JSON checkpoints, a first asexual reproduction path, deterministic offspring body mutation, offspring brain parameter mutation, offspring motor-strength mutation, and a passing test suite.
+The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, spring-connected node integration, grid-backed environment fields, a first creature energy loop, nutrient feeding, lifecycle cleanup on depletion, deterministic nutrient sources, deterministic starter archetypes, a CTRNN brain runtime with simple sensor-to-motor integration, motorized edges with brain-driven actuation, stable creature IDs, an append-only event log for births/deaths/reproduction, event-aware stats/reporting/sweep output, lifecycle-aware sweep scoring, checkpoint-backed event export, JSON checkpoints, a first asexual reproduction path, deterministic offspring body mutation, offspring brain parameter mutation, offspring motor-strength mutation, and a passing test suite.
 
 ## Development Priorities
 
@@ -60,6 +60,7 @@ uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-d
 uv run animalcula run --resume checkpoints/demo.json --ticks 100
 uv run animalcula run --config config/default.yaml --ticks 1 --seed 42 --seed-demo --set energy.reproduction_threshold=0.1
 uv run animalcula report checkpoints/demo.json
+uv run animalcula events checkpoints/demo.json
 uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --out results.jsonl
 ```
 
