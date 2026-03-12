@@ -238,3 +238,47 @@ def test_mutate_genome_expands_outputs_to_match_morphology() -> None:
 
     assert mutated.brain is not None
     assert mutated.brain.output_size == 3
+
+
+def test_mutate_genome_can_toggle_a_motorized_edge() -> None:
+    rng = random.Random(7)
+    genome = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),
+            CreatureGenome.NodeGene(position=Vec2(2.0, 0.0), radius=1.0, node_type=NodeType.BODY),
+        ),
+        edges=(
+            CreatureGenome.EdgeGene(
+                a=0,
+                b=1,
+                rest_length=2.0,
+                stiffness=1.0,
+                has_motor=False,
+                motor_strength=0.0,
+            ),
+        ),
+        brain=CreatureGenome.BrainGene(
+            input_weights=((0.0,) * 16,),
+            recurrent_weights=((0.0,),),
+            biases=(0.0,),
+            time_constants=(1.0,),
+            output_size=0,
+        ),
+    )
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        node_type_mutation_rate=0.0,
+        motor_toggle_mutation_rate=1.0,
+    )
+
+    assert mutated.edges[0].has_motor is True
+    assert mutated.brain is not None
+    assert mutated.brain.output_size == 1

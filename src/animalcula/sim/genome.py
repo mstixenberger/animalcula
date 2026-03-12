@@ -214,6 +214,7 @@ def mutate_genome(
     bias_sigma: float,
     tau_sigma: float,
     motor_strength_sigma: float,
+    motor_toggle_mutation_rate: float = 0.0,
     node_type_mutation_rate: float = 0.0,
     structural_mutation_rate: float = 0.0,
 ) -> CreatureGenome:
@@ -239,12 +240,27 @@ def mutate_genome(
             b=edge.b,
             rest_length=edge.rest_length,
             stiffness=edge.stiffness,
-            has_motor=edge.has_motor,
-            motor_strength=max(0.0, edge.motor_strength + rng.gauss(0.0, motor_strength_sigma))
-            if edge.has_motor
-            else edge.motor_strength,
+            has_motor=(not edge.has_motor) if rng.random() < motor_toggle_mutation_rate else edge.has_motor,
+            motor_strength=0.0,
         )
         for edge in genome.edges
+    ]
+    mutated_edges = [
+        GenomeEdgeGene(
+            a=edge.a,
+            b=edge.b,
+            rest_length=edge.rest_length,
+            stiffness=edge.stiffness,
+            has_motor=edge.has_motor,
+            motor_strength=(
+                max(0.5, abs(rng.gauss(1.0, max(motor_strength_sigma, 0.1))))
+                if edge.has_motor and not original_edge.has_motor
+                else max(0.0, original_edge.motor_strength + rng.gauss(0.0, motor_strength_sigma))
+                if edge.has_motor
+                else 0.0
+            ),
+        )
+        for edge, original_edge in zip(mutated_edges, genome.edges, strict=True)
     ]
     if mutated_nodes and rng.random() < structural_mutation_rate:
         parent_index = rng.randrange(len(mutated_nodes))

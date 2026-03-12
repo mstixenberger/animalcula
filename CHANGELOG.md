@@ -74,6 +74,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Gripper contact and active-state signals in the brain input pipeline
 - Node-type genome mutation across body, mouth, gripper, sensor, and photoreceptor roles
 - Automatic CTRNN output resizing during genome mutation so control-channel counts stay valid as morphology changes
+- Motor-topology genome mutation that can convert passive edges into motorized joints
 
 ### Changed
 

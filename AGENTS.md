@@ -242,6 +242,7 @@ Current implementation baseline:
 - gripper contact/active state is now part of the sensed control state and grip upkeep contributes to the energy budget
 - genome mutation can now change node roles across body, mouth, gripper, sensor, and photoreceptor types
 - genome mutation now resizes CTRNN output capacity to stay aligned with morphology control requirements while preserving surplus control channels
+- genome mutation can now toggle passive edges into motorized joints, broadening the control topology that evolution can explore
 - initial passing pytest suite
 
 ## Update Protocol
