@@ -537,6 +537,8 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
     assert stats.births == 3
     assert stats.deaths == 0
     assert stats.reproductions == 0
+    assert stats.lineage_count == 3
+    assert stats.diversity_index > 0.0
 
 
 def test_cli_run_command_advances_the_world() -> None:
@@ -558,7 +560,10 @@ def test_cli_run_command_advances_the_world() -> None:
         text=True,
     )
 
-    assert result.stdout.strip() == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0"
+    assert (
+        result.stdout.strip()
+        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 lineages=0 diversity=0.000"
+    )
 
 
 def test_cli_run_command_can_seed_from_exported_genomes(tmp_path: Path) -> None:
@@ -613,6 +618,7 @@ def test_cli_run_command_can_seed_demo_world() -> None:
 
     assert "population=3" in result.stdout
     assert "births=3" in result.stdout
+    assert "lineages=3" in result.stdout
 
 
 def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:

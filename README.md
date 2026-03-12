@@ -4,7 +4,7 @@ Animalcula is a 2D artificial life simulator centered on evolved, physics-based 
 
 ## Status
 
-The repository now has an executable headless prototype. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a headless CLI, YAML config loading, dedicated default/nursery/turbo profiles, phase-ordered world stepping, overdamped spring-mass physics, soft node repulsion, grid-backed nutrient/light/detritus fields, nutrient diffusion and decay, finite nutrient consumption, detritus recycling, deterministic nutrient sources, deterministic starter archetypes, a direct genome encoding for morphology and CTRNN parameters, genome-driven reproduction, genome export/import for headless seeding, a CTRNN brain runtime with energy, age, and field-gradient sensing, motorized edges with brain-driven actuation, stable creature IDs, creature age tracking, and lifecycle events that now carry deterministic genome hashes for lineage-oriented logging.
+The repository now has an executable headless prototype. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a headless CLI, YAML config loading, dedicated default/nursery/turbo profiles, phase-ordered world stepping, overdamped spring-mass physics, soft node repulsion, grid-backed nutrient/light/detritus fields, nutrient diffusion and decay, finite nutrient consumption, detritus recycling, deterministic nutrient sources, deterministic starter archetypes, a direct genome encoding for morphology and CTRNN parameters, genome-driven reproduction, genome export/import for headless seeding, a CTRNN brain runtime with energy, age, and field-gradient sensing, motorized edges with brain-driven actuation, stable creature IDs, creature age tracking, deterministic genome hashes in lifecycle events, and lineage-aware stats/reporting with lineage count and Shannon diversity.
 
 ## Development Priorities
 
@@ -71,4 +71,4 @@ uv run animalcula run --config config/turbo.yaml --ticks 300 --seed 42 --seed-de
 
 ## Next Build Step
 
-Build upward from the headless nursery/recycling/turbo/genome loop into fuller evolution and analytics: tighter energy tuning, richer motor control, lineage/speciation metrics, and a less ad hoc seed library format.
+Build upward from the headless nursery/recycling/turbo/genome loop into fuller evolution and analytics: tighter energy tuning, richer motor control, stronger lineage/speciation metrics, and a less ad hoc seed library format.

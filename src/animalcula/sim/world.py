@@ -7,8 +7,10 @@ from dataclasses import replace
 import json
 from pathlib import Path
 import random
+from collections import Counter
 from typing import Callable
 
+from animalcula.analysis.metrics import shannon_diversity
 from animalcula.config import Config
 from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, photosynthesis_gain
@@ -48,6 +50,8 @@ class Stats:
     births: int
     deaths: int
     reproductions: int
+    lineage_count: int
+    diversity_index: float
 
 
 class World:
@@ -181,6 +185,9 @@ class World:
         births = sum(1 for event in self.events if event.event_type == "birth")
         deaths = sum(1 for event in self.events if event.event_type == "death")
         reproductions = sum(1 for event in self.events if event.event_type == "reproduction")
+        lineage_counts = Counter(
+            genome_hash(creature.genome) for creature in self.creatures if creature.genome is not None
+        )
         return Stats(
             tick=self.tick,
             population=len(self.creatures) if self.creatures else len(self.nodes),
@@ -190,6 +197,8 @@ class World:
             births=births,
             deaths=deaths,
             reproductions=reproductions,
+            lineage_count=len(lineage_counts),
+            diversity_index=shannon_diversity(dict(lineage_counts)),
         )
 
     def save(self, path: str | Path) -> None:
