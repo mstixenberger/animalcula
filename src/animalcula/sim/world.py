@@ -50,6 +50,7 @@ class World:
             height=self.config.world.height,
             resolution=self.config.world.grid_resolution,
         )
+        self._nutrient_source_cells = self._initialize_nutrient_sources()
         self._update_environment()
 
     def step(self, ticks: int = 1) -> Snapshot:
@@ -87,6 +88,12 @@ class World:
         func()
 
     def _update_environment(self) -> None:
+        for col, row in self._nutrient_source_cells:
+            self.nutrient_grid.set_value(
+                col=col,
+                row=row,
+                value=self.config.environment.nutrient_source_strength,
+            )
         self.light_grid.fill_light_gradient(
             direction=self.config.environment.light_direction,
             intensity=self.config.environment.light_intensity_max,
@@ -175,3 +182,14 @@ class World:
             for creature in living_creatures
         ]
         return None
+
+    def _initialize_nutrient_sources(self) -> list[tuple[int, int]]:
+        source_cells: set[tuple[int, int]] = set()
+        while len(source_cells) < self.config.environment.nutrient_source_count:
+            source_cells.add(
+                (
+                    self._rng.randrange(self.nutrient_grid.cols),
+                    self._rng.randrange(self.nutrient_grid.rows),
+                )
+            )
+        return sorted(source_cells)

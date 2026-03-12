@@ -35,3 +35,18 @@ def test_world_light_grid_forms_a_directional_gradient() -> None:
     right = world.light_grid.sample(Vec2(995.0, 500.0))
 
     assert right > left
+
+
+def test_world_initializes_positive_nutrient_sources() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config)
+
+    assert any(value > 0.0 for value in world.nutrient_grid.values)
+
+
+def test_nutrient_source_placement_is_deterministic_for_seed() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world_a = World(config=config, seed=123)
+    world_b = World(config=config, seed=123)
+
+    assert world_a.nutrient_grid.values == world_b.nutrient_grid.values
