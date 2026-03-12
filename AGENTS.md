@@ -209,6 +209,7 @@ Current implementation baseline:
 - offspring motor strengths mutate during reproduction
 - stable creature IDs and an append-only event log for birth, death, and reproduction
 - event counts exposed through stats, CLI reporting, and sweep results
+- interestingness scoring now rewards lifecycle activity, not just static population/energy
 - initial passing pytest suite
 
 ## Update Protocol

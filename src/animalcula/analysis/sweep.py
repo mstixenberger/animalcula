@@ -48,6 +48,9 @@ def run_sweep(
                 "interestingness": interestingness_score(
                     population=stats.population,
                     total_energy=stats.total_energy,
+                    births=stats.births,
+                    deaths=stats.deaths,
+                    reproductions=stats.reproductions,
                 ),
             }
         )

@@ -39,6 +39,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Offspring motor strengths mutate during reproduction
 - Stable creature IDs and append-only birth/death/reproduction event logging
 - Event counts exposed through stats, CLI reporting, and sweep results
+- Interestingness scoring now rewards lifecycle activity as well as population/energy
 
 ### Changed
 

@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 
-def interestingness_score(population: int, total_energy: float) -> float:
+def interestingness_score(
+    population: int,
+    total_energy: float,
+    births: int,
+    deaths: int,
+    reproductions: int,
+) -> float:
     if population <= 0:
         return 0.0
-    return float(population) + max(total_energy, 0.0)
+    return float(population) + max(total_energy, 0.0) + (0.5 * births) + deaths + reproductions
