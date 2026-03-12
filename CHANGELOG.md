@@ -58,6 +58,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Lineage count and Shannon diversity now surface in stats, CLI output, stats logs, and sweep results
 - Brain outputs can now explicitly permit or suppress reproduction when a creature has a reproduce control channel
 - Motor actuation now contributes to per-tick energy cost
+- Mouth nodes can now scavenge energy directly from detritus patches
 
 ### Changed
 

@@ -228,6 +228,7 @@ Current implementation baseline:
 - world stats, CLI output, and sweep results now expose lineage count and Shannon diversity
 - brains can now explicitly gate reproduction if they expose an extra reproduce output beyond motor channels
 - the energy budget now charges for motor actuation as well as basal upkeep
+- mouths can now scavenge energy directly from detritus patches, not just wait for recycling
 - initial passing pytest suite
 
 ## Update Protocol

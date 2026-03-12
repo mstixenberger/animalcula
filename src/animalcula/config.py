@@ -41,6 +41,7 @@ class EnvironmentConfig:
 class EnergyConfig:
     basal_cost_per_node: float
     feed_rate: float
+    scavenging_rate: float
     photosynthesis_rate: float
     motor_cost_per_unit: float
     reproduction_threshold: float

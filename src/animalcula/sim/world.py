@@ -535,6 +535,13 @@ class World:
                 )
                 for node in mouth_nodes
             )
+            gain += sum(
+                self.detritus_grid.consume_at_position(
+                    position=node.position,
+                    amount=self.config.energy.scavenging_rate * self.detritus_grid.sample(node.position),
+                )
+                for node in mouth_nodes
+            )
             cost = basal_cost(
                 node_count=len(creature_nodes),
                 basal_cost_per_node=self.config.energy.basal_cost_per_node,

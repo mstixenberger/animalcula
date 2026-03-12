@@ -395,6 +395,26 @@ def test_world_recycles_detritus_back_into_nutrients() -> None:
     assert world.nutrient_grid.sample(Vec2(2.5, 2.5)) > nutrient_before
 
 
+def test_world_can_scavenge_energy_from_detritus() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    node = NodeState(
+        position=Vec2(100.0, 100.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+        node_type=NodeType.MOUTH,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+    world.detritus_grid.set_value(col=20, row=20, value=2.0)
+
+    world.step()
+
+    assert world.creatures[0].energy > 1.0
+    assert world.detritus_grid.sample(Vec2(100.0, 100.0)) < 2.0
+
+
 def test_world_turbo_mode_skips_expensive_field_updates_between_full_ticks() -> None:
     config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["environment.nutrient_source_count=0"])
     world = World(config=config, turbo=True)
