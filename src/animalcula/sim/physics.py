@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from animalcula.sim.types import EdgeState, NodeState, Vec2
+from animalcula.sim.types import EdgeState, GripLatch, NodeState, Vec2
 
 
 def spring_force(a: Vec2, b: Vec2, rest_length: float, stiffness: float) -> Vec2:
@@ -107,5 +107,34 @@ def apply_node_repulsion(nodes: list[NodeState], strength: float) -> list[NodeSt
                 updated_nodes[b_index],
                 accumulated_force=updated_nodes[b_index].accumulated_force + force,
             )
+
+    return updated_nodes
+
+
+def apply_grip_latches(
+    nodes: list[NodeState],
+    latches: list[GripLatch],
+    stiffness: float,
+) -> list[NodeState]:
+    if stiffness <= 0.0 or not latches:
+        return list(nodes)
+
+    updated_nodes = list(nodes)
+
+    for latch in latches:
+        force = spring_force(
+            a=updated_nodes[latch.node_a_index].position,
+            b=updated_nodes[latch.node_b_index].position,
+            rest_length=latch.rest_length,
+            stiffness=stiffness,
+        )
+        updated_nodes[latch.node_a_index] = replace(
+            updated_nodes[latch.node_a_index],
+            accumulated_force=updated_nodes[latch.node_a_index].accumulated_force + force,
+        )
+        updated_nodes[latch.node_b_index] = replace(
+            updated_nodes[latch.node_b_index],
+            accumulated_force=updated_nodes[latch.node_b_index].accumulated_force - force,
+        )
 
     return updated_nodes

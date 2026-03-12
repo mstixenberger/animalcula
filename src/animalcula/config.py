@@ -23,6 +23,8 @@ class PhysicsConfig:
     dt: float
     default_drag: float
     contact_repulsion: float
+    grip_spring_stiffness: float
+    grip_yield_force: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -46,6 +48,7 @@ class EnergyConfig:
     scavenging_rate: float
     photosynthesis_rate: float
     motor_cost_per_unit: float
+    grip_cost: float
     predation_rate: float
     predation_transfer_efficiency: float
     reproduction_threshold: float

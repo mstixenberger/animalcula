@@ -70,10 +70,13 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Chemical A/B environment grids with diffusion and decay
 - Sensor-node chemical sensing, including local chemical gradients in brain inputs
 - Brain-driven chemical emission and alarm-chemical deposition during predation
+- A first gripper mechanics slice with latch creation, release, checkpoint persistence, and grip-spring forces
+- Gripper contact and active-state signals in the brain input pipeline
 
 ### Changed
 
 - Locked Python environment and dependency management to `uv` only
 - Feeding now consumes nutrients from the field instead of sampling an effectively infinite food source
-- Brain configs now default to the expanded 14-channel sensing vector used by the current world runtime
+- Brain configs now default to the expanded 16-channel sensing vector used by the current world runtime
 - Species and phenotype snapshot exports now expose richer morphology and motion summaries
+- Active grip latches now contribute to the per-tick energy budget

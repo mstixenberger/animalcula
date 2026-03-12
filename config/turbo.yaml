@@ -8,6 +8,8 @@ physics:
   dt: 0.02
   default_drag: 1.0
   contact_repulsion: 2.0
+  grip_spring_stiffness: 150.0
+  grip_yield_force: 40.0
 
 environment:
   nutrient_diffusion_rate: 0.05
@@ -27,6 +29,7 @@ energy:
   scavenging_rate: 0.01
   photosynthesis_rate: 0.005
   motor_cost_per_unit: 0.001
+  grip_cost: 0.001
   predation_rate: 0.05
   predation_transfer_efficiency: 0.6
   reproduction_threshold: 100.0
@@ -41,7 +44,7 @@ evolution:
   structural_mutation_rate: 0.0
 
 brain:
-  default_input_size: 14
+  default_input_size: 16
   motor_force_scale: 1.0
 
 creatures:

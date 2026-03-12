@@ -95,6 +95,15 @@ class CreatureState:
 
 
 @dataclass(slots=True, frozen=True)
+class GripLatch:
+    creature_a_id: int
+    node_a_index: int
+    creature_b_id: int
+    node_b_index: int
+    rest_length: float
+
+
+@dataclass(slots=True, frozen=True)
 class EventRecord:
     tick: int
     event_type: str

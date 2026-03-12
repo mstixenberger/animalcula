@@ -155,7 +155,7 @@ def test_world_sensing_tracks_field_gradients() -> None:
     world.step()
 
     sensed = world.creatures[0].last_sensed_inputs
-    assert len(sensed) == 14
+    assert len(sensed) == 16
     assert sensed[3] > 0.0
     assert sensed[5] > 0.0
     assert sensed[7] > 0.0
@@ -168,10 +168,10 @@ def test_world_brain_outputs_can_emit_chemicals() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     brain = BrainState(
         input_weights=(
-            (0.0,) * 14,
-            (0.0,) * 14,
-            (0.0,) * 14,
-            (0.0,) * 14,
+            (0.0,) * 16,
+            (0.0,) * 16,
+            (0.0,) * 16,
+            (0.0,) * 16,
         ),
         recurrent_weights=(
             (0.0, 0.0, 0.0, 0.0),
@@ -201,6 +201,223 @@ def test_world_brain_outputs_can_emit_chemicals() -> None:
 
     assert world.chemical_a_grid.sample(Vec2(100.0, 100.0)) > 0.0
     assert world.chemical_b_grid.sample(Vec2(100.0, 100.0)) > 0.0
+
+
+def test_world_can_latch_grippers_when_outputs_are_active() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.grip_cost=0.0",
+        ]
+    )
+    grip_brain = BrainState(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
+            position=Vec2(101.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, brain=grip_brain),
+        CreatureState(node_indices=(1,), energy=1.0, brain=grip_brain),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+
+    assert len(world.grip_latches) == 1
+
+
+def test_world_releases_grippers_when_outputs_drop_inactive() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.grip_cost=0.0",
+        ]
+    )
+    active_brain = BrainState(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    inactive_brain = BrainState(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(-10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
+            position=Vec2(101.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, brain=active_brain),
+        CreatureState(node_indices=(1,), energy=1.0, brain=active_brain),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+    world.creatures = [
+        CreatureState(
+            node_indices=creature.node_indices,
+            energy=creature.energy,
+            brain=inactive_brain,
+            genome=creature.genome,
+            mean_speed_recent=creature.mean_speed_recent,
+            last_sensed_inputs=creature.last_sensed_inputs,
+            last_brain_outputs=creature.last_brain_outputs,
+            id=creature.id,
+            parent_id=creature.parent_id,
+            age_ticks=creature.age_ticks,
+        )
+        for creature in world.creatures
+    ]
+
+    world.step()
+
+    assert world.grip_latches == []
+
+
+def test_world_exposes_gripper_contact_and_active_signals() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.grip_cost=0.0",
+        ]
+    )
+    grip_brain = BrainState(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
+            position=Vec2(101.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, brain=grip_brain),
+        CreatureState(node_indices=(1,), energy=1.0, brain=grip_brain),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+    world.step()
+
+    assert world.creatures[0].last_sensed_inputs[-2] > 0.0
+    assert world.creatures[0].last_sensed_inputs[-1] > 0.0
+    assert world.creatures[1].last_sensed_inputs[-2] > 0.0
+    assert world.creatures[1].last_sensed_inputs[-1] > 0.0
+
+
+def test_world_charges_energy_for_active_grips() -> None:
+    base_config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.grip_cost=0.0",
+        ]
+    )
+    costly_config = base_config.with_overrides(["energy.grip_cost=0.05"])
+    grip_brain = BrainState(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
+            position=Vec2(101.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, brain=grip_brain),
+        CreatureState(node_indices=(1,), energy=1.0, brain=grip_brain),
+    ]
+    base_world = World(config=base_config, nodes=nodes, creatures=creatures)
+    costly_world = World(config=costly_config, nodes=nodes, creatures=creatures)
+
+    base_world.step()
+    costly_world.step()
+
+    assert costly_world.creatures[0].energy < base_world.creatures[0].energy
+    assert costly_world.creatures[1].energy < base_world.creatures[1].energy
 
 
 def test_world_increments_creature_age_each_tick() -> None:

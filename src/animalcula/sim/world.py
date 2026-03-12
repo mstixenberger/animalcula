@@ -26,12 +26,14 @@ from animalcula.sim.genome import (
 )
 from animalcula.sim.physics import (
     apply_edge_springs,
+    apply_grip_latches,
     apply_motor_forces,
     apply_node_repulsion,
     apply_overdamped_dynamics,
+    spring_force,
 )
 from animalcula.sim.seeding import build_demo_archetypes
-from animalcula.sim.types import BrainState, CreatureState, EdgeState, EventRecord, NodeState, NodeType, Vec2
+from animalcula.sim.types import BrainState, CreatureState, EdgeState, EventRecord, GripLatch, NodeState, NodeType, Vec2
 
 
 @dataclass(slots=True, frozen=True)
@@ -81,6 +83,7 @@ class World:
         self.edges = list(edges or [])
         self.creatures = list(creatures or [])
         self.events: list[EventRecord] = []
+        self.grip_latches: list[GripLatch] = []
         self._predation_kill_ids: set[int] = set()
         self._phase_trace: list[str] = []
         self._rng = random.Random(self.seed)
@@ -351,6 +354,16 @@ class World:
             "detritus_grid": self.detritus_grid.values,
             "nutrient_source_cells": self._nutrient_source_cells,
             "next_creature_id": self._next_creature_id,
+            "grip_latches": [
+                {
+                    "creature_a_id": latch.creature_a_id,
+                    "node_a_index": latch.node_a_index,
+                    "creature_b_id": latch.creature_b_id,
+                    "node_b_index": latch.node_b_index,
+                    "rest_length": latch.rest_length,
+                }
+                for latch in self.grip_latches
+            ],
         }
         Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -434,6 +447,16 @@ class World:
         world.detritus_grid.values = payload.get("detritus_grid", [0.0] * len(world.detritus_grid.values))
         world._nutrient_source_cells = [tuple(cell) for cell in payload["nutrient_source_cells"]]
         world._next_creature_id = payload.get("next_creature_id", world._initial_next_creature_id())
+        world.grip_latches = [
+            GripLatch(
+                creature_a_id=latch["creature_a_id"],
+                node_a_index=latch["node_a_index"],
+                creature_b_id=latch["creature_b_id"],
+                node_b_index=latch["node_b_index"],
+                rest_length=latch["rest_length"],
+            )
+            for latch in payload.get("grip_latches", [])
+        ]
         return world
 
     def random_unit(self) -> float:
@@ -504,6 +527,7 @@ class World:
                 node for node in creature_nodes if node.node_type == NodeType.PHOTORECEPTOR
             ]
             mouth_nodes = [node for node in creature_nodes if node.node_type == NodeType.MOUTH]
+            gripper_nodes = [node for node in creature_nodes if node.node_type == NodeType.GRIPPER]
             sensor_nodes = [node for node in creature_nodes if node.node_type == NodeType.SENSOR]
             average_light = (
                 sum(self.light_grid.sample(node.position) for node in receptor_nodes) / len(receptor_nodes)
@@ -565,6 +589,8 @@ class World:
                 1.0,
                 creature.energy / max(self.config.energy.reproduction_threshold, 1.0),
             )
+            grip_contact = self._gripper_contact_signal(creature)
+            grip_active = self._grip_active_signal(creature)
             updated_creatures.append(
                 replace(
                     creature,
@@ -583,6 +609,8 @@ class World:
                         average_chemical_a_gradient.y,
                         average_chemical_b_gradient.x,
                         average_chemical_b_gradient.y,
+                        grip_contact,
+                        grip_active,
                     ),
                 )
             )
@@ -615,7 +643,7 @@ class World:
                 continue
             motor_edges = self._motor_edge_indices_for_creature(creature)
             if motor_edges:
-                motor_outputs, _, _, _ = self._control_outputs_for_creature(creature)
+                motor_outputs, _, _, _, _ = self._control_outputs_for_creature(creature)
                 for output, edge_index in zip(motor_outputs, motor_edges, strict=False):
                     edge_outputs[edge_index] = (2.0 * output) - 1.0
             elif not self._mouth_nodes_for_creature(creature):
@@ -632,6 +660,12 @@ class World:
         self.nodes = apply_node_repulsion(
             nodes=self.nodes,
             strength=self.config.physics.contact_repulsion,
+        )
+        self._refresh_grip_latches()
+        self.nodes = apply_grip_latches(
+            nodes=self.nodes,
+            latches=self.grip_latches,
+            stiffness=self.config.physics.grip_spring_stiffness,
         )
         self.nodes = [
             apply_overdamped_dynamics(node=node, dt=self.config.physics.dt)
@@ -711,6 +745,7 @@ class World:
                     total_actuation=actuation,
                     motor_cost_per_unit=self.config.energy.motor_cost_per_unit,
                 )
+            cost += self.config.energy.grip_cost * self._active_grip_count(creature)
             updated_creatures.append(
                 replace(
                     creature,
@@ -774,6 +809,17 @@ class World:
             for creature in living_creatures
         ]
         self._predation_kill_ids = {creature_id for creature_id in self._predation_kill_ids if creature_id in {creature.id for creature in self.creatures}}
+        self.grip_latches = [
+            GripLatch(
+                creature_a_id=latch.creature_a_id,
+                node_a_index=node_index_map[latch.node_a_index],
+                creature_b_id=latch.creature_b_id,
+                node_b_index=node_index_map[latch.node_b_index],
+                rest_length=latch.rest_length,
+            )
+            for latch in self.grip_latches
+            if latch.node_a_index in node_index_map and latch.node_b_index in node_index_map
+        ]
         self._apply_population_floor()
         return None
 
@@ -925,7 +971,7 @@ class World:
         return updated
 
     def _reproduction_allowed(self, creature: CreatureState) -> bool:
-        _, _, reproduce_output, _ = self._control_outputs_for_creature(creature)
+        _, _, _, reproduce_output, _ = self._control_outputs_for_creature(creature)
         if reproduce_output is None:
             return True
         return reproduce_output >= 0.5
@@ -937,7 +983,7 @@ class World:
         energies = [creature.energy for creature in creatures]
         self._predation_kill_ids = set()
         for predator_index, predator in enumerate(creatures):
-            _, bite_outputs, _, _ = self._control_outputs_for_creature(predator)
+            _, _, bite_outputs, _, _ = self._control_outputs_for_creature(predator)
             mouth_nodes = self._mouth_nodes_for_creature(predator)
             for mouth_node, bite_output in zip(mouth_nodes, bite_outputs, strict=False):
                 if bite_output <= 0.0:
@@ -962,7 +1008,7 @@ class World:
 
     def _emit_chemicals(self, creatures: list[CreatureState]) -> None:
         for creature in creatures:
-            _, _, _, chemical_outputs = self._control_outputs_for_creature(creature)
+            _, _, _, _, chemical_outputs = self._control_outputs_for_creature(creature)
             if not chemical_outputs:
                 continue
             centroid = self._creature_centroid(creature)
@@ -992,24 +1038,38 @@ class World:
             if self.nodes[node_index].node_type == NodeType.MOUTH
         ]
 
+    def _gripper_node_indices_for_creature(self, creature: CreatureState) -> list[int]:
+        return [
+            node_index
+            for node_index in creature.node_indices
+            if self.nodes[node_index].node_type == NodeType.GRIPPER
+        ]
+
+    def _gripper_nodes_for_creature(self, creature: CreatureState) -> list[NodeState]:
+        return [self.nodes[node_index] for node_index in self._gripper_node_indices_for_creature(creature)]
+
     def _control_outputs_for_creature(
         self,
         creature: CreatureState,
-    ) -> tuple[tuple[float, ...], tuple[float, ...], float | None, tuple[float, ...]]:
+    ) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...], float | None, tuple[float, ...]]:
         outputs = creature.last_brain_outputs
         if not outputs:
-            return (), (), None, ()
+            return (), (), (), None, ()
 
         motor_edge_count = len(self._motor_edge_indices_for_creature(creature))
+        gripper_count = len(self._gripper_node_indices_for_creature(creature))
         mouth_count = len(self._mouth_nodes_for_creature(creature))
         motor_outputs = outputs[:motor_edge_count]
-        bite_start = motor_edge_count
+        grip_start = motor_edge_count
+        grip_end = grip_start + gripper_count
+        grip_outputs = outputs[grip_start:grip_end]
+        bite_start = grip_end
         bite_end = bite_start + mouth_count
         bite_outputs = outputs[bite_start:bite_end]
         remaining_outputs = outputs[bite_end:]
         reproduce_output = remaining_outputs[0] if remaining_outputs else None
         chemical_outputs = remaining_outputs[1:3] if len(remaining_outputs) >= 3 else ()
-        return motor_outputs, bite_outputs, reproduce_output, chemical_outputs
+        return motor_outputs, grip_outputs, bite_outputs, reproduce_output, chemical_outputs
 
     def _creature_centroid(self, creature: CreatureState) -> Vec2 | None:
         if not creature.node_indices:
@@ -1019,6 +1079,111 @@ class World:
             sum(position.x for position in positions) / len(positions),
             sum(position.y for position in positions) / len(positions),
         )
+
+    def _gripper_contact_signal(self, creature: CreatureState) -> float:
+        gripper_nodes = self._gripper_nodes_for_creature(creature)
+        if not gripper_nodes:
+            return 0.0
+        contacts = 0
+        for gripper_node in gripper_nodes:
+            if any(
+                other_creature.id != creature.id
+                and any(self._nodes_overlap(gripper_node, self.nodes[node_index]) for node_index in other_creature.node_indices)
+                for other_creature in self.creatures
+            ):
+                contacts += 1
+        return contacts / len(gripper_nodes)
+
+    def _active_grip_count(self, creature: CreatureState) -> int:
+        return sum(
+            1
+            for latch in self.grip_latches
+            if latch.creature_a_id == creature.id or latch.creature_b_id == creature.id
+        )
+
+    def _grip_active_signal(self, creature: CreatureState) -> float:
+        gripper_count = len(self._gripper_node_indices_for_creature(creature))
+        if gripper_count == 0:
+            return 0.0
+        return min(1.0, self._active_grip_count(creature) / gripper_count)
+
+    def _refresh_grip_latches(self) -> None:
+        active_creatures = {creature.id: creature for creature in self.creatures}
+        active_pairs: set[tuple[int, int]] = set()
+        refreshed: list[GripLatch] = []
+
+        for latch in self.grip_latches:
+            creature_a = active_creatures.get(latch.creature_a_id)
+            creature_b = active_creatures.get(latch.creature_b_id)
+            if creature_a is None or creature_b is None:
+                continue
+            if latch.node_a_index >= len(self.nodes) or latch.node_b_index >= len(self.nodes):
+                continue
+            if not self._grip_requested(creature_a, latch.node_a_index):
+                continue
+            if not self._grip_requested(creature_b, latch.node_b_index):
+                continue
+            latch_force = spring_force(
+                self.nodes[latch.node_a_index].position,
+                self.nodes[latch.node_b_index].position,
+                latch.rest_length,
+                self.config.physics.grip_spring_stiffness,
+            )
+            if latch_force.magnitude() > self.config.physics.grip_yield_force:
+                continue
+            refreshed.append(latch)
+            active_pairs.add(tuple(sorted((latch.node_a_index, latch.node_b_index))))
+
+        for creature in self.creatures:
+            if not creature.last_brain_outputs:
+                continue
+            gripper_outputs = self._control_outputs_for_creature(creature)[1]
+            for local_index, node_index in enumerate(self._gripper_node_indices_for_creature(creature)):
+                if local_index >= len(gripper_outputs) or gripper_outputs[local_index] < 0.5:
+                    continue
+                if any(latch.node_a_index == node_index or latch.node_b_index == node_index for latch in refreshed):
+                    continue
+                for other_creature in self.creatures:
+                    if other_creature.id == creature.id or not other_creature.last_brain_outputs:
+                        continue
+                    other_grip_outputs = self._control_outputs_for_creature(other_creature)[1]
+                    other_gripper_indices = self._gripper_node_indices_for_creature(other_creature)
+                    for other_local_index, other_node_index in enumerate(other_gripper_indices):
+                        if other_local_index >= len(other_grip_outputs) or other_grip_outputs[other_local_index] < 0.5:
+                            continue
+                        pair_key = tuple(sorted((node_index, other_node_index)))
+                        if pair_key in active_pairs:
+                            continue
+                        if any(
+                            latch.node_a_index == other_node_index or latch.node_b_index == other_node_index
+                            for latch in refreshed
+                        ):
+                            continue
+                        if not self._nodes_overlap(self.nodes[node_index], self.nodes[other_node_index]):
+                            continue
+                        refreshed.append(
+                            GripLatch(
+                                creature_a_id=creature.id,
+                                node_a_index=node_index,
+                                creature_b_id=other_creature.id,
+                                node_b_index=other_node_index,
+                                rest_length=(self.nodes[other_node_index].position - self.nodes[node_index].position).magnitude(),
+                            )
+                        )
+                        active_pairs.add(pair_key)
+                        break
+                    if any(latch.node_a_index == node_index or latch.node_b_index == node_index for latch in refreshed):
+                        break
+
+        self.grip_latches = refreshed
+
+    def _grip_requested(self, creature: CreatureState, node_index: int) -> bool:
+        gripper_indices = self._gripper_node_indices_for_creature(creature)
+        if node_index not in gripper_indices:
+            return False
+        local_index = gripper_indices.index(node_index)
+        grip_outputs = self._control_outputs_for_creature(creature)[1]
+        return local_index < len(grip_outputs) and grip_outputs[local_index] >= 0.5
 
     def _nodes_overlap(self, a: NodeState, b: NodeState) -> bool:
         return (a.position - b.position).magnitude() < (a.radius + b.radius)

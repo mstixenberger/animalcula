@@ -238,6 +238,8 @@ Current implementation baseline:
 - sensor nodes now contribute chemical intensity and gradient signals to the brain input pipeline
 - brains can now emit chemical A/B signals into the environment
 - predation now emits an alarm-style chemical trace from attacked creatures
+- gripper nodes can now latch across creatures, apply latch-spring forces, and release when grip outputs drop or yield is exceeded
+- gripper contact/active state is now part of the sensed control state and grip upkeep contributes to the energy budget
 - initial passing pytest suite
 
 ## Update Protocol

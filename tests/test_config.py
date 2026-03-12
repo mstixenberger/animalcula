@@ -11,12 +11,15 @@ def test_loads_default_config() -> None:
     assert config.world.width == 1000.0
     assert config.world.boundary == "toroidal"
     assert config.physics.dt == 0.01
+    assert config.physics.grip_spring_stiffness == 200.0
+    assert config.physics.grip_yield_force == 50.0
     assert config.environment.chemical_diffusion_rate == 0.2
     assert config.environment.chemical_decay_rate == 0.05
     assert config.environment.light_intensity_max == 1.0
     assert config.environment.light_direction == (1.0, 0.0)
     assert config.energy.basal_cost_per_node == 0.001
     assert config.energy.feed_rate == 0.01
+    assert config.energy.grip_cost == 0.002
     assert config.energy.photosynthesis_rate == 0.005
     assert config.energy.reproduction_threshold == 100.0
     assert config.evolution.position_mutation_sigma == 0.5
@@ -27,7 +30,7 @@ def test_loads_default_config() -> None:
     assert config.evolution.motor_strength_mutation_sigma == 0.2
     assert config.evolution.structural_mutation_rate == 0.0
     assert config.brain.motor_force_scale == 1.0
-    assert config.brain.default_input_size == 14
+    assert config.brain.default_input_size == 16
     assert config.creatures.min_population == 0
     assert config.creatures.max_population == 500
     assert config.simulation.initial_seed == 42
