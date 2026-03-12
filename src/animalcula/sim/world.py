@@ -126,6 +126,26 @@ class World:
         payload = [self._serialize_creature(creature) for creature in self.get_top_creatures(n=n, metric=metric)]
         Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
+    def species_snapshots(self) -> list[dict[str, float | int | str]]:
+        grouped: dict[str, list[CreatureState]] = {}
+        for creature in self.creatures:
+            species_id = coarse_species_signature(creature.genome)
+            grouped.setdefault(species_id, []).append(creature)
+
+        snapshots: list[dict[str, float | int | str]] = []
+        for species_id, creatures in sorted(grouped.items()):
+            node_counts = [len(creature.node_indices) for creature in creatures]
+            snapshots.append(
+                {
+                    "tick": self.tick,
+                    "species_id": species_id,
+                    "count": len(creatures),
+                    "mean_energy": sum(creature.energy for creature in creatures) / len(creatures),
+                    "mean_size": sum(node_counts) / len(node_counts),
+                }
+            )
+        return snapshots
+
     def seed_from_exported_genomes(self, path: str | Path) -> None:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(payload, list):

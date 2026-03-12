@@ -726,6 +726,18 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
     assert stats.predator_count >= 1
 
 
+def test_world_can_build_species_snapshots() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+    world.seed_demo_archetypes()
+
+    snapshots = world.species_snapshots()
+
+    assert len(snapshots) == 3
+    assert all(snapshot["count"] == 1 for snapshot in snapshots)
+    assert all("mean_energy" in snapshot for snapshot in snapshots)
+
+
 def test_cli_run_command_advances_the_world() -> None:
     result = subprocess.run(
         [
@@ -808,6 +820,29 @@ def test_cli_run_command_can_seed_demo_world() -> None:
     assert "predation_kills=0" in result.stdout
     assert "complexity=" in result.stdout
     assert "predators=" in result.stdout
+
+
+def test_cli_species_command_reads_checkpoint_species_snapshots(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "species.json"
+    world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    world.seed_demo_archetypes()
+    world.save(checkpoint_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "species",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "\"species_id\": " in result.stdout
+    assert "\"mean_energy\": " in result.stdout
 
 
 def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:

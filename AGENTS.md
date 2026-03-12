@@ -235,6 +235,7 @@ Current implementation baseline:
 - genomes now have a first structural mutation path that can grow one extra body node and edge
 - coarse species counting is now derived from genome structure and exposed in headless stats/reporting
 - headless stats/reporting now include trophic-role counts and mean node-count complexity
+- checkpoint inspection now includes per-species snapshot summaries via the CLI
 - initial passing pytest suite
 
 ## Update Protocol
