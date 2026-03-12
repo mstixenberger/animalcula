@@ -65,4 +65,4 @@ uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 
 
 ## Next Build Step
 
-Build upward from the sweep-capable mutation-bearing brain loop into broader evolution: richer mutation operators, better motor mappings, reproduction controls, and better headless tooling.
+Build upward from the scored sweep-capable mutation-bearing brain loop into broader evolution: richer mutation operators, better motor mappings, reproduction controls, and better headless tooling.

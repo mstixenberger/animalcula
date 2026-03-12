@@ -35,6 +35,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Motorized edges driven by brain outputs for simple joint actuation
 - Offspring brain weights, biases, and time constants mutate during reproduction
 - Sequential YAML-driven parameter sweep command with JSONL result export
+- Initial interestingness score included in sweep results
 
 ### Changed
 

@@ -49,4 +49,5 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert records[1]["overrides"] == {"energy.reproduction_threshold": 1000.0}
     assert records[0]["population"] == 6
     assert records[1]["population"] == 3
+    assert records[0]["interestingness"] > records[1]["interestingness"]
     assert "completed=2" in result.stdout

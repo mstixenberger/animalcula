@@ -9,6 +9,7 @@ from typing import Any
 
 import yaml
 
+from animalcula.analysis.metrics import interestingness_score
 from animalcula.config import Config
 from animalcula.sim.world import World
 
@@ -41,6 +42,10 @@ def run_sweep(
                 "population": stats.population,
                 "nodes": stats.node_count,
                 "total_energy": stats.total_energy,
+                "interestingness": interestingness_score(
+                    population=stats.population,
+                    total_energy=stats.total_energy,
+                ),
             }
         )
 

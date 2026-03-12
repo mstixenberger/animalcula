@@ -205,6 +205,7 @@ Current implementation baseline:
 - motorized edges driven by brain outputs for simple joint actuation
 - offspring brain weights, biases, and taus mutate during reproduction
 - sequential YAML-driven parameter sweep command for headless exploration
+- first interestingness score for ranking sweep results
 - initial passing pytest suite
 
 ## Update Protocol
