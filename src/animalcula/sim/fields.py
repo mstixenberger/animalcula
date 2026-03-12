@@ -43,6 +43,17 @@ class Grid2D:
         self.values[index] -= consumed
         return consumed
 
+    def sample_gradient(self, position: Vec2) -> Vec2:
+        step = self.resolution
+        left = self.sample(Vec2(position.x - step, position.y))
+        right = self.sample(Vec2(position.x + step, position.y))
+        down = self.sample(Vec2(position.x, position.y - step))
+        up = self.sample(Vec2(position.x, position.y + step))
+        return Vec2(
+            x=(right - left) / (2.0 * step),
+            y=(up - down) / (2.0 * step),
+        )
+
     def set_value(self, col: int, row: int, value: float) -> None:
         self.values[(row * self.cols) + col] = value
 

@@ -63,3 +63,14 @@ def test_grid_diffusion_spreads_value_into_neighboring_cells() -> None:
 
     assert center < 9.0
     assert right_neighbor > 0.0
+
+
+def test_grid_gradient_estimates_local_directional_change() -> None:
+    grid = Grid2D(width=15.0, height=15.0, resolution=5.0)
+    grid.set_value(col=0, row=1, value=1.0)
+    grid.set_value(col=2, row=1, value=5.0)
+
+    gradient = grid.sample_gradient(Vec2(7.5, 7.5))
+
+    assert gradient.x > 0.0
+    assert gradient.y == 0.0

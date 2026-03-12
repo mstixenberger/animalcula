@@ -34,7 +34,7 @@ evolution:
   motor_strength_mutation_sigma: 0.2
 
 brain:
-  default_input_size: 3
+  default_input_size: 7
   motor_force_scale: 1.0
 
 creatures:

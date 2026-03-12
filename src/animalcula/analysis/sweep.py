@@ -22,6 +22,7 @@ def run_sweep(
     seed: int | None,
     seed_demo: bool,
     out_path: str,
+    turbo: bool,
 ) -> int:
     base_config = Config.from_yaml(config_path)
     sweep = _load_sweep(sweep_path)
@@ -30,7 +31,7 @@ def run_sweep(
 
     for overrides in combinations:
         config = base_config.with_overrides([f"{key}={value}" for key, value in overrides.items()])
-        world = World(config=config, seed=seed)
+        world = World(config=config, seed=seed, turbo=turbo)
         if seed_demo:
             world.seed_demo_archetypes()
         world.step(ticks)

@@ -25,6 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--set", action="append", default=[])
     run_parser.add_argument("--log-stats", default=None)
     run_parser.add_argument("--log-every", type=int, default=1)
+    run_parser.add_argument("--turbo", action="store_true")
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
@@ -39,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     sweep_parser.add_argument("--seed", type=int, default=None)
     sweep_parser.add_argument("--seed-demo", action="store_true")
     sweep_parser.add_argument("--out", required=True)
+    sweep_parser.add_argument("--turbo", action="store_true")
 
     nursery_parser = subparsers.add_parser("nursery", help="Run a seeded nursery simulation")
     nursery_parser.add_argument("--config", default="config/nursery.yaml")
@@ -46,6 +48,7 @@ def build_parser() -> argparse.ArgumentParser:
     nursery_parser.add_argument("--seed", type=int, default=None)
     nursery_parser.add_argument("--top", type=int, default=5)
     nursery_parser.add_argument("--out", required=True)
+    nursery_parser.add_argument("--turbo", action="store_true")
 
     return parser
 
@@ -57,13 +60,14 @@ def main() -> int:
     if args.command == "run":
         if args.resume is not None:
             world = World.load(args.resume)
+            world.turbo = args.turbo
             if args.set:
                 world.config = world.config.with_overrides(args.set)
         else:
             config = Config.from_yaml(args.config)
             if args.set:
                 config = config.with_overrides(args.set)
-            world = World(config=config, seed=args.seed)
+            world = World(config=config, seed=args.seed, turbo=args.turbo)
         if args.seed_demo and args.resume is None:
             world.seed_demo_archetypes()
         if args.log_stats is not None:
@@ -105,13 +109,14 @@ def main() -> int:
             seed=args.seed,
             seed_demo=args.seed_demo,
             out_path=args.out,
+            turbo=args.turbo,
         )
         print(f"completed={completed} out={args.out}")
         return 0
 
     if args.command == "nursery":
         config = Config.from_yaml(args.config)
-        world = World(config=config, seed=args.seed)
+        world = World(config=config, seed=args.seed, turbo=args.turbo)
         world.seed_demo_archetypes()
         world.step(args.ticks)
         world.save(args.out)

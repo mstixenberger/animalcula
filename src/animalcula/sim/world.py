@@ -50,12 +50,14 @@ class World:
         self,
         config: Config,
         seed: int | None = None,
+        turbo: bool = False,
         nodes: list[NodeState] | None = None,
         edges: list[EdgeState] | None = None,
         creatures: list[CreatureState] | None = None,
     ) -> None:
         self.config = config
         self.seed = config.simulation.initial_seed if seed is None else seed
+        self.turbo = turbo
         self.tick = 0
         self.nodes = list(nodes or [])
         self.edges = list(edges or [])
@@ -294,10 +296,11 @@ class World:
         func()
 
     def _update_environment(self) -> None:
-        self.nutrient_grid.diffuse(rate=self.config.environment.nutrient_diffusion_rate)
-        self.nutrient_grid.decay(rate=self.config.environment.nutrient_decay_rate)
-        self._recycle_detritus()
-        self.detritus_grid.decay(rate=self.config.environment.detritus_decay_rate)
+        if (not self.turbo) or ((self.tick + 1) % 4 == 0):
+            self.nutrient_grid.diffuse(rate=self.config.environment.nutrient_diffusion_rate)
+            self.nutrient_grid.decay(rate=self.config.environment.nutrient_decay_rate)
+            self._recycle_detritus()
+            self.detritus_grid.decay(rate=self.config.environment.detritus_decay_rate)
         for col, row in self._nutrient_source_cells:
             self.nutrient_grid.set_value(
                 col=col,
@@ -322,10 +325,28 @@ class World:
                 if receptor_nodes
                 else 0.0
             )
+            average_light_gradient = (
+                sum(
+                    (self.light_grid.sample_gradient(node.position) for node in receptor_nodes),
+                    start=Vec2.zero(),
+                )
+                / len(receptor_nodes)
+                if receptor_nodes
+                else Vec2.zero()
+            )
             average_nutrients = (
                 sum(self.nutrient_grid.sample(node.position) for node in mouth_nodes) / len(mouth_nodes)
                 if mouth_nodes
                 else 0.0
+            )
+            average_nutrient_gradient = (
+                sum(
+                    (self.nutrient_grid.sample_gradient(node.position) for node in mouth_nodes),
+                    start=Vec2.zero(),
+                )
+                / len(mouth_nodes)
+                if mouth_nodes
+                else Vec2.zero()
             )
             normalized_energy = min(
                 1.0,
@@ -334,7 +355,15 @@ class World:
             updated_creatures.append(
                 replace(
                     creature,
-                    last_sensed_inputs=(average_light, average_nutrients, normalized_energy),
+                    last_sensed_inputs=(
+                        average_light,
+                        average_nutrients,
+                        normalized_energy,
+                        average_light_gradient.x,
+                        average_light_gradient.y,
+                        average_nutrient_gradient.x,
+                        average_nutrient_gradient.y,
+                    ),
                 )
             )
         self.creatures = updated_creatures

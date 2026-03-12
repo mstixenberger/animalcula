@@ -5,17 +5,17 @@ world:
   boundary: toroidal
 
 physics:
-  dt: 0.01
+  dt: 0.02
   default_drag: 1.0
   contact_repulsion: 2.0
 
 environment:
-  nutrient_diffusion_rate: 0.1
+  nutrient_diffusion_rate: 0.05
   nutrient_source_count: 5
   nutrient_source_strength: 2.0
-  nutrient_decay_rate: 0.001
-  detritus_decay_rate: 0.01
-  detritus_recycling_rate: 0.05
+  nutrient_decay_rate: 0.0005
+  detritus_decay_rate: 0.005
+  detritus_recycling_rate: 0.03
   light_intensity_max: 1.0
   light_direction: [1.0, 0.0]
 

@@ -44,9 +44,11 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Periodic JSONL stats logging during headless runs
 - Creature-level population safeguards with crowding pressure and optional immigration floor
 - A dedicated `config/nursery.yaml` profile and `animalcula nursery` workflow for generous bootstrap runs
+- A dedicated `config/turbo.yaml` profile and CLI `--turbo` mode for faster headless exploration
 - Detritus field storage with recycling back into the nutrient grid
 - Grid diffusion/decay helpers for evolving environment fields
 - Soft node repulsion for first-pass contact handling in the physics loop
+- Field-gradient sensing added to the brain input pipeline alongside light, nutrients, and energy
 
 ### Changed
 

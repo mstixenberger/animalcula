@@ -217,6 +217,8 @@ Current implementation baseline:
 - creature-level population safeguards: crowding pressure and optional immigration floor
 - dedicated nursery config profile and nursery CLI workflow for generous bootstrapping runs
 - soft node repulsion for first-pass contact avoidance in dense physics states
+- light and nutrient field gradients now feed the sensing phase alongside average intensity and energy
+- `turbo` world/CLI mode plus `config/turbo.yaml` for faster headless parameter exploration
 - initial passing pytest suite
 
 ## Update Protocol

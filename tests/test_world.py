@@ -114,6 +114,39 @@ def test_world_step_updates_creature_energy_from_light() -> None:
     assert world.creatures[0].energy > 1.0
 
 
+def test_world_sensing_tracks_field_gradients() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    nodes = [
+        NodeState(
+            position=Vec2(500.0, 500.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.PHOTORECEPTOR,
+        ),
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.MOUTH,
+        ),
+    ]
+    creature = CreatureState(node_indices=(0, 1), energy=1.0)
+    world = World(config=config, nodes=nodes, creatures=[creature])
+    world.nutrient_grid.set_value(col=19, row=20, value=1.0)
+    world.nutrient_grid.set_value(col=21, row=20, value=3.0)
+
+    world.step()
+
+    sensed = world.creatures[0].last_sensed_inputs
+    assert len(sensed) == 7
+    assert sensed[3] > 0.0
+    assert sensed[5] > 0.0
+
+
 def test_world_applies_crowding_pressure_above_population_cap() -> None:
     config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["creatures.max_population=1"])
     creatures = [
@@ -298,6 +331,23 @@ def test_world_recycles_detritus_back_into_nutrients() -> None:
     nutrient_before = world.nutrient_grid.sample(Vec2(2.5, 2.5))
 
     world.step()
+
+    assert world.detritus_grid.sample(Vec2(2.5, 2.5)) < 4.0
+    assert world.nutrient_grid.sample(Vec2(2.5, 2.5)) > nutrient_before
+
+
+def test_world_turbo_mode_skips_expensive_field_updates_between_full_ticks() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["environment.nutrient_source_count=0"])
+    world = World(config=config, turbo=True)
+    world.detritus_grid.set_value(col=0, row=0, value=4.0)
+    nutrient_before = world.nutrient_grid.sample(Vec2(2.5, 2.5))
+
+    world.step()
+
+    assert world.detritus_grid.sample(Vec2(2.5, 2.5)) == 4.0
+    assert world.nutrient_grid.sample(Vec2(2.5, 2.5)) == nutrient_before
+
+    world.step(3)
 
     assert world.detritus_grid.sample(Vec2(2.5, 2.5)) < 4.0
     assert world.nutrient_grid.sample(Vec2(2.5, 2.5)) > nutrient_before
@@ -721,3 +771,27 @@ def test_cli_run_command_accepts_config_overrides() -> None:
     )
 
     assert "population=6" in result.stdout
+
+
+def test_cli_run_command_accepts_turbo_mode() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "1",
+            "--seed",
+            "11",
+            "--seed-demo",
+            "--turbo",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "tick=1" in result.stdout

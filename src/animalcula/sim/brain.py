@@ -13,6 +13,12 @@ def sigmoid(value: float) -> float:
 
 
 def step_brain(brain: BrainState, inputs: tuple[float, ...], dt: float) -> tuple[BrainState, tuple[float, ...]]:
+    input_size = len(brain.input_weights[0]) if brain.input_weights else 0
+    if len(inputs) < input_size:
+        inputs = inputs + ((0.0,) * (input_size - len(inputs)))
+    elif len(inputs) > input_size:
+        inputs = inputs[:input_size]
+
     activations = tuple(sigmoid(state + bias) for state, bias in zip(brain.states, brain.biases, strict=True))
     new_states: list[float] = []
 
