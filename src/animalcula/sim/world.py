@@ -55,6 +55,10 @@ class Stats:
     lineage_count: int
     species_count: int
     diversity_index: float
+    mean_nodes_per_creature: float
+    autotroph_count: int
+    herbivore_count: int
+    predator_count: int
 
 
 class World:
@@ -198,6 +202,17 @@ class World:
             for creature in self.creatures
             if creature.genome is not None
         )
+        autotroph_count = 0
+        herbivore_count = 0
+        predator_count = 0
+        for creature in self.creatures:
+            trophic_role = self._trophic_role(creature)
+            if trophic_role == "autotroph":
+                autotroph_count += 1
+            elif trophic_role == "herbivore":
+                herbivore_count += 1
+            elif trophic_role == "predator":
+                predator_count += 1
         return Stats(
             tick=self.tick,
             population=len(self.creatures) if self.creatures else len(self.nodes),
@@ -211,6 +226,10 @@ class World:
             lineage_count=len(lineage_counts),
             species_count=len(species_counts),
             diversity_index=shannon_diversity(dict(lineage_counts)),
+            mean_nodes_per_creature=(len(self.nodes) / len(self.creatures)) if self.creatures else 0.0,
+            autotroph_count=autotroph_count,
+            herbivore_count=herbivore_count,
+            predator_count=predator_count,
         )
 
     def save(self, path: str | Path) -> None:
@@ -841,6 +860,24 @@ class World:
 
     def _nodes_overlap(self, a: NodeState, b: NodeState) -> bool:
         return (a.position - b.position).magnitude() < (a.radius + b.radius)
+
+    def _trophic_role(self, creature: CreatureState) -> str:
+        has_mouth = any(self.nodes[node_index].node_type == NodeType.MOUTH for node_index in creature.node_indices)
+        has_photoreceptor = any(
+            self.nodes[node_index].node_type == NodeType.PHOTORECEPTOR for node_index in creature.node_indices
+        )
+        motor_count = len(self._motor_edge_indices_for_creature(creature))
+        mouth_count = len(self._mouth_nodes_for_creature(creature))
+        output_size = creature.brain.output_size if creature.brain is not None else 0
+        has_bite_channel = output_size > motor_count and mouth_count > 0
+
+        if has_bite_channel:
+            return "predator"
+        if has_mouth and not has_bite_channel:
+            return "herbivore"
+        if has_photoreceptor and not has_mouth:
+            return "autotroph"
+        return "autotroph"
 
     def _record_event(
         self,

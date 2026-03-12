@@ -64,6 +64,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - The seeded predator archetype now has a bite-capable brain layout
 - A first structural mutation path can add a new body node and edge during genome mutation
 - Coarse species counts now surface in stats, CLI output, and sweep results alongside exact lineage counts
+- Trophic-role counts and mean node-count complexity now surface in stats, CLI output, and sweep results
 
 ### Changed
 

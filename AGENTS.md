@@ -234,6 +234,7 @@ Current implementation baseline:
 - the seeded amoeba-lite archetype now exposes motor plus bite outputs, so the default seed set matches the current predation wiring better
 - genomes now have a first structural mutation path that can grow one extra body node and edge
 - coarse species counting is now derived from genome structure and exposed in headless stats/reporting
+- headless stats/reporting now include trophic-role counts and mean node-count complexity
 - initial passing pytest suite
 
 ## Update Protocol

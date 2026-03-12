@@ -151,6 +151,10 @@ def _format_stats(seed: int, stats: object) -> str:
             f"species={stats.species_count}",
             f"lineages={stats.lineage_count}",
             f"diversity={stats.diversity_index:.3f}",
+            f"complexity={stats.mean_nodes_per_creature:.2f}",
+            f"autotrophs={stats.autotroph_count}",
+            f"herbivores={stats.herbivore_count}",
+            f"predators={stats.predator_count}",
         ]
     )
 
@@ -178,6 +182,10 @@ def _run_with_stats_log(world: World, ticks: int, log_path: str, log_every: int)
                         "lineage_count": stats.lineage_count,
                         "species_count": stats.species_count,
                         "diversity_index": stats.diversity_index,
+                        "mean_nodes_per_creature": stats.mean_nodes_per_creature,
+                        "autotroph_count": stats.autotroph_count,
+                        "herbivore_count": stats.herbivore_count,
+                        "predator_count": stats.predator_count,
                     }
                 )
             )

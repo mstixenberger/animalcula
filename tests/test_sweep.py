@@ -54,5 +54,9 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "species_count" in records[0]
     assert "diversity_index" in records[0]
     assert "predation_kills" in records[0]
+    assert "mean_nodes_per_creature" in records[0]
+    assert "autotroph_count" in records[0]
+    assert "herbivore_count" in records[0]
+    assert "predator_count" in records[0]
     assert records[0]["interestingness"] > records[1]["interestingness"]
     assert "completed=2" in result.stdout

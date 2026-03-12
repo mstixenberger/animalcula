@@ -1,4 +1,4 @@
-from animalcula.analysis.metrics import interestingness_score, shannon_diversity
+from animalcula.analysis.metrics import interestingness_score, shannon_diversity, trophic_percentages
 
 
 def test_interestingness_score_rewards_nonzero_population_and_energy() -> None:
@@ -25,3 +25,11 @@ def test_shannon_diversity_increases_with_more_even_lineages() -> None:
     even = shannon_diversity({"aaa": 5, "bbb": 5})
 
     assert even > uneven
+
+
+def test_trophic_percentages_normalize_counts() -> None:
+    trophic = trophic_percentages(autotrophs=2, herbivores=1, predators=1)
+
+    assert trophic["autotrophs"] == 0.5
+    assert trophic["herbivores"] == 0.25
+    assert trophic["predators"] == 0.25

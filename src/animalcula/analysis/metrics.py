@@ -37,3 +37,18 @@ def shannon_diversity(lineage_counts: dict[str, int]) -> float:
         proportion = count / total
         entropy -= proportion * math.log(proportion)
     return entropy
+
+
+def trophic_percentages(autotrophs: int, herbivores: int, predators: int) -> dict[str, float]:
+    total = autotrophs + herbivores + predators
+    if total <= 0:
+        return {
+            "autotrophs": 0.0,
+            "herbivores": 0.0,
+            "predators": 0.0,
+        }
+    return {
+        "autotrophs": autotrophs / total,
+        "herbivores": herbivores / total,
+        "predators": predators / total,
+    }

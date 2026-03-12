@@ -50,6 +50,10 @@ def run_sweep(
                 "lineage_count": stats.lineage_count,
                 "species_count": stats.species_count,
                 "diversity_index": stats.diversity_index,
+                "mean_nodes_per_creature": stats.mean_nodes_per_creature,
+                "autotroph_count": stats.autotroph_count,
+                "herbivore_count": stats.herbivore_count,
+                "predator_count": stats.predator_count,
                 "interestingness": interestingness_score(
                     population=stats.population,
                     total_energy=stats.total_energy,

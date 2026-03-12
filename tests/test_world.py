@@ -720,6 +720,10 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
     assert stats.lineage_count == 3
     assert stats.species_count == 3
     assert stats.diversity_index > 0.0
+    assert stats.mean_nodes_per_creature > 0.0
+    assert stats.autotroph_count >= 1
+    assert stats.herbivore_count >= 1
+    assert stats.predator_count >= 1
 
 
 def test_cli_run_command_advances_the_world() -> None:
@@ -743,7 +747,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 predation_kills=0 species=0 lineages=0 diversity=0.000"
+        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 predation_kills=0 species=0 lineages=0 diversity=0.000 complexity=0.00 autotrophs=0 herbivores=0 predators=0"
     )
 
 
@@ -802,6 +806,8 @@ def test_cli_run_command_can_seed_demo_world() -> None:
     assert "species=3" in result.stdout
     assert "lineages=3" in result.stdout
     assert "predation_kills=0" in result.stdout
+    assert "complexity=" in result.stdout
+    assert "predators=" in result.stdout
 
 
 def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:
