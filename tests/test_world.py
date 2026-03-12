@@ -185,6 +185,37 @@ def test_seeded_demo_world_can_step_without_immediate_extinction() -> None:
     assert len(world.creatures) > 0
 
 
+def test_world_reproduces_energy_rich_creatures() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    nodes = [
+        NodeState(
+            position=Vec2(50.0, 50.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(56.0, 50.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.PHOTORECEPTOR,
+        ),
+    ]
+    edges = [EdgeState(a=0, b=1, rest_length=6.0, stiffness=1.0)]
+    creatures = [CreatureState(node_indices=(0, 1), energy=200.0)]
+    world = World(config=config, nodes=nodes, edges=edges, creatures=creatures)
+
+    world.step()
+
+    assert len(world.creatures) == 2
+    assert len(world.nodes) == 4
+    assert len(world.edges) == 2
+    assert world.creatures[0].energy == world.creatures[1].energy
+
+
 def test_world_stats_report_population_nodes_and_total_energy() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     world = World(config=config, seed=7)

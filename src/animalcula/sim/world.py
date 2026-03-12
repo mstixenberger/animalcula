@@ -268,6 +268,7 @@ class World:
         if not self.creatures:
             return None
 
+        self._reproduce_creatures()
         living_creatures = [creature for creature in self.creatures if creature.energy > 0.0]
         if len(living_creatures) == len(self.creatures):
             return None
@@ -295,6 +296,53 @@ class World:
             for creature in living_creatures
         ]
         return None
+
+    def _reproduce_creatures(self) -> None:
+        new_nodes: list[NodeState] = []
+        new_edges: list[EdgeState] = []
+        new_creatures: list[CreatureState] = []
+        updated_creatures: list[CreatureState] = []
+
+        for creature_index, creature in enumerate(self.creatures):
+            if creature.energy < self.config.energy.reproduction_threshold:
+                updated_creatures.append(creature)
+                continue
+
+            child_offset = Vec2(2.0 * (creature_index + 1), 2.0 * (creature_index + 1))
+            node_index_map: dict[int, int] = {}
+            for node_index in creature.node_indices:
+                cloned = replace(
+                    self.nodes[node_index],
+                    position=self.nodes[node_index].position + child_offset,
+                    velocity=Vec2.zero(),
+                    accumulated_force=Vec2.zero(),
+                )
+                node_index_map[node_index] = len(self.nodes) + len(new_nodes)
+                new_nodes.append(cloned)
+
+            for edge in self.edges:
+                if edge.a in node_index_map and edge.b in node_index_map:
+                    new_edges.append(
+                        EdgeState(
+                            a=node_index_map[edge.a],
+                            b=node_index_map[edge.b],
+                            rest_length=edge.rest_length,
+                            stiffness=edge.stiffness,
+                        )
+                    )
+
+            split_energy = creature.energy / 2.0
+            updated_creatures.append(replace(creature, energy=split_energy))
+            new_creatures.append(
+                CreatureState(
+                    node_indices=tuple(node_index_map[index] for index in creature.node_indices),
+                    energy=split_energy,
+                )
+            )
+
+        self.nodes.extend(new_nodes)
+        self.edges.extend(new_edges)
+        self.creatures = updated_creatures + new_creatures
 
     def _initialize_nutrient_sources(self) -> list[tuple[int, int]]:
         source_cells: set[tuple[int, int]] = set()

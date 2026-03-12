@@ -195,6 +195,7 @@ Current implementation baseline:
 - deterministic starter archetype seeding for demo worlds
 - world stats reporting and richer CLI run summaries
 - JSON checkpoint save/load for headless workflow continuity
+- first asexual reproduction path for energy-rich creatures
 - initial passing pytest suite
 
 ## Update Protocol

@@ -39,6 +39,7 @@ class EnergyConfig:
     basal_cost_per_node: float
     feed_rate: float
     photosynthesis_rate: float
+    reproduction_threshold: float
 
 
 @dataclass(slots=True, frozen=True)

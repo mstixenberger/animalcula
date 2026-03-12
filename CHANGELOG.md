@@ -25,6 +25,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Deterministic starter archetype seeding for demo populations
 - World stats reporting and richer CLI run summaries, including demo seeding
 - JSON checkpoint save/load for world-state roundtrips
+- A first asexual reproduction path for energy-rich creatures
 
 ### Changed
 
