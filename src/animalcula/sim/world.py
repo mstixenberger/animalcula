@@ -13,7 +13,7 @@ from typing import Callable
 from animalcula.analysis.metrics import shannon_diversity
 from animalcula.config import Config
 from animalcula.sim.brain import step_brain
-from animalcula.sim.energy import basal_cost, photosynthesis_gain
+from animalcula.sim.energy import basal_cost, motor_cost, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.genome import (
     decode_genome,
@@ -539,6 +539,29 @@ class World:
                 node_count=len(creature_nodes),
                 basal_cost_per_node=self.config.energy.basal_cost_per_node,
             )
+            if creature.last_brain_outputs:
+                motor_edge_count = sum(
+                    1
+                    for edge in self.edges
+                    if edge.has_motor and edge.a in creature.node_indices and edge.b in creature.node_indices
+                )
+                actuation = 0.0
+                for output, edge in zip(
+                    creature.last_brain_outputs[:motor_edge_count],
+                    (
+                        edge
+                        for edge in self.edges
+                        if edge.has_motor and edge.a in creature.node_indices and edge.b in creature.node_indices
+                    ),
+                    strict=False,
+                ):
+                    actuation += abs((2.0 * output) - 1.0) * edge.motor_strength
+                if motor_edge_count == 0:
+                    actuation += abs((2.0 * creature.last_brain_outputs[0]) - 1.0) * self.config.brain.motor_force_scale
+                cost += motor_cost(
+                    total_actuation=actuation,
+                    motor_cost_per_unit=self.config.energy.motor_cost_per_unit,
+                )
             updated_creatures.append(
                 replace(
                     creature,

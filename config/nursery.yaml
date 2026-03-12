@@ -23,6 +23,7 @@ energy:
   basal_cost_per_node: 0.0005
   feed_rate: 0.02
   photosynthesis_rate: 0.008
+  motor_cost_per_unit: 0.0005
   reproduction_threshold: 60.0
 
 evolution:

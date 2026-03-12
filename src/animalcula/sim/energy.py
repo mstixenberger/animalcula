@@ -17,3 +17,7 @@ def photosynthesis_gain(
     photosynthesis_rate: float,
 ) -> float:
     return light_level * receptor_count * photosynthesis_rate
+
+
+def motor_cost(total_actuation: float, motor_cost_per_unit: float) -> float:
+    return total_actuation * motor_cost_per_unit

@@ -271,6 +271,45 @@ def test_world_brain_outputs_can_drive_motorized_edges() -> None:
     assert world.nodes[1].position.x > 989.0
 
 
+def test_world_charges_energy_for_motor_actuation() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["energy.motor_cost_per_unit=0.0"])
+    costly_config = config.with_overrides(["energy.motor_cost_per_unit=0.1"])
+    brain = BrainState(
+        input_weights=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(995.0, 500.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.PHOTORECEPTOR,
+        ),
+        NodeState(
+            position=Vec2(989.0, 500.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    edges = [EdgeState(a=0, b=1, rest_length=6.0, stiffness=1.0, has_motor=True, motor_strength=5.0)]
+    creature = CreatureState(node_indices=(0, 1), energy=2.0, brain=brain)
+    world = World(config=config, nodes=nodes, edges=edges, creatures=[creature])
+    costly_world = World(config=costly_config, nodes=nodes, edges=edges, creatures=[creature])
+
+    world.step()
+    costly_world.step()
+
+    assert costly_world.creatures[0].energy < world.creatures[0].energy
+
+
 def test_world_step_updates_creature_energy_from_nutrients() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     node = NodeState(

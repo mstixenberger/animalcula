@@ -1,6 +1,6 @@
 import math
 
-from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
+from animalcula.sim.energy import basal_cost, feeding_gain, motor_cost, photosynthesis_gain
 
 
 def test_basal_cost_scales_with_node_count() -> None:
@@ -25,3 +25,9 @@ def test_feeding_gain_scales_with_nutrients_and_mouths() -> None:
     )
 
     assert math.isclose(gain, 0.75)
+
+
+def test_motor_cost_scales_with_applied_actuation() -> None:
+    cost = motor_cost(total_actuation=3.0, motor_cost_per_unit=0.25)
+
+    assert math.isclose(cost, 0.75)
