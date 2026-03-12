@@ -41,6 +41,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Event counts exposed through stats, CLI reporting, and sweep results
 - Interestingness scoring now rewards lifecycle activity as well as population/energy
 - Checkpoint-backed CLI event export for direct run-history inspection
+- Periodic JSONL stats logging during headless runs
 
 ### Changed
 

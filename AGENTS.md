@@ -211,6 +211,7 @@ Current implementation baseline:
 - event counts exposed through stats, CLI reporting, and sweep results
 - interestingness scoring now rewards lifecycle activity, not just static population/energy
 - checkpoint-backed CLI event export for direct observation of run history
+- periodic JSONL stats logging during headless runs
 - initial passing pytest suite
 
 ## Update Protocol

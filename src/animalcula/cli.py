@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
 from animalcula.analysis.sweep import run_sweep
 from animalcula.config import Config
@@ -22,6 +23,8 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--save", default=None)
     run_parser.add_argument("--resume", default=None)
     run_parser.add_argument("--set", action="append", default=[])
+    run_parser.add_argument("--log-stats", default=None)
+    run_parser.add_argument("--log-every", type=int, default=1)
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
@@ -56,7 +59,10 @@ def main() -> int:
             world = World(config=config, seed=args.seed)
         if args.seed_demo and args.resume is None:
             world.seed_demo_archetypes()
-        world.step(args.ticks)
+        if args.log_stats is not None:
+            _run_with_stats_log(world=world, ticks=args.ticks, log_path=args.log_stats, log_every=args.log_every)
+        else:
+            world.step(args.ticks)
         if args.save is not None:
             world.save(args.save)
         stats = world.stats()
@@ -113,6 +119,32 @@ def _format_stats(seed: int, stats: object) -> str:
             f"reproductions={stats.reproductions}",
         ]
     )
+
+
+def _run_with_stats_log(world: World, ticks: int, log_path: str, log_every: int) -> None:
+    output = Path(log_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    records: list[str] = []
+
+    for tick_index in range(1, ticks + 1):
+        world.step(1)
+        if tick_index % log_every == 0 or tick_index == ticks:
+            stats = world.stats()
+            records.append(
+                json.dumps(
+                    {
+                        "tick": stats.tick,
+                        "population": stats.population,
+                        "nodes": stats.node_count,
+                        "total_energy": stats.total_energy,
+                        "births": stats.births,
+                        "deaths": stats.deaths,
+                        "reproductions": stats.reproductions,
+                    }
+                )
+            )
+
+    output.write_text("\n".join(records) + ("\n" if records else ""), encoding="utf-8")
 
 
 if __name__ == "__main__":

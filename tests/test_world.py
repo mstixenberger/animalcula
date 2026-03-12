@@ -508,6 +508,37 @@ def test_cli_events_command_reads_checkpoint_events(tmp_path: Path) -> None:
     assert "\"event_type\": \"birth\"" in result.stdout
 
 
+def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:
+    log_path = tmp_path / "stats.jsonl"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "3",
+            "--seed",
+            "11",
+            "--seed-demo",
+            "--log-stats",
+            str(log_path),
+            "--log-every",
+            "1",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    lines = log_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 3
+    assert "\"tick\": 1" in lines[0]
+    assert "\"tick\": 3" in lines[-1]
+
+
 def test_cli_run_command_accepts_config_overrides() -> None:
     result = subprocess.run(
         [
