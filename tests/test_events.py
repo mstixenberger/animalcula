@@ -58,6 +58,7 @@ def test_world_logs_reproduction_and_death_events() -> None:
     assert "reproduction" in event_types
     assert "birth" in event_types
     assert "death" in event_types
+    assert all(event.genome_hash for event in world.events)
 
 
 def test_seeded_creatures_receive_unique_ids() -> None:

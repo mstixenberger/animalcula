@@ -763,6 +763,7 @@ def test_cli_events_command_reads_checkpoint_events(tmp_path: Path) -> None:
     )
 
     assert "\"event_type\": \"birth\"" in result.stdout
+    assert "\"genome_hash\": \"" in result.stdout
 
 
 def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:

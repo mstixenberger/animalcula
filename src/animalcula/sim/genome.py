@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
 import random
 from typing import Any
 
@@ -265,3 +267,10 @@ def genome_from_dict(payload: dict[str, Any] | None) -> CreatureGenome | None:
             output_size=payload["brain"]["output_size"],
         ),
     )
+
+
+def genome_hash(genome: CreatureGenome | None) -> str:
+    if genome is None:
+        return ""
+    canonical = json.dumps(genome_to_dict(genome), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha1(canonical.encode("utf-8")).hexdigest()[:12]

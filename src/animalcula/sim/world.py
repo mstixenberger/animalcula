@@ -13,7 +13,14 @@ from animalcula.config import Config
 from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
-from animalcula.sim.genome import decode_genome, encode_creature_genome, genome_from_dict, genome_to_dict, mutate_genome
+from animalcula.sim.genome import (
+    decode_genome,
+    encode_creature_genome,
+    genome_from_dict,
+    genome_hash,
+    genome_to_dict,
+    mutate_genome,
+)
 from animalcula.sim.physics import (
     apply_edge_springs,
     apply_motor_forces,
@@ -155,7 +162,13 @@ class World:
         seeded_creatures = self._ensure_creature_genomes(self._assign_creature_ids(imported))
         self.creatures.extend(seeded_creatures)
         for creature in seeded_creatures:
-            self._record_event("birth", creature_id=creature.id, parent_ids=(), energy=creature.energy)
+            self._record_event(
+                "birth",
+                creature_id=creature.id,
+                parent_ids=(),
+                energy=creature.energy,
+                genome_hash_value=genome_hash(creature.genome),
+            )
 
     def snapshot(self) -> Snapshot:
         return Snapshot(
@@ -223,6 +236,7 @@ class World:
                     "creature_id": event.creature_id,
                     "parent_ids": list(event.parent_ids),
                     "energy": event.energy,
+                    "genome_hash": event.genome_hash,
                 }
                 for event in self.events
             ],
@@ -296,6 +310,7 @@ class World:
                 creature_id=event["creature_id"],
                 parent_ids=tuple(event.get("parent_ids", [])),
                 energy=event.get("energy", 0.0),
+                genome_hash=event.get("genome_hash", ""),
             )
             for event in payload.get("events", [])
         ]
@@ -321,7 +336,13 @@ class World:
         seeded_creatures = self._ensure_creature_genomes(self._assign_creature_ids(creatures))
         self.creatures.extend(seeded_creatures)
         for creature in seeded_creatures:
-            self._record_event("birth", creature_id=creature.id, parent_ids=(), energy=creature.energy)
+            self._record_event(
+                "birth",
+                creature_id=creature.id,
+                parent_ids=(),
+                energy=creature.energy,
+                genome_hash_value=genome_hash(creature.genome),
+            )
 
     def _step_once(self) -> Snapshot:
         self._phase_trace = []
@@ -526,7 +547,13 @@ class World:
         dead_creatures = [creature for creature in self.creatures if creature.energy <= 0.0]
         for creature in dead_creatures:
             self._deposit_detritus(creature)
-            self._record_event("death", creature_id=creature.id, parent_ids=(), energy=creature.energy)
+            self._record_event(
+                "death",
+                creature_id=creature.id,
+                parent_ids=(),
+                energy=creature.energy,
+                genome_hash_value=genome_hash(creature.genome),
+            )
         living_creatures = [creature for creature in self.creatures if creature.energy > 0.0]
         if len(living_creatures) == len(self.creatures):
             return None
@@ -624,12 +651,14 @@ class World:
                 creature_id=creature.id,
                 parent_ids=(creature.id,),
                 energy=split_energy,
+                genome_hash_value=genome_hash(parent_genome),
             )
             self._record_event(
                 "birth",
                 creature_id=child_id,
                 parent_ids=(creature.id,),
                 energy=split_energy,
+                genome_hash_value=genome_hash(child_genome),
             )
 
         self.nodes.extend(new_nodes)
@@ -688,6 +717,7 @@ class World:
         creature_id: int,
         parent_ids: tuple[int, ...],
         energy: float,
+        genome_hash_value: str,
     ) -> None:
         self.events.append(
             EventRecord(
@@ -696,6 +726,7 @@ class World:
                 creature_id=creature_id,
                 parent_ids=parent_ids,
                 energy=energy,
+                genome_hash=genome_hash_value,
             )
         )
 

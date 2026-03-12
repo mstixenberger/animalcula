@@ -224,6 +224,7 @@ Current implementation baseline:
 - direct genome encoding now exists for morphology and CTRNN parameters
 - reproduction now mutates genomes and decodes offspring from them instead of mutating raw runtime state
 - fresh worlds can seed themselves from exported genome artifacts via the headless workflow
+- lifecycle events now carry genome hashes to support later lineage/speciation analysis
 - initial passing pytest suite
 
 ## Update Protocol

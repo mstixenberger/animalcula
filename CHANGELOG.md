@@ -54,6 +54,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Direct genome encoding for morphology and CTRNN parameters
 - Genome-driven reproduction and genome persistence in creature/checkpoint payloads
 - `animalcula run --seed-from ...` to bootstrap a world from exported genome artifacts
+- Deterministic genome hashes in lifecycle events and CLI event export
 
 ### Changed
 

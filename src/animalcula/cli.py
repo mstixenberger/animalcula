@@ -100,6 +100,7 @@ def main() -> int:
                         "creature_id": event.creature_id,
                         "parent_ids": list(event.parent_ids),
                         "energy": event.energy,
+                        "genome_hash": event.genome_hash,
                     }
                 )
             )

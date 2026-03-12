@@ -98,3 +98,4 @@ class EventRecord:
     creature_id: int
     parent_ids: tuple[int, ...] = ()
     energy: float = 0.0
+    genome_hash: str = ""
