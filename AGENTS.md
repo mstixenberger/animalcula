@@ -244,6 +244,7 @@ Current implementation baseline:
 - genome mutation now resizes CTRNN output capacity to stay aligned with morphology control requirements while preserving surplus control channels
 - genome mutation can now toggle passive edges into motorized joints, broadening the control topology that evolution can explore
 - species counting and species snapshots now use genome-distance clustering instead of a pure coarse-signature placeholder
+- the lifecycle/event stream now records explicit `speciation` events for newly observed clustered species
 - initial passing pytest suite
 
 ## Update Protocol

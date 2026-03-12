@@ -46,6 +46,7 @@ def run_sweep(
                 "births": stats.births,
                 "deaths": stats.deaths,
                 "reproductions": stats.reproductions,
+                "speciation_events": stats.speciation_events,
                 "predation_kills": stats.predation_kills,
                 "lineage_count": stats.lineage_count,
                 "species_count": stats.species_count,
@@ -60,6 +61,7 @@ def run_sweep(
                     births=stats.births,
                     deaths=stats.deaths,
                     reproductions=stats.reproductions,
+                    speciation_events=stats.speciation_events,
                     predation_kills=stats.predation_kills,
                 ),
             }

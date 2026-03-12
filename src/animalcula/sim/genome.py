@@ -160,13 +160,12 @@ def cluster_species(
     threshold: float = 1.5,
 ) -> tuple[str, ...]:
     labels = [""] * len(genomes)
-    species_index = 0
 
     for start_index in range(len(genomes)):
         if labels[start_index]:
             continue
-        species_index += 1
-        label = f"species-{species_index:03d}"
+        representative_hash = genome_hash(genomes[start_index]) or f"none-{start_index:03d}"
+        label = f"species-{representative_hash}"
         labels[start_index] = label
         stack = [start_index]
         while stack:

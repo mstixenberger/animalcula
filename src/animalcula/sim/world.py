@@ -54,6 +54,7 @@ class Stats:
     births: int
     deaths: int
     reproductions: int
+    speciation_events: int
     predation_kills: int
     lineage_count: int
     species_count: int
@@ -91,6 +92,7 @@ class World:
         self._next_creature_id = self._initial_next_creature_id()
         self.creatures = self._assign_creature_ids(self.creatures)
         self.creatures = self._ensure_creature_genomes(self.creatures)
+        self._known_species_ids = set(self._species_labels().values())
         self.nutrient_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
@@ -243,6 +245,7 @@ class World:
 
         seeded_creatures = self._ensure_creature_genomes(self._assign_creature_ids(imported))
         self.creatures.extend(seeded_creatures)
+        self._known_species_ids.update(self._species_labels().values())
         for creature in seeded_creatures:
             self._record_event(
                 "birth",
@@ -263,6 +266,7 @@ class World:
         births = sum(1 for event in self.events if event.event_type == "birth")
         deaths = sum(1 for event in self.events if event.event_type == "death")
         reproductions = sum(1 for event in self.events if event.event_type == "reproduction")
+        speciation_events = sum(1 for event in self.events if event.event_type == "speciation")
         predation_kills = sum(1 for event in self.events if event.event_type == "predation_kill")
         lineage_counts = Counter(
             genome_hash(creature.genome) for creature in self.creatures if creature.genome is not None
@@ -288,6 +292,7 @@ class World:
             births=births,
             deaths=deaths,
             reproductions=reproductions,
+            speciation_events=speciation_events,
             predation_kills=predation_kills,
             lineage_count=len(lineage_counts),
             species_count=len(species_counts),
@@ -353,6 +358,7 @@ class World:
             "detritus_grid": self.detritus_grid.values,
             "nutrient_source_cells": self._nutrient_source_cells,
             "next_creature_id": self._next_creature_id,
+            "known_species_ids": sorted(self._known_species_ids),
             "grip_latches": [
                 {
                     "creature_a_id": latch.creature_a_id,
@@ -446,6 +452,7 @@ class World:
         world.detritus_grid.values = payload.get("detritus_grid", [0.0] * len(world.detritus_grid.values))
         world._nutrient_source_cells = [tuple(cell) for cell in payload["nutrient_source_cells"]]
         world._next_creature_id = payload.get("next_creature_id", world._initial_next_creature_id())
+        world._known_species_ids = set(payload.get("known_species_ids", world._species_labels().values()))
         world.grip_latches = [
             GripLatch(
                 creature_a_id=latch["creature_a_id"],
@@ -472,6 +479,7 @@ class World:
         self.edges.extend(edges)
         seeded_creatures = self._ensure_creature_genomes(self._assign_creature_ids(creatures))
         self.creatures.extend(seeded_creatures)
+        self._known_species_ids.update(self._species_labels().values())
         for creature in seeded_creatures:
             self._record_event(
                 "birth",
@@ -781,6 +789,7 @@ class World:
             )
         living_creatures = [creature for creature in self.creatures if creature.energy > 0.0]
         if len(living_creatures) == len(self.creatures):
+            self._record_speciation_events()
             return None
 
         live_node_indices = sorted(
@@ -820,6 +829,7 @@ class World:
             if latch.node_a_index in node_index_map and latch.node_b_index in node_index_map
         ]
         self._apply_population_floor()
+        self._record_speciation_events()
         return None
 
     def _reproduce_creatures(self) -> None:
@@ -962,6 +972,25 @@ class World:
             creature.id: label
             for creature, label in zip(self.creatures, labels, strict=True)
         }
+
+    def _record_speciation_events(self) -> None:
+        species_labels = self._species_labels()
+        current_species_ids = set(species_labels.values())
+        new_species_ids = sorted(current_species_ids - self._known_species_ids)
+        for species_id in new_species_ids:
+            representative = next(
+                creature
+                for creature in self.creatures
+                if species_labels.get(creature.id) == species_id
+            )
+            self._record_event(
+                "speciation",
+                creature_id=representative.id,
+                parent_ids=(),
+                energy=representative.energy,
+                genome_hash_value=genome_hash(representative.genome),
+            )
+        self._known_species_ids.update(current_species_ids)
 
     def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
         updated: list[CreatureState] = []

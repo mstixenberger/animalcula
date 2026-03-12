@@ -76,6 +76,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Automatic CTRNN output resizing during genome mutation so control-channel counts stay valid as morphology changes
 - Motor-topology genome mutation that can convert passive edges into motorized joints
 - Genome-distance species clustering used for species counts and species snapshot grouping
+- Explicit `speciation` events in the lifecycle log, plus speciation counts in headless stats and sweep output
 
 ### Changed
 

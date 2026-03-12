@@ -117,3 +117,29 @@ def test_world_logs_predation_kill_events() -> None:
 
     event_types = [event.event_type for event in world.events]
     assert "predation_kill" in event_types
+
+
+def test_world_logs_speciation_events_for_new_species_clusters() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+        ]
+    )
+    node = NodeState(
+        position=Vec2(10.0, 10.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+        node_type=NodeType.MOUTH,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+    world._known_species_ids = set()
+
+    world.step()
+
+    event_types = [event.event_type for event in world.events]
+    assert "speciation" in event_types
