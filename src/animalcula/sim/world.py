@@ -16,6 +16,7 @@ from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, motor_cost, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.genome import (
+    coarse_species_signature,
     decode_genome,
     encode_creature_genome,
     genome_from_dict,
@@ -52,6 +53,7 @@ class Stats:
     reproductions: int
     predation_kills: int
     lineage_count: int
+    species_count: int
     diversity_index: float
 
 
@@ -191,6 +193,11 @@ class World:
         lineage_counts = Counter(
             genome_hash(creature.genome) for creature in self.creatures if creature.genome is not None
         )
+        species_counts = Counter(
+            coarse_species_signature(creature.genome)
+            for creature in self.creatures
+            if creature.genome is not None
+        )
         return Stats(
             tick=self.tick,
             population=len(self.creatures) if self.creatures else len(self.nodes),
@@ -202,6 +209,7 @@ class World:
             reproductions=reproductions,
             predation_kills=predation_kills,
             lineage_count=len(lineage_counts),
+            species_count=len(species_counts),
             diversity_index=shannon_diversity(dict(lineage_counts)),
         )
 

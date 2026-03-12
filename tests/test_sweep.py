@@ -51,6 +51,7 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert records[1]["population"] == 3
     assert records[0]["births"] > records[1]["births"]
     assert "lineage_count" in records[0]
+    assert "species_count" in records[0]
     assert "diversity_index" in records[0]
     assert "predation_kills" in records[0]
     assert records[0]["interestingness"] > records[1]["interestingness"]

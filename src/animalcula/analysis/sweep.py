@@ -48,6 +48,7 @@ def run_sweep(
                 "reproductions": stats.reproductions,
                 "predation_kills": stats.predation_kills,
                 "lineage_count": stats.lineage_count,
+                "species_count": stats.species_count,
                 "diversity_index": stats.diversity_index,
                 "interestingness": interestingness_score(
                     population=stats.population,

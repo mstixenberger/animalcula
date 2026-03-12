@@ -233,6 +233,7 @@ Current implementation baseline:
 - predation kills now surface as a distinct event type and stats count for headless analysis
 - the seeded amoeba-lite archetype now exposes motor plus bite outputs, so the default seed set matches the current predation wiring better
 - genomes now have a first structural mutation path that can grow one extra body node and edge
+- coarse species counting is now derived from genome structure and exposed in headless stats/reporting
 - initial passing pytest suite
 
 ## Update Protocol

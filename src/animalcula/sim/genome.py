@@ -296,3 +296,22 @@ def genome_hash(genome: CreatureGenome | None) -> str:
         return ""
     canonical = json.dumps(genome_to_dict(genome), sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(canonical.encode("utf-8")).hexdigest()[:12]
+
+
+def coarse_species_signature(genome: CreatureGenome | None) -> str:
+    if genome is None:
+        return ""
+    mouths = sum(1 for node in genome.nodes if node.node_type == NodeType.MOUTH)
+    photoreceptors = sum(1 for node in genome.nodes if node.node_type == NodeType.PHOTORECEPTOR)
+    motors = sum(1 for edge in genome.edges if edge.has_motor)
+    mean_radius = round(sum(node.radius for node in genome.nodes) / max(len(genome.nodes), 1), 1)
+    return "|".join(
+        [
+            f"n{len(genome.nodes)}",
+            f"e{len(genome.edges)}",
+            f"m{mouths}",
+            f"p{photoreceptors}",
+            f"mot{motors}",
+            f"r{mean_radius}",
+        ]
+    )

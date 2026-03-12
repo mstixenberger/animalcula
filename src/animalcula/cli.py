@@ -148,6 +148,7 @@ def _format_stats(seed: int, stats: object) -> str:
             f"deaths={stats.deaths}",
             f"reproductions={stats.reproductions}",
             f"predation_kills={stats.predation_kills}",
+            f"species={stats.species_count}",
             f"lineages={stats.lineage_count}",
             f"diversity={stats.diversity_index:.3f}",
         ]
@@ -175,6 +176,7 @@ def _run_with_stats_log(world: World, ticks: int, log_path: str, log_every: int)
                         "reproductions": stats.reproductions,
                         "predation_kills": stats.predation_kills,
                         "lineage_count": stats.lineage_count,
+                        "species_count": stats.species_count,
                         "diversity_index": stats.diversity_index,
                     }
                 )
