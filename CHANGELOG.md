@@ -37,6 +37,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Sequential YAML-driven parameter sweep command with JSONL result export
 - Initial interestingness score included in sweep results
 - Offspring motor strengths mutate during reproduction
+- Stable creature IDs and append-only birth/death/reproduction event logging
 
 ### Changed
 

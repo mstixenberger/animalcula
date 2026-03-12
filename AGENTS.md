@@ -207,6 +207,7 @@ Current implementation baseline:
 - sequential YAML-driven parameter sweep command for headless exploration
 - first interestingness score for ranking sweep results
 - offspring motor strengths mutate during reproduction
+- stable creature IDs and an append-only event log for birth, death, and reproduction
 - initial passing pytest suite
 
 ## Update Protocol

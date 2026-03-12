@@ -16,7 +16,7 @@ from animalcula.sim.fields import Grid2D
 from animalcula.sim.mutation import mutate_brain, mutate_edge, mutate_node
 from animalcula.sim.physics import apply_edge_springs, apply_motor_forces, apply_overdamped_dynamics
 from animalcula.sim.seeding import build_demo_archetypes
-from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
+from animalcula.sim.types import BrainState, CreatureState, EdgeState, EventRecord, NodeState, NodeType, Vec2
 
 
 @dataclass(slots=True, frozen=True)
@@ -52,8 +52,11 @@ class World:
         self.nodes = list(nodes or [])
         self.edges = list(edges or [])
         self.creatures = list(creatures or [])
+        self.events: list[EventRecord] = []
         self._phase_trace: list[str] = []
         self._rng = random.Random(self.seed)
+        self._next_creature_id = self._initial_next_creature_id()
+        self.creatures = self._assign_creature_ids(self.creatures)
         self.nutrient_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
@@ -126,6 +129,8 @@ class World:
                 {
                     "node_indices": list(creature.node_indices),
                     "energy": creature.energy,
+                    "id": creature.id,
+                    "parent_id": creature.parent_id,
                     "brain": None
                     if creature.brain is None
                     else {
@@ -141,9 +146,20 @@ class World:
                 }
                 for creature in self.creatures
             ],
+            "events": [
+                {
+                    "tick": event.tick,
+                    "event_type": event.event_type,
+                    "creature_id": event.creature_id,
+                    "parent_ids": list(event.parent_ids),
+                    "energy": event.energy,
+                }
+                for event in self.events
+            ],
             "nutrient_grid": self.nutrient_grid.values,
             "light_grid": self.light_grid.values,
             "nutrient_source_cells": self._nutrient_source_cells,
+            "next_creature_id": self._next_creature_id,
         }
         Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
@@ -193,14 +209,27 @@ class World:
                     ),
                     last_sensed_inputs=tuple(creature.get("last_sensed_inputs", [])),
                     last_brain_outputs=tuple(creature.get("last_brain_outputs", [])),
+                    id=creature.get("id", -1),
+                    parent_id=creature.get("parent_id"),
                 )
                 for creature in payload["creatures"]
             ],
         )
         world.tick = payload["tick"]
+        world.events = [
+            EventRecord(
+                tick=event["tick"],
+                event_type=event["event_type"],
+                creature_id=event["creature_id"],
+                parent_ids=tuple(event.get("parent_ids", [])),
+                energy=event.get("energy", 0.0),
+            )
+            for event in payload.get("events", [])
+        ]
         world.nutrient_grid.values = payload["nutrient_grid"]
         world.light_grid.values = payload["light_grid"]
         world._nutrient_source_cells = [tuple(cell) for cell in payload["nutrient_source_cells"]]
+        world._next_creature_id = payload.get("next_creature_id", world._initial_next_creature_id())
         return world
 
     def random_unit(self) -> float:
@@ -215,7 +244,10 @@ class World:
         )
         self.nodes.extend(nodes)
         self.edges.extend(edges)
-        self.creatures.extend(creatures)
+        seeded_creatures = self._assign_creature_ids(creatures)
+        self.creatures.extend(seeded_creatures)
+        for creature in seeded_creatures:
+            self._record_event("birth", creature_id=creature.id, parent_ids=(), energy=creature.energy)
 
     def _step_once(self) -> Snapshot:
         self._phase_trace = []
@@ -368,6 +400,9 @@ class World:
             return None
 
         self._reproduce_creatures()
+        dead_creatures = [creature for creature in self.creatures if creature.energy <= 0.0]
+        for creature in dead_creatures:
+            self._record_event("death", creature_id=creature.id, parent_ids=(), energy=creature.energy)
         living_creatures = [creature for creature in self.creatures if creature.energy > 0.0]
         if len(living_creatures) == len(self.creatures):
             return None
@@ -456,12 +491,27 @@ class World:
                     tau_sigma=self.config.evolution.tau_mutation_sigma,
                 )
             )
+            child_id = self._allocate_creature_id()
             new_creatures.append(
                 CreatureState(
                     node_indices=tuple(node_index_map[index] for index in creature.node_indices),
                     energy=split_energy,
                     brain=child_brain,
+                    id=child_id,
+                    parent_id=creature.id,
                 )
+            )
+            self._record_event(
+                "reproduction",
+                creature_id=creature.id,
+                parent_ids=(creature.id,),
+                energy=split_energy,
+            )
+            self._record_event(
+                "birth",
+                creature_id=child_id,
+                parent_ids=(creature.id,),
+                energy=split_energy,
             )
 
         self.nodes.extend(new_nodes)
@@ -478,3 +528,40 @@ class World:
                 )
             )
         return sorted(source_cells)
+
+    def _initial_next_creature_id(self) -> int:
+        existing_ids = [creature.id for creature in self.creatures if creature.id >= 0]
+        return (max(existing_ids) + 1) if existing_ids else 1
+
+    def _allocate_creature_id(self) -> int:
+        creature_id = self._next_creature_id
+        self._next_creature_id += 1
+        return creature_id
+
+    def _assign_creature_ids(self, creatures: list[CreatureState]) -> list[CreatureState]:
+        assigned: list[CreatureState] = []
+        seen_ids: set[int] = set()
+        for creature in creatures:
+            creature_id = creature.id
+            if creature_id < 0 or creature_id in seen_ids:
+                creature_id = self._allocate_creature_id()
+            seen_ids.add(creature_id)
+            assigned.append(replace(creature, id=creature_id))
+        return assigned
+
+    def _record_event(
+        self,
+        event_type: str,
+        creature_id: int,
+        parent_ids: tuple[int, ...],
+        energy: float,
+    ) -> None:
+        self.events.append(
+            EventRecord(
+                tick=self.tick,
+                event_type=event_type,
+                creature_id=creature_id,
+                parent_ids=parent_ids,
+                energy=energy,
+            )
+        )

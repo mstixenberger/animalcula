@@ -81,3 +81,14 @@ class CreatureState:
     brain: BrainState | None = None
     last_sensed_inputs: tuple[float, ...] = ()
     last_brain_outputs: tuple[float, ...] = ()
+    id: int = -1
+    parent_id: int | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class EventRecord:
+    tick: int
+    event_type: str
+    creature_id: int
+    parent_ids: tuple[int, ...] = ()
+    energy: float = 0.0
