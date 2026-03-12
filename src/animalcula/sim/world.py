@@ -604,6 +604,9 @@ class World:
             if creature.energy < self.config.energy.reproduction_threshold:
                 updated_creatures.append(creature)
                 continue
+            if not self._reproduction_allowed(creature):
+                updated_creatures.append(creature)
+                continue
 
             parent_genome = creature.genome or encode_creature_genome(
                 nodes=self.nodes,
@@ -719,6 +722,19 @@ class World:
             )
             ensured.append(replace(creature, genome=genome))
         return ensured
+
+    def _reproduction_allowed(self, creature: CreatureState) -> bool:
+        if not creature.last_brain_outputs:
+            return True
+
+        motor_edge_count = sum(
+            1
+            for edge in self.edges
+            if edge.has_motor and edge.a in creature.node_indices and edge.b in creature.node_indices
+        )
+        if len(creature.last_brain_outputs) <= motor_edge_count:
+            return True
+        return creature.last_brain_outputs[motor_edge_count] >= 0.5
 
     def _record_event(
         self,

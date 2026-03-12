@@ -523,6 +523,78 @@ def test_world_reproduces_energy_rich_creatures() -> None:
     assert decoded_brain.input_weights == world.creatures[1].brain.input_weights
 
 
+def test_world_requires_reproduce_signal_when_brain_exposes_one() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    brain = BrainState(
+        input_weights=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)),
+        recurrent_weights=((0.0, 0.0), (0.0, 0.0)),
+        biases=(0.0, -10.0),
+        time_constants=(1.0, 1.0),
+        states=(0.0, 0.0),
+        output_size=2,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(50.0, 50.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(56.0, 50.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.PHOTORECEPTOR,
+        ),
+    ]
+    edges = [EdgeState(a=0, b=1, rest_length=6.0, stiffness=1.0, has_motor=True, motor_strength=2.0)]
+    creatures = [CreatureState(node_indices=(0, 1), energy=200.0, brain=brain)]
+    world = World(config=config, nodes=nodes, edges=edges, creatures=creatures)
+
+    world.step()
+
+    assert len(world.creatures) == 1
+
+
+def test_world_reproduces_when_reproduce_signal_is_high() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    brain = BrainState(
+        input_weights=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)),
+        recurrent_weights=((0.0, 0.0), (0.0, 0.0)),
+        biases=(0.0, 10.0),
+        time_constants=(1.0, 1.0),
+        states=(0.0, 0.0),
+        output_size=2,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(50.0, 50.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(56.0, 50.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.PHOTORECEPTOR,
+        ),
+    ]
+    edges = [EdgeState(a=0, b=1, rest_length=6.0, stiffness=1.0, has_motor=True, motor_strength=2.0)]
+    creatures = [CreatureState(node_indices=(0, 1), energy=200.0, brain=brain)]
+    world = World(config=config, nodes=nodes, edges=edges, creatures=creatures)
+
+    world.step()
+
+    assert len(world.creatures) == 2
+
+
 def test_world_stats_report_population_nodes_and_total_energy() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     world = World(config=config, seed=7)
