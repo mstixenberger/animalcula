@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import random
+from typing import Callable
 
 from animalcula.config import Config
-from animalcula.sim.physics import apply_overdamped_dynamics
-from animalcula.sim.types import NodeState
+from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
+from animalcula.sim.types import EdgeState, NodeState
 
 
 @dataclass(slots=True, frozen=True)
@@ -25,11 +26,13 @@ class World:
         config: Config,
         seed: int | None = None,
         nodes: list[NodeState] | None = None,
+        edges: list[EdgeState] | None = None,
     ) -> None:
         self.config = config
         self.seed = config.simulation.initial_seed if seed is None else seed
         self.tick = 0
         self.nodes = list(nodes or [])
+        self.edges = list(edges or [])
         self._phase_trace: list[str] = []
         self._rng = random.Random(self.seed)
 
@@ -62,7 +65,7 @@ class World:
         self.tick += 1
         return self.snapshot()
 
-    def _run_phase(self, name: str, func: callable) -> None:
+    def _run_phase(self, name: str, func: Callable[[], None]) -> None:
         self._phase_trace.append(name)
         func()
 
@@ -76,6 +79,7 @@ class World:
         return None
 
     def _apply_physics(self) -> None:
+        self.nodes = apply_edge_springs(nodes=self.nodes, edges=self.edges)
         self.nodes = [
             apply_overdamped_dynamics(node=node, dt=self.config.physics.dt)
             for node in self.nodes

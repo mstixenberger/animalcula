@@ -187,6 +187,7 @@ Current implementation baseline:
 - deterministic world seed handling
 - phase-ordered world stepping
 - node-level overdamped dynamics helpers
+- spring-connected edge accumulation for body structure
 - initial passing pytest suite
 
 ## Update Protocol

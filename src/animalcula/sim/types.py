@@ -44,3 +44,11 @@ class NodeState:
     accumulated_force: Vec2
     drag_coeff: float
     radius: float
+
+
+@dataclass(slots=True, frozen=True)
+class EdgeState:
+    a: int
+    b: int
+    rest_length: float
+    stiffness: float

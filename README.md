@@ -4,7 +4,7 @@ Animalcula is a 2D artificial life simulator centered on evolved, physics-based 
 
 ## Status
 
-The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, and a passing test suite.
+The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, spring-connected node integration, and a passing test suite.
 
 ## Development Priorities
 
@@ -59,4 +59,4 @@ uv run animalcula run --config config/default.yaml --ticks 10 --seed 42
 
 ## Next Build Step
 
-Build upward from node-level physics into creature-level simulation: nodes, edges, springs, and the first field-aware world state.
+Build upward from spring-connected body structure into field-aware world state: environment grids, sampling, and the first energy loop.

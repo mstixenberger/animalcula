@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from animalcula import Config, World
-from animalcula.sim.types import NodeState, Vec2
+from animalcula.sim.types import EdgeState, NodeState, Vec2
 
 
 def test_world_uses_default_seed_when_none_is_provided() -> None:
@@ -66,6 +66,33 @@ def test_world_step_applies_overdamped_physics_to_nodes() -> None:
     assert world.nodes[0].velocity == Vec2(0.5, 0.0)
     assert world.nodes[0].position == Vec2(0.005, 0.0)
     assert snapshot.population == 1
+
+
+def test_world_step_applies_edge_springs_before_integration() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    nodes = [
+        NodeState(
+            position=Vec2(0.0, 0.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(3.0, 0.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    edges = [EdgeState(a=0, b=1, rest_length=1.0, stiffness=2.0)]
+    world = World(config=config, nodes=nodes, edges=edges)
+
+    world.step()
+
+    assert world.nodes[0].position.x > 0.0
+    assert world.nodes[1].position.x < 3.0
 
 
 def test_cli_run_command_advances_the_world() -> None:

@@ -2,8 +2,12 @@ import math
 
 import pytest
 
-from animalcula.sim.physics import apply_overdamped_dynamics, spring_force
-from animalcula.sim.types import NodeState, Vec2
+from animalcula.sim.physics import (
+    apply_edge_springs,
+    apply_overdamped_dynamics,
+    spring_force,
+)
+from animalcula.sim.types import EdgeState, NodeState, Vec2
 
 
 def test_spring_force_is_zero_at_rest_length() -> None:
@@ -57,3 +61,28 @@ def test_overdamped_dynamics_requires_positive_drag() -> None:
 
     with pytest.raises(ValueError, match="drag_coeff must be positive"):
         apply_overdamped_dynamics(node=node, dt=0.1)
+
+
+def test_apply_edge_springs_accumulates_equal_and_opposite_forces() -> None:
+    nodes = [
+        NodeState(
+            position=Vec2(0.0, 0.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(3.0, 0.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    edges = [EdgeState(a=0, b=1, rest_length=1.0, stiffness=2.0)]
+
+    updated = apply_edge_springs(nodes=nodes, edges=edges)
+
+    assert updated[0].accumulated_force == Vec2(4.0, 0.0)
+    assert updated[1].accumulated_force == Vec2(-4.0, 0.0)

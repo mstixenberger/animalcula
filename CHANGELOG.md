@@ -17,6 +17,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - First passing test suite covering config loading, world stepping, deterministic seeding, and CLI execution
 - Node-level runtime types and overdamped physics helpers
 - Phase-ordered world stepping with basic node integration under test
+- Edge runtime types and spring accumulation for connected body structure
 
 ### Changed
 
