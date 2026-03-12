@@ -280,7 +280,7 @@ def test_world_reproduces_energy_rich_creatures() -> None:
             node_type=NodeType.PHOTORECEPTOR,
         ),
     ]
-    edges = [EdgeState(a=0, b=1, rest_length=6.0, stiffness=1.0)]
+    edges = [EdgeState(a=0, b=1, rest_length=6.0, stiffness=1.0, has_motor=True, motor_strength=2.0)]
     creatures = [CreatureState(node_indices=(0, 1), energy=200.0, brain=brain)]
     world = World(config=config, nodes=nodes, edges=edges, creatures=creatures)
 
@@ -293,6 +293,7 @@ def test_world_reproduces_energy_rich_creatures() -> None:
     assert world.nodes[2].radius != world.nodes[0].radius
     assert world.creatures[1].brain is not None
     assert world.creatures[1].brain.input_weights != world.creatures[0].brain.input_weights
+    assert world.edges[1].motor_strength != world.edges[0].motor_strength
 
 
 def test_world_stats_report_population_nodes_and_total_energy() -> None:

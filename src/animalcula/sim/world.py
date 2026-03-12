@@ -13,7 +13,7 @@ from animalcula.config import Config
 from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
-from animalcula.sim.mutation import mutate_brain, mutate_node
+from animalcula.sim.mutation import mutate_brain, mutate_edge, mutate_node
 from animalcula.sim.physics import apply_edge_springs, apply_motor_forces, apply_overdamped_dynamics
 from animalcula.sim.seeding import build_demo_archetypes
 from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
@@ -429,13 +429,17 @@ class World:
             for edge in self.edges:
                 if edge.a in node_index_map and edge.b in node_index_map:
                     new_edges.append(
-                        EdgeState(
-                            a=node_index_map[edge.a],
-                            b=node_index_map[edge.b],
-                            rest_length=edge.rest_length,
-                            stiffness=edge.stiffness,
-                            has_motor=edge.has_motor,
-                            motor_strength=edge.motor_strength,
+                        mutate_edge(
+                            edge=EdgeState(
+                                a=node_index_map[edge.a],
+                                b=node_index_map[edge.b],
+                                rest_length=edge.rest_length,
+                                stiffness=edge.stiffness,
+                                has_motor=edge.has_motor,
+                                motor_strength=edge.motor_strength,
+                            ),
+                            rng=self._rng,
+                            motor_strength_sigma=self.config.evolution.motor_strength_mutation_sigma,
                         )
                     )
 

@@ -206,6 +206,7 @@ Current implementation baseline:
 - offspring brain weights, biases, and taus mutate during reproduction
 - sequential YAML-driven parameter sweep command for headless exploration
 - first interestingness score for ranking sweep results
+- offspring motor strengths mutate during reproduction
 - initial passing pytest suite
 
 ## Update Protocol

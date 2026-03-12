@@ -4,7 +4,7 @@ Animalcula is a 2D artificial life simulator centered on evolved, physics-based 
 
 ## Status
 
-The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, spring-connected node integration, grid-backed environment fields, a first creature energy loop, nutrient feeding, lifecycle cleanup on depletion, deterministic nutrient sources, deterministic starter archetypes, a CTRNN brain runtime with simple sensor-to-motor integration, motorized edges with brain-driven actuation, world stats reporting, JSON checkpoints, a first asexual reproduction path, deterministic offspring body mutation, offspring brain parameter mutation, and a passing test suite.
+The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, spring-connected node integration, grid-backed environment fields, a first creature energy loop, nutrient feeding, lifecycle cleanup on depletion, deterministic nutrient sources, deterministic starter archetypes, a CTRNN brain runtime with simple sensor-to-motor integration, motorized edges with brain-driven actuation, world stats reporting, JSON checkpoints, a first asexual reproduction path, deterministic offspring body mutation, offspring brain parameter mutation, offspring motor-strength mutation, and a passing test suite.
 
 ## Development Priorities
 
@@ -65,4 +65,4 @@ uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 
 
 ## Next Build Step
 
-Build upward from the scored sweep-capable mutation-bearing brain loop into broader evolution: richer mutation operators, better motor mappings, reproduction controls, and better headless tooling.
+Build upward from the broader mutation-bearing scored sweep loop into fuller evolution: richer mutation operators, better motor mappings, reproduction controls, and better headless tooling.

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 import random
 
-from animalcula.sim.types import BrainState, NodeState, Vec2
+from animalcula.sim.types import BrainState, EdgeState, NodeState, Vec2
 
 
 def mutate_node(
@@ -47,4 +47,13 @@ def mutate_brain(
         recurrent_weights=recurrent_weights,
         biases=biases,
         time_constants=time_constants,
+    )
+
+
+def mutate_edge(edge: EdgeState, rng: random.Random, motor_strength_sigma: float) -> EdgeState:
+    if not edge.has_motor:
+        return edge
+    return replace(
+        edge,
+        motor_strength=max(0.0, edge.motor_strength + rng.gauss(0.0, motor_strength_sigma)),
     )

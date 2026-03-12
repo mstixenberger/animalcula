@@ -1,7 +1,7 @@
 import random
 
-from animalcula.sim.mutation import mutate_brain, mutate_node
-from animalcula.sim.types import BrainState, NodeState, Vec2
+from animalcula.sim.mutation import mutate_brain, mutate_edge, mutate_node
+from animalcula.sim.types import BrainState, EdgeState, NodeState, Vec2
 
 
 def test_mutate_node_changes_state_while_keeping_radius_positive() -> None:
@@ -50,3 +50,13 @@ def test_mutate_brain_changes_parameters_and_keeps_taus_positive() -> None:
     assert mutated.biases != brain.biases
     assert mutated.time_constants != brain.time_constants
     assert all(value > 0.0 for value in mutated.time_constants)
+
+
+def test_mutate_edge_changes_motor_strength_while_keeping_it_non_negative() -> None:
+    rng = random.Random(7)
+    edge = EdgeState(a=0, b=1, rest_length=2.0, stiffness=1.0, has_motor=True, motor_strength=2.0)
+
+    mutated = mutate_edge(edge=edge, rng=rng, motor_strength_sigma=0.2)
+
+    assert mutated.motor_strength != edge.motor_strength
+    assert mutated.motor_strength >= 0.0

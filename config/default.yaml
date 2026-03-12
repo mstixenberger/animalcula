@@ -28,6 +28,7 @@ evolution:
   weight_mutation_sigma: 0.1
   bias_mutation_sigma: 0.05
   tau_mutation_sigma: 0.02
+  motor_strength_mutation_sigma: 0.2
 
 brain:
   default_input_size: 3

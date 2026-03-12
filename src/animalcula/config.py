@@ -49,6 +49,7 @@ class EvolutionConfig:
     weight_mutation_sigma: float
     bias_mutation_sigma: float
     tau_mutation_sigma: float
+    motor_strength_mutation_sigma: float
 
 
 @dataclass(slots=True, frozen=True)
