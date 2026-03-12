@@ -307,6 +307,9 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
     assert stats.node_count == len(world.nodes)
     assert stats.edge_count == len(world.edges)
     assert stats.total_energy > 0.0
+    assert stats.births == 3
+    assert stats.deaths == 0
+    assert stats.reproductions == 0
 
 
 def test_cli_run_command_advances_the_world() -> None:
@@ -328,7 +331,7 @@ def test_cli_run_command_advances_the_world() -> None:
         text=True,
     )
 
-    assert result.stdout.strip() == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000"
+    assert result.stdout.strip() == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0"
 
 
 def test_cli_run_command_can_seed_demo_world() -> None:
@@ -352,6 +355,7 @@ def test_cli_run_command_can_seed_demo_world() -> None:
     )
 
     assert "population=3" in result.stdout
+    assert "births=3" in result.stdout
 
 
 def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:
@@ -421,6 +425,7 @@ def test_cli_run_command_can_resume_checkpoint(tmp_path: Path) -> None:
     )
 
     assert "tick=3" in result.stdout
+    assert "births=" in result.stdout
 
 
 def test_cli_report_command_reads_checkpoint(tmp_path: Path) -> None:
@@ -461,6 +466,7 @@ def test_cli_report_command_reads_checkpoint(tmp_path: Path) -> None:
 
     assert "tick=2" in result.stdout
     assert "population=3" in result.stdout
+    assert "births=3" in result.stdout
 
 
 def test_cli_run_command_accepts_config_overrides() -> None:

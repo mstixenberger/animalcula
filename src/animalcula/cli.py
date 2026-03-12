@@ -88,6 +88,9 @@ def _format_stats(seed: int, stats: object) -> str:
             f"population={stats.population}",
             f"nodes={stats.node_count}",
             f"total_energy={stats.total_energy:.3f}",
+            f"births={stats.births}",
+            f"deaths={stats.deaths}",
+            f"reproductions={stats.reproductions}",
         ]
     )
 

@@ -33,6 +33,9 @@ class Stats:
     node_count: int
     edge_count: int
     total_energy: float
+    births: int
+    deaths: int
+    reproductions: int
 
 
 class World:
@@ -87,12 +90,18 @@ class World:
         )
 
     def stats(self) -> Stats:
+        births = sum(1 for event in self.events if event.event_type == "birth")
+        deaths = sum(1 for event in self.events if event.event_type == "death")
+        reproductions = sum(1 for event in self.events if event.event_type == "reproduction")
         return Stats(
             tick=self.tick,
             population=len(self.creatures) if self.creatures else len(self.nodes),
             node_count=len(self.nodes),
             edge_count=len(self.edges),
             total_energy=sum(creature.energy for creature in self.creatures),
+            births=births,
+            deaths=deaths,
+            reproductions=reproductions,
         )
 
     def save(self, path: str | Path) -> None:

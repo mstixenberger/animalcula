@@ -42,6 +42,9 @@ def run_sweep(
                 "population": stats.population,
                 "nodes": stats.node_count,
                 "total_energy": stats.total_energy,
+                "births": stats.births,
+                "deaths": stats.deaths,
+                "reproductions": stats.reproductions,
                 "interestingness": interestingness_score(
                     population=stats.population,
                     total_energy=stats.total_energy,

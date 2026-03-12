@@ -38,6 +38,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Initial interestingness score included in sweep results
 - Offspring motor strengths mutate during reproduction
 - Stable creature IDs and append-only birth/death/reproduction event logging
+- Event counts exposed through stats, CLI reporting, and sweep results
 
 ### Changed
 

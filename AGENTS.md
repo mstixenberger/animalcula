@@ -208,6 +208,7 @@ Current implementation baseline:
 - first interestingness score for ranking sweep results
 - offspring motor strengths mutate during reproduction
 - stable creature IDs and an append-only event log for birth, death, and reproduction
+- event counts exposed through stats, CLI reporting, and sweep results
 - initial passing pytest suite
 
 ## Update Protocol
