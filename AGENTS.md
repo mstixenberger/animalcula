@@ -198,6 +198,7 @@ Current implementation baseline:
 - first asexual reproduction path for energy-rich creatures
 - deterministic offspring mutation on reproduction
 - CLI save/resume support for checkpoint-driven runs
+- CLI checkpoint reporting for quick headless inspection
 - initial passing pytest suite
 
 ## Update Protocol

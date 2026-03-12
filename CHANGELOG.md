@@ -28,6 +28,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - A first asexual reproduction path for energy-rich creatures
 - Deterministic offspring mutation on reproduction
 - CLI save/resume support for checkpoint-driven runs
+- CLI checkpoint reporting for quick saved-state inspection
 
 ### Changed
 

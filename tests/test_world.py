@@ -342,3 +342,43 @@ def test_cli_run_command_can_resume_checkpoint(tmp_path: Path) -> None:
     )
 
     assert "tick=3" in result.stdout
+
+
+def test_cli_report_command_reads_checkpoint(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "saved-world.json"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "2",
+            "--seed",
+            "11",
+            "--seed-demo",
+            "--save",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "report",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "tick=2" in result.stdout
+    assert "population=3" in result.stdout

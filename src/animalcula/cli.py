@@ -20,6 +20,9 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--save", default=None)
     run_parser.add_argument("--resume", default=None)
 
+    report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
+    report_parser.add_argument("checkpoint")
+
     return parser
 
 
@@ -39,21 +42,28 @@ def main() -> int:
         if args.save is not None:
             world.save(args.save)
         stats = world.stats()
-        print(
-            " ".join(
-                [
-                    f"tick={stats.tick}",
-                    f"seed={world.seed}",
-                    f"population={stats.population}",
-                    f"nodes={stats.node_count}",
-                    f"total_energy={stats.total_energy:.3f}",
-                ]
-            )
-        )
+        print(_format_stats(world.seed, stats))
+        return 0
+
+    if args.command == "report":
+        world = World.load(args.checkpoint)
+        print(_format_stats(world.seed, world.stats()))
         return 0
 
     parser.error(f"unknown command: {args.command}")
     return 2
+
+
+def _format_stats(seed: int, stats: object) -> str:
+    return " ".join(
+        [
+            f"tick={stats.tick}",
+            f"seed={seed}",
+            f"population={stats.population}",
+            f"nodes={stats.node_count}",
+            f"total_energy={stats.total_energy:.3f}",
+        ]
+    )
 
 
 if __name__ == "__main__":
