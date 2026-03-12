@@ -46,6 +46,9 @@ class EnergyConfig:
 class EvolutionConfig:
     position_mutation_sigma: float
     radius_mutation_sigma: float
+    weight_mutation_sigma: float
+    bias_mutation_sigma: float
+    tau_mutation_sigma: float
 
 
 @dataclass(slots=True, frozen=True)

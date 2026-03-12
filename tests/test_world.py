@@ -255,6 +255,14 @@ def test_seeded_demo_world_can_step_without_immediate_extinction() -> None:
 
 def test_world_reproduces_energy_rich_creatures() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
+    brain = BrainState(
+        input_weights=((1.0, 0.0, 0.0),),
+        recurrent_weights=((0.5,),),
+        biases=(0.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
     nodes = [
         NodeState(
             position=Vec2(50.0, 50.0),
@@ -273,7 +281,7 @@ def test_world_reproduces_energy_rich_creatures() -> None:
         ),
     ]
     edges = [EdgeState(a=0, b=1, rest_length=6.0, stiffness=1.0)]
-    creatures = [CreatureState(node_indices=(0, 1), energy=200.0)]
+    creatures = [CreatureState(node_indices=(0, 1), energy=200.0, brain=brain)]
     world = World(config=config, nodes=nodes, edges=edges, creatures=creatures)
 
     world.step()
@@ -283,6 +291,8 @@ def test_world_reproduces_energy_rich_creatures() -> None:
     assert len(world.edges) == 2
     assert world.creatures[0].energy == world.creatures[1].energy
     assert world.nodes[2].radius != world.nodes[0].radius
+    assert world.creatures[1].brain is not None
+    assert world.creatures[1].brain.input_weights != world.creatures[0].brain.input_weights
 
 
 def test_world_stats_report_population_nodes_and_total_energy() -> None:

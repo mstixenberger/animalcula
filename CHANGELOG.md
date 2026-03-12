@@ -33,6 +33,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - CTRNN brain runtime with sensor inputs and simple motor-force integration
 - Brain-equipped deterministic starter archetypes in the demo population
 - Motorized edges driven by brain outputs for simple joint actuation
+- Offspring brain weights, biases, and time constants mutate during reproduction
 
 ### Changed
 

@@ -203,6 +203,7 @@ Current implementation baseline:
 - CTRNN brain runtime with sensor inputs and simple motor-force output
 - demo archetypes now include deterministic starter brains where appropriate
 - motorized edges driven by brain outputs for simple joint actuation
+- offspring brain weights, biases, and taus mutate during reproduction
 - initial passing pytest suite
 
 ## Update Protocol

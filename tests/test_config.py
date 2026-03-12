@@ -19,6 +19,9 @@ def test_loads_default_config() -> None:
     assert config.energy.reproduction_threshold == 100.0
     assert config.evolution.position_mutation_sigma == 0.5
     assert config.evolution.radius_mutation_sigma == 0.05
+    assert config.evolution.weight_mutation_sigma == 0.1
+    assert config.evolution.bias_mutation_sigma == 0.05
+    assert config.evolution.tau_mutation_sigma == 0.02
     assert config.brain.motor_force_scale == 1.0
     assert config.brain.default_input_size == 3
     assert config.simulation.initial_seed == 42

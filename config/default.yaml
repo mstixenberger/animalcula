@@ -25,6 +25,9 @@ energy:
 evolution:
   position_mutation_sigma: 0.5
   radius_mutation_sigma: 0.05
+  weight_mutation_sigma: 0.1
+  bias_mutation_sigma: 0.05
+  tau_mutation_sigma: 0.02
 
 brain:
   default_input_size: 3

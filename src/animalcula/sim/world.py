@@ -13,7 +13,7 @@ from animalcula.config import Config
 from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
-from animalcula.sim.mutation import mutate_node
+from animalcula.sim.mutation import mutate_brain, mutate_node
 from animalcula.sim.physics import apply_edge_springs, apply_motor_forces, apply_overdamped_dynamics
 from animalcula.sim.seeding import build_demo_archetypes
 from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
@@ -441,11 +441,22 @@ class World:
 
             split_energy = creature.energy / 2.0
             updated_creatures.append(replace(creature, energy=split_energy))
+            child_brain = (
+                None
+                if creature.brain is None
+                else mutate_brain(
+                    brain=creature.brain,
+                    rng=self._rng,
+                    weight_sigma=self.config.evolution.weight_mutation_sigma,
+                    bias_sigma=self.config.evolution.bias_mutation_sigma,
+                    tau_sigma=self.config.evolution.tau_mutation_sigma,
+                )
+            )
             new_creatures.append(
                 CreatureState(
                     node_indices=tuple(node_index_map[index] for index in creature.node_indices),
                     energy=split_energy,
-                    brain=creature.brain,
+                    brain=child_brain,
                 )
             )
 
