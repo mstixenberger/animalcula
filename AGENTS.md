@@ -246,6 +246,7 @@ Current implementation baseline:
 - species counting and species snapshots now use genome-distance clustering instead of a pure coarse-signature placeholder
 - the lifecycle/event stream now records explicit `speciation` events for newly observed clustered species
 - species turnover tracking now records `species_extinction` events and keeps first-seen/last-seen timing for lifespan metrics
+- the headless CLI now supports generic checkpoint-to-seed extraction via `extract-genomes`, not just nursery-specific export
 - initial passing pytest suite
 
 ## Update Protocol

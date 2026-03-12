@@ -40,6 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
     phenotypes_parser = subparsers.add_parser("phenotypes", help="Print checkpoint phenotype snapshots as JSON lines")
     phenotypes_parser.add_argument("checkpoint")
 
+    extract_parser = subparsers.add_parser("extract-genomes", help="Export top creatures from a checkpoint")
+    extract_parser.add_argument("checkpoint")
+    extract_parser.add_argument("--top", type=int, default=10)
+    extract_parser.add_argument("--out", required=True)
+
     sweep_parser = subparsers.add_parser("sweep", help="Run a sequential parameter sweep")
     sweep_parser.add_argument("--config", default="config/default.yaml")
     sweep_parser.add_argument("--sweep", required=True)
@@ -122,6 +127,12 @@ def main() -> int:
         world = World.load(args.checkpoint)
         for snapshot in world.phenotype_snapshots():
             print(json.dumps(snapshot))
+        return 0
+
+    if args.command == "extract-genomes":
+        world = World.load(args.checkpoint)
+        world.export_top_creatures(path=args.out, n=args.top, metric="energy")
+        print(f"saved={args.out} top={args.top}")
         return 0
 
     if args.command == "sweep":

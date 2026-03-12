@@ -1158,6 +1158,37 @@ def test_cli_phenotypes_command_reads_checkpoint_phenotypes(tmp_path: Path) -> N
     assert "\"mean_speed_recent\": " in result.stdout
 
 
+def test_cli_extract_genomes_writes_top_creatures_from_checkpoint(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "extract-source.json"
+    out_path = tmp_path / "top-creatures.json"
+    world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    world.seed_demo_archetypes()
+    world.step(5)
+    world.save(checkpoint_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "extract-genomes",
+            str(checkpoint_path),
+            "--top",
+            "2",
+            "--out",
+            str(out_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert len(payload) == 2
+    assert payload[0]["genome"] is not None
+    assert "saved=" in result.stdout
+
+
 def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:
     checkpoint_path = tmp_path / "saved-world.json"
     result = subprocess.run(

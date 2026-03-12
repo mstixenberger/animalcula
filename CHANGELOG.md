@@ -78,6 +78,8 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Genome-distance species clustering used for species counts and species snapshot grouping
 - Explicit `speciation` events in the lifecycle log, plus speciation counts in headless stats and sweep output
 - Species-extinction events and longest-species-lifespan tracking in the headless species ledger
+- `animalcula extract-genomes <checkpoint> --top N --out ...` for generic checkpoint-to-seed export
+- Sweep output now includes explicit run-health flags such as extinction/speciation/predation presence
 
 ### Changed
 
