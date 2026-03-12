@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 import math
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from animalcula.sim.genome import CreatureGenome
 
 
 class NodeType(str, Enum):
@@ -79,6 +83,7 @@ class CreatureState:
     node_indices: tuple[int, ...]
     energy: float
     brain: BrainState | None = None
+    genome: "CreatureGenome | None" = None
     last_sensed_inputs: tuple[float, ...] = ()
     last_brain_outputs: tuple[float, ...] = ()
     id: int = -1

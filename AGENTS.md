@@ -221,6 +221,9 @@ Current implementation baseline:
 - `turbo` world/CLI mode plus `config/turbo.yaml` for faster headless parameter exploration
 - creature age is now tracked, serialized, and exposed as a normalized brain input
 - nursery runs can export top survivors as standalone JSON seed artifacts
+- direct genome encoding now exists for morphology and CTRNN parameters
+- reproduction now mutates genomes and decodes offspring from them instead of mutating raw runtime state
+- fresh worlds can seed themselves from exported genome artifacts via the headless workflow
 - initial passing pytest suite
 
 ## Update Protocol

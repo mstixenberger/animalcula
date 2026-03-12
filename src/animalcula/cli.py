@@ -22,6 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--seed-demo", action="store_true")
     run_parser.add_argument("--save", default=None)
     run_parser.add_argument("--resume", default=None)
+    run_parser.add_argument("--seed-from", default=None)
     run_parser.add_argument("--set", action="append", default=[])
     run_parser.add_argument("--log-stats", default=None)
     run_parser.add_argument("--log-every", type=int, default=1)
@@ -69,6 +70,8 @@ def main() -> int:
             if args.set:
                 config = config.with_overrides(args.set)
             world = World(config=config, seed=args.seed, turbo=args.turbo)
+        if args.seed_from is not None and args.resume is None:
+            world.seed_from_exported_genomes(args.seed_from)
         if args.seed_demo and args.resume is None:
             world.seed_demo_archetypes()
         if args.log_stats is not None:

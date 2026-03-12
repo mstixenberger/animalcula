@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from animalcula import Config, World
+from animalcula.sim.genome import decode_genome
 from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
 
 
@@ -430,6 +431,20 @@ def test_world_can_seed_demo_archetypes() -> None:
     assert sum(1 for creature in world.creatures if creature.brain is not None) >= 2
 
 
+def test_world_can_seed_from_exported_genomes(tmp_path: Path) -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    source_world = World(config=config, seed=7)
+    source_world.seed_demo_archetypes()
+    export_path = tmp_path / "top.json"
+    source_world.export_top_creatures(path=export_path, n=2)
+
+    target_world = World(config=config, seed=7)
+    target_world.seed_from_exported_genomes(export_path)
+
+    assert len(target_world.creatures) == 2
+    assert all(creature.genome is not None for creature in target_world.creatures)
+
+
 def test_demo_archetype_seeding_is_deterministic_for_seed() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     world_a = World(config=config, seed=7)
@@ -495,6 +510,17 @@ def test_world_reproduces_energy_rich_creatures() -> None:
     assert world.creatures[1].brain is not None
     assert world.creatures[1].brain.input_weights != world.creatures[0].brain.input_weights
     assert world.edges[1].motor_strength != world.edges[0].motor_strength
+    assert world.creatures[0].genome is not None
+    assert world.creatures[1].genome is not None
+    decoded_nodes, decoded_edges, decoded_brain = decode_genome(
+        genome=world.creatures[1].genome,
+        anchor_position=world.nodes[2].position,
+        drag_coeff=1.0,
+    )
+    assert decoded_nodes[0].radius == world.nodes[2].radius
+    assert decoded_edges[0].motor_strength == world.edges[1].motor_strength
+    assert decoded_brain is not None
+    assert decoded_brain.input_weights == world.creatures[1].brain.input_weights
 
 
 def test_world_stats_report_population_nodes_and_total_energy() -> None:
@@ -533,6 +559,36 @@ def test_cli_run_command_advances_the_world() -> None:
     )
 
     assert result.stdout.strip() == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0"
+
+
+def test_cli_run_command_can_seed_from_exported_genomes(tmp_path: Path) -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    source_world = World(config=config, seed=7)
+    source_world.seed_demo_archetypes()
+    export_path = tmp_path / "top.json"
+    source_world.export_top_creatures(path=export_path, n=2)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "0",
+            "--seed",
+            "11",
+            "--seed-from",
+            str(export_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "population=2" in result.stdout
 
 
 def test_cli_run_command_can_seed_demo_world() -> None:

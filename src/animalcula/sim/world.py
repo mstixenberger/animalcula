@@ -13,7 +13,7 @@ from animalcula.config import Config
 from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
-from animalcula.sim.mutation import mutate_brain, mutate_edge, mutate_node
+from animalcula.sim.genome import decode_genome, encode_creature_genome, genome_from_dict, genome_to_dict, mutate_genome
 from animalcula.sim.physics import (
     apply_edge_springs,
     apply_motor_forces,
@@ -67,6 +67,7 @@ class World:
         self._rng = random.Random(self.seed)
         self._next_creature_id = self._initial_next_creature_id()
         self.creatures = self._assign_creature_ids(self.creatures)
+        self.creatures = self._ensure_creature_genomes(self.creatures)
         self.nutrient_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
@@ -105,6 +106,56 @@ class World:
     def export_top_creatures(self, path: str | Path, n: int, metric: str = "energy") -> None:
         payload = [self._serialize_creature(creature) for creature in self.get_top_creatures(n=n, metric=metric)]
         Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    def seed_from_exported_genomes(self, path: str | Path) -> None:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+        if not isinstance(payload, list):
+            raise TypeError("exported genome file must contain a list of creatures")
+
+        imported: list[CreatureState] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                raise TypeError("exported creature entries must be mappings")
+            genome = genome_from_dict(item.get("genome"))
+            if genome is None:
+                continue
+            anchor = Vec2(
+                self._rng.uniform(0.0, self.config.world.width),
+                self._rng.uniform(0.0, self.config.world.height),
+            )
+            decoded_nodes, decoded_edges, brain = decode_genome(
+                genome=genome,
+                anchor_position=anchor,
+                drag_coeff=self.config.physics.default_drag,
+            )
+            node_start = len(self.nodes)
+            node_indices = tuple(range(node_start, node_start + len(decoded_nodes)))
+            self.nodes.extend(decoded_nodes)
+            self.edges.extend(
+                EdgeState(
+                    a=node_indices[edge.a],
+                    b=node_indices[edge.b],
+                    rest_length=edge.rest_length,
+                    stiffness=edge.stiffness,
+                    has_motor=edge.has_motor,
+                    motor_strength=edge.motor_strength,
+                )
+                for edge in decoded_edges
+            )
+            imported.append(
+                CreatureState(
+                    node_indices=node_indices,
+                    energy=float(item.get("energy", 1.0)),
+                    brain=brain,
+                    genome=genome,
+                    age_ticks=0,
+                )
+            )
+
+        seeded_creatures = self._ensure_creature_genomes(self._assign_creature_ids(imported))
+        self.creatures.extend(seeded_creatures)
+        for creature in seeded_creatures:
+            self._record_event("birth", creature_id=creature.id, parent_ids=(), energy=creature.energy)
 
     def snapshot(self) -> Snapshot:
         return Snapshot(
@@ -232,6 +283,7 @@ class World:
                     id=creature.get("id", -1),
                     parent_id=creature.get("parent_id"),
                     age_ticks=creature.get("age_ticks", 0),
+                    genome=genome_from_dict(creature.get("genome")),
                 )
                 for creature in payload["creatures"]
             ],
@@ -266,7 +318,7 @@ class World:
         )
         self.nodes.extend(nodes)
         self.edges.extend(edges)
-        seeded_creatures = self._assign_creature_ids(creatures)
+        seeded_creatures = self._ensure_creature_genomes(self._assign_creature_ids(creatures))
         self.creatures.extend(seeded_creatures)
         for creature in seeded_creatures:
             self._record_event("birth", creature_id=creature.id, parent_ids=(), energy=creature.energy)
@@ -517,59 +569,52 @@ class World:
                 updated_creatures.append(creature)
                 continue
 
+            parent_genome = creature.genome or encode_creature_genome(
+                nodes=self.nodes,
+                edges=self.edges,
+                creature=creature,
+            )
+            child_genome = mutate_genome(
+                genome=parent_genome,
+                rng=self._rng,
+                position_sigma=self.config.evolution.position_mutation_sigma,
+                radius_sigma=self.config.evolution.radius_mutation_sigma,
+                weight_sigma=self.config.evolution.weight_mutation_sigma,
+                bias_sigma=self.config.evolution.bias_mutation_sigma,
+                tau_sigma=self.config.evolution.tau_mutation_sigma,
+                motor_strength_sigma=self.config.evolution.motor_strength_mutation_sigma,
+            )
             child_offset = Vec2(2.0 * (creature_index + 1), 2.0 * (creature_index + 1))
-            node_index_map: dict[int, int] = {}
-            for node_index in creature.node_indices:
-                cloned = mutate_node(
-                    node=replace(
-                        self.nodes[node_index],
-                        position=self.nodes[node_index].position + child_offset,
-                        velocity=Vec2.zero(),
-                        accumulated_force=Vec2.zero(),
-                    ),
-                    rng=self._rng,
-                    position_sigma=self.config.evolution.position_mutation_sigma,
-                    radius_sigma=self.config.evolution.radius_mutation_sigma,
+            child_anchor = self.nodes[creature.node_indices[0]].position + child_offset
+            decoded_nodes, decoded_edges, child_brain = decode_genome(
+                genome=child_genome,
+                anchor_position=child_anchor,
+                drag_coeff=self.config.physics.default_drag,
+            )
+            child_node_start = len(self.nodes) + len(new_nodes)
+            child_node_indices = tuple(range(child_node_start, child_node_start + len(decoded_nodes)))
+            new_nodes.extend(decoded_nodes)
+            new_edges.extend(
+                EdgeState(
+                    a=child_node_indices[edge.a],
+                    b=child_node_indices[edge.b],
+                    rest_length=edge.rest_length,
+                    stiffness=edge.stiffness,
+                    has_motor=edge.has_motor,
+                    motor_strength=edge.motor_strength,
                 )
-                node_index_map[node_index] = len(self.nodes) + len(new_nodes)
-                new_nodes.append(cloned)
-
-            for edge in self.edges:
-                if edge.a in node_index_map and edge.b in node_index_map:
-                    new_edges.append(
-                        mutate_edge(
-                            edge=EdgeState(
-                                a=node_index_map[edge.a],
-                                b=node_index_map[edge.b],
-                                rest_length=edge.rest_length,
-                                stiffness=edge.stiffness,
-                                has_motor=edge.has_motor,
-                                motor_strength=edge.motor_strength,
-                            ),
-                            rng=self._rng,
-                            motor_strength_sigma=self.config.evolution.motor_strength_mutation_sigma,
-                        )
-                    )
+                for edge in decoded_edges
+            )
 
             split_energy = creature.energy / 2.0
-            updated_creatures.append(replace(creature, energy=split_energy))
-            child_brain = (
-                None
-                if creature.brain is None
-                else mutate_brain(
-                    brain=creature.brain,
-                    rng=self._rng,
-                    weight_sigma=self.config.evolution.weight_mutation_sigma,
-                    bias_sigma=self.config.evolution.bias_mutation_sigma,
-                    tau_sigma=self.config.evolution.tau_mutation_sigma,
-                )
-            )
+            updated_creatures.append(replace(creature, energy=split_energy, genome=parent_genome))
             child_id = self._allocate_creature_id()
             new_creatures.append(
                 CreatureState(
-                    node_indices=tuple(node_index_map[index] for index in creature.node_indices),
+                    node_indices=child_node_indices,
                     energy=split_energy,
                     brain=child_brain,
+                    genome=child_genome,
                     id=child_id,
                     parent_id=creature.id,
                 )
@@ -626,6 +671,17 @@ class World:
             assigned.append(replace(creature, id=creature_id))
         return assigned
 
+    def _ensure_creature_genomes(self, creatures: list[CreatureState]) -> list[CreatureState]:
+        ensured: list[CreatureState] = []
+        for creature in creatures:
+            genome = creature.genome or encode_creature_genome(
+                nodes=self.nodes,
+                edges=self.edges,
+                creature=creature,
+            )
+            ensured.append(replace(creature, genome=genome))
+        return ensured
+
     def _record_event(
         self,
         event_type: str,
@@ -673,6 +729,7 @@ class World:
             "id": creature.id,
             "parent_id": creature.parent_id,
             "age_ticks": creature.age_ticks,
+            "genome": genome_to_dict(creature.genome),
             "brain": None
             if creature.brain is None
             else {

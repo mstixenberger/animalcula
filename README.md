@@ -4,7 +4,7 @@ Animalcula is a 2D artificial life simulator centered on evolved, physics-based 
 
 ## Status
 
-The repository now has an executable headless prototype. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a headless CLI, YAML config loading, dedicated default/nursery/turbo profiles, phase-ordered world stepping, overdamped spring-mass physics, soft node repulsion, grid-backed nutrient/light/detritus fields, nutrient diffusion and decay, finite nutrient consumption, detritus recycling, deterministic nutrient sources, deterministic starter archetypes, a CTRNN brain runtime with energy, age, and field-gradient sensing, motorized edges with brain-driven actuation, stable creature IDs, creature age tracking, an append-only event log for births/deaths/reproduction, event-aware stats/reporting/sweep output, lifecycle-aware sweep scoring, checkpoint-backed event export, periodic JSONL stats logging, creature-level population safeguards, JSON checkpoints, a first asexual reproduction path, deterministic offspring body mutation, offspring brain parameter mutation, offspring motor-strength mutation, and a passing test suite.
+The repository now has an executable headless prototype. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a headless CLI, YAML config loading, dedicated default/nursery/turbo profiles, phase-ordered world stepping, overdamped spring-mass physics, soft node repulsion, grid-backed nutrient/light/detritus fields, nutrient diffusion and decay, finite nutrient consumption, detritus recycling, deterministic nutrient sources, deterministic starter archetypes, a direct genome encoding for morphology and CTRNN parameters, genome-driven reproduction, genome export/import for headless seeding, a CTRNN brain runtime with energy, age, and field-gradient sensing, motorized edges with brain-driven actuation, stable creature IDs, creature age tracking, an append-only event log for births/deaths/reproduction, event-aware stats/reporting/sweep output, lifecycle-aware sweep scoring, checkpoint-backed event export, periodic JSONL stats logging, creature-level population safeguards, JSON checkpoints, and a passing test suite.
 
 ## Development Priorities
 
@@ -65,9 +65,10 @@ uv run animalcula run --config config/default.yaml --ticks 100 --seed 42 --seed-
 uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --out results.jsonl
 uv run animalcula nursery --ticks 100 --seed 42 --out checkpoints/nursery.json
 uv run animalcula nursery --ticks 100 --seed 42 --top 5 --save-top checkpoints/top_creatures.json --out checkpoints/nursery.json
+uv run animalcula run --config config/default.yaml --ticks 0 --seed 42 --seed-from checkpoints/top_creatures.json
 uv run animalcula run --config config/turbo.yaml --ticks 300 --seed 42 --seed-demo --turbo
 ```
 
 ## Next Build Step
 
-Build upward from the headless nursery/recycling/turbo loop into fuller evolution and analytics: tighter energy tuning, richer motor control, stronger lifecycle metrics, and a real genome layer.
+Build upward from the headless nursery/recycling/turbo/genome loop into fuller evolution and analytics: tighter energy tuning, richer motor control, lineage/speciation metrics, and a less ad hoc seed library format.
