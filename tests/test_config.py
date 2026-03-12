@@ -11,6 +11,8 @@ def test_loads_default_config() -> None:
     assert config.world.width == 1000.0
     assert config.world.boundary == "toroidal"
     assert config.physics.dt == 0.01
+    assert config.environment.light_intensity_max == 1.0
+    assert config.environment.light_direction == (1.0, 0.0)
     assert config.simulation.initial_seed == 42
 
 

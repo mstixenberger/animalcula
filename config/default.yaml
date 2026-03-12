@@ -8,5 +8,13 @@ physics:
   dt: 0.01
   default_drag: 1.0
 
+environment:
+  nutrient_diffusion_rate: 0.1
+  nutrient_source_count: 5
+  nutrient_source_strength: 2.0
+  nutrient_decay_rate: 0.001
+  light_intensity_max: 1.0
+  light_direction: [1.0, 0.0]
+
 simulation:
   initial_seed: 42

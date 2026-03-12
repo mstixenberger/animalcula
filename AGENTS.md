@@ -188,6 +188,7 @@ Current implementation baseline:
 - phase-ordered world stepping
 - node-level overdamped dynamics helpers
 - spring-connected edge accumulation for body structure
+- grid-backed nutrient and light field infrastructure
 - initial passing pytest suite
 
 ## Update Protocol

@@ -7,6 +7,7 @@ import random
 from typing import Callable
 
 from animalcula.config import Config
+from animalcula.sim.fields import Grid2D
 from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
 from animalcula.sim.types import EdgeState, NodeState
 
@@ -35,6 +36,17 @@ class World:
         self.edges = list(edges or [])
         self._phase_trace: list[str] = []
         self._rng = random.Random(self.seed)
+        self.nutrient_grid = Grid2D(
+            width=self.config.world.width,
+            height=self.config.world.height,
+            resolution=self.config.world.grid_resolution,
+        )
+        self.light_grid = Grid2D(
+            width=self.config.world.width,
+            height=self.config.world.height,
+            resolution=self.config.world.grid_resolution,
+        )
+        self._update_environment()
 
     def step(self, ticks: int = 1) -> Snapshot:
         if ticks < 0:
@@ -70,7 +82,10 @@ class World:
         func()
 
     def _update_environment(self) -> None:
-        return None
+        self.light_grid.fill_light_gradient(
+            direction=self.config.environment.light_direction,
+            intensity=self.config.environment.light_intensity_max,
+        )
 
     def _sense_environment(self) -> None:
         return None

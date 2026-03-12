@@ -18,6 +18,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Node-level runtime types and overdamped physics helpers
 - Phase-ordered world stepping with basic node integration under test
 - Edge runtime types and spring accumulation for connected body structure
+- Grid-backed environment fields with a static directional light gradient
 
 ### Changed
 

@@ -24,6 +24,16 @@ class PhysicsConfig:
 
 
 @dataclass(slots=True, frozen=True)
+class EnvironmentConfig:
+    nutrient_diffusion_rate: float
+    nutrient_source_count: int
+    nutrient_source_strength: float
+    nutrient_decay_rate: float
+    light_intensity_max: float
+    light_direction: tuple[float, float]
+
+
+@dataclass(slots=True, frozen=True)
 class SimulationConfig:
     initial_seed: int
 
@@ -32,6 +42,7 @@ class SimulationConfig:
 class Config:
     world: WorldConfig
     physics: PhysicsConfig
+    environment: EnvironmentConfig
     simulation: SimulationConfig
 
     @classmethod
@@ -40,6 +51,12 @@ class Config:
         return cls(
             world=WorldConfig(**raw["world"]),
             physics=PhysicsConfig(**raw["physics"]),
+            environment=EnvironmentConfig(
+                **{
+                    **raw["environment"],
+                    "light_direction": tuple(raw["environment"]["light_direction"]),
+                }
+            ),
             simulation=SimulationConfig(**raw["simulation"]),
         )
 
