@@ -102,6 +102,10 @@ class World:
             return []
         return sorted(self.creatures, key=lambda creature: creature.energy, reverse=True)[:n]
 
+    def export_top_creatures(self, path: str | Path, n: int, metric: str = "energy") -> None:
+        payload = [self._serialize_creature(creature) for creature in self.get_top_creatures(n=n, metric=metric)]
+        Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
     def snapshot(self) -> Snapshot:
         return Snapshot(
             tick=self.tick,
@@ -156,23 +160,8 @@ class World:
             ],
             "creatures": [
                 {
+                    **self._serialize_creature(creature),
                     "node_indices": list(creature.node_indices),
-                    "energy": creature.energy,
-                    "id": creature.id,
-                    "parent_id": creature.parent_id,
-                    "age_ticks": creature.age_ticks,
-                    "brain": None
-                    if creature.brain is None
-                    else {
-                        "input_weights": [list(row) for row in creature.brain.input_weights],
-                        "recurrent_weights": [list(row) for row in creature.brain.recurrent_weights],
-                        "biases": list(creature.brain.biases),
-                        "time_constants": list(creature.brain.time_constants),
-                        "states": list(creature.brain.states),
-                        "output_size": creature.brain.output_size,
-                    },
-                    "last_sensed_inputs": list(creature.last_sensed_inputs),
-                    "last_brain_outputs": list(creature.last_brain_outputs),
                 }
                 for creature in self.creatures
             ],
@@ -653,6 +642,52 @@ class World:
                 energy=energy,
             )
         )
+
+    def _serialize_creature(self, creature: CreatureState) -> dict[str, object]:
+        creature_node_indices = set(creature.node_indices)
+        creature_nodes = [
+            {
+                "position": [node.position.x, node.position.y],
+                "velocity": [node.velocity.x, node.velocity.y],
+                "accumulated_force": [node.accumulated_force.x, node.accumulated_force.y],
+                "drag_coeff": node.drag_coeff,
+                "radius": node.radius,
+                "node_type": node.node_type.value,
+            }
+            for node in (self.nodes[index] for index in creature.node_indices)
+        ]
+        creature_edges = [
+            {
+                "a": creature.node_indices.index(edge.a),
+                "b": creature.node_indices.index(edge.b),
+                "rest_length": edge.rest_length,
+                "stiffness": edge.stiffness,
+                "has_motor": edge.has_motor,
+                "motor_strength": edge.motor_strength,
+            }
+            for edge in self.edges
+            if edge.a in creature_node_indices and edge.b in creature_node_indices
+        ]
+        return {
+            "energy": creature.energy,
+            "id": creature.id,
+            "parent_id": creature.parent_id,
+            "age_ticks": creature.age_ticks,
+            "brain": None
+            if creature.brain is None
+            else {
+                "input_weights": [list(row) for row in creature.brain.input_weights],
+                "recurrent_weights": [list(row) for row in creature.brain.recurrent_weights],
+                "biases": list(creature.brain.biases),
+                "time_constants": list(creature.brain.time_constants),
+                "states": list(creature.brain.states),
+                "output_size": creature.brain.output_size,
+            },
+            "last_sensed_inputs": list(creature.last_sensed_inputs),
+            "last_brain_outputs": list(creature.last_brain_outputs),
+            "nodes": creature_nodes,
+            "edges": creature_edges,
+        }
 
     def _deposit_detritus(self, creature: CreatureState) -> None:
         creature_nodes = [self.nodes[index] for index in creature.node_indices]

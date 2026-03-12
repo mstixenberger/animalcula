@@ -47,6 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     nursery_parser.add_argument("--ticks", type=int, default=100)
     nursery_parser.add_argument("--seed", type=int, default=None)
     nursery_parser.add_argument("--top", type=int, default=5)
+    nursery_parser.add_argument("--save-top", default=None)
     nursery_parser.add_argument("--out", required=True)
     nursery_parser.add_argument("--turbo", action="store_true")
 
@@ -120,6 +121,8 @@ def main() -> int:
         world.seed_demo_archetypes()
         world.step(args.ticks)
         world.save(args.out)
+        if args.save_top is not None:
+            world.export_top_creatures(path=args.save_top, n=args.top, metric="energy")
         top_creatures = world.get_top_creatures(n=args.top, metric="energy")
         top_summary = ",".join(f"{creature.id}:{creature.energy:.3f}" for creature in top_creatures)
         print(f"saved={args.out} top_creatures={top_summary}")

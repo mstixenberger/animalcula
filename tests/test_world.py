@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -741,6 +742,7 @@ def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:
 
 def test_cli_nursery_command_runs_and_saves_checkpoint(tmp_path: Path) -> None:
     checkpoint_path = tmp_path / "nursery.json"
+    top_path = tmp_path / "top.json"
     result = subprocess.run(
         [
             sys.executable,
@@ -753,6 +755,8 @@ def test_cli_nursery_command_runs_and_saves_checkpoint(tmp_path: Path) -> None:
             "11",
             "--top",
             "2",
+            "--save-top",
+            str(top_path),
             "--out",
             str(checkpoint_path),
         ],
@@ -762,6 +766,9 @@ def test_cli_nursery_command_runs_and_saves_checkpoint(tmp_path: Path) -> None:
     )
 
     assert checkpoint_path.exists()
+    assert top_path.exists()
+    exported = json.loads(top_path.read_text(encoding="utf-8"))
+    assert len(exported) == 2
     assert "top_creatures=" in result.stdout
     assert "saved=" in result.stdout
 

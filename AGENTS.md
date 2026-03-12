@@ -220,6 +220,7 @@ Current implementation baseline:
 - light and nutrient field gradients now feed the sensing phase alongside average intensity and energy
 - `turbo` world/CLI mode plus `config/turbo.yaml` for faster headless parameter exploration
 - creature age is now tracked, serialized, and exposed as a normalized brain input
+- nursery runs can export top survivors as standalone JSON seed artifacts
 - initial passing pytest suite
 
 ## Update Protocol

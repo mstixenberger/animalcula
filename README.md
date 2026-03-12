@@ -64,6 +64,7 @@ uv run animalcula events checkpoints/demo.json
 uv run animalcula run --config config/default.yaml --ticks 100 --seed 42 --seed-demo --log-stats logs/demo.jsonl --log-every 10
 uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --out results.jsonl
 uv run animalcula nursery --ticks 100 --seed 42 --out checkpoints/nursery.json
+uv run animalcula nursery --ticks 100 --seed 42 --top 5 --save-top checkpoints/top_creatures.json --out checkpoints/nursery.json
 uv run animalcula run --config config/turbo.yaml --ticks 300 --seed 42 --seed-demo --turbo
 ```
 
