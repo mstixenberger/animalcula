@@ -231,6 +231,7 @@ Current implementation baseline:
 - mouths can now scavenge energy directly from detritus patches, not just wait for recycling
 - a first predation slice exists: bite outputs on mouth nodes can drain overlapping victims and transfer energy
 - predation kills now surface as a distinct event type and stats count for headless analysis
+- the seeded amoeba-lite archetype now exposes motor plus bite outputs, so the default seed set matches the current predation wiring better
 - initial passing pytest suite
 
 ## Update Protocol

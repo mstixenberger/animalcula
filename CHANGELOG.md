@@ -61,6 +61,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Mouth nodes can now scavenge energy directly from detritus patches
 - A first predation path allows bite-output mouths to drain overlapping creatures and gain transferred energy
 - Predation kills now surface in lifecycle events, stats, and headless reporting
+- The seeded predator archetype now has a bite-capable brain layout
 
 ### Changed
 

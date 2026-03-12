@@ -536,6 +536,7 @@ def test_world_can_seed_demo_archetypes() -> None:
     assert len(world.nodes) >= 5
     assert len(world.edges) >= 2
     assert sum(1 for creature in world.creatures if creature.brain is not None) >= 2
+    assert any(creature.brain is not None and creature.brain.output_size >= 3 for creature in world.creatures)
 
 
 def test_world_can_seed_from_exported_genomes(tmp_path: Path) -> None:

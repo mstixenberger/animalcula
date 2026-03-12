@@ -101,7 +101,7 @@ def build_demo_archetypes(
         amoeba_nodes,
         [(0, 1), (0, 2)],
         energy=1.0,
-        brain=_simple_motor_brain(light_gain=1.0, nutrient_gain=1.0),
+        brain=_predator_brain(light_gain=1.0, nutrient_gain=1.0),
     )
 
     return nodes, edges, creatures
@@ -146,4 +146,23 @@ def _simple_motor_brain(light_gain: float, nutrient_gain: float) -> BrainState:
         time_constants=(1.0,),
         states=(0.0,),
         output_size=1,
+    )
+
+
+def _predator_brain(light_gain: float, nutrient_gain: float) -> BrainState:
+    return BrainState(
+        input_weights=(
+            (light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        ),
+        recurrent_weights=(
+            (1.0, 0.2, 0.0),
+            (0.2, 1.0, 0.0),
+            (0.0, 0.0, 1.0),
+        ),
+        biases=(0.0, 0.0, 2.0),
+        time_constants=(1.0, 1.0, 1.0),
+        states=(0.0, 0.0, 0.0),
+        output_size=3,
     )
