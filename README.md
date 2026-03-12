@@ -20,6 +20,7 @@ The repository is in bootstrap phase. The main design source is `ANIMALCULA_SPEC
 - Continuous test-driven development
 - Documentation updated alongside code
 - Reproducible runs through seeded randomness
+- `uv` only for Python environments, dependency management, and command execution
 - Small, frequent, descriptive commits
 - Keep a Changelog from the beginning
 

@@ -31,6 +31,7 @@ The project must maintain a stable seam between orchestration and simulation so 
 - Keep the simulation headless by default.
 - All randomness must be reproducible through explicit seeds.
 - Documentation is part of the deliverable, not an afterthought.
+- Use `uv` exclusively for Python environment and dependency management.
 - Maintain local git history from the beginning with frequent, descriptive commits.
 - Maintain `CHANGELOG.md` using Keep a Changelog conventions.
 

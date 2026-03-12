@@ -4,6 +4,15 @@
 
 This project uses test-driven development from the start. Changes should be built in small vertical slices that include tests, code, and documentation together.
 
+## Python Tooling
+
+Use `uv` only.
+
+- Use `uv sync` to provision the environment.
+- Use `uv add` and `uv remove` for dependency changes.
+- Use `uv run pytest` and other `uv run ...` commands for local execution.
+- Do not use `pip`, `virtualenv`, `requirements.txt`, or ad hoc environment setup.
+
 ## Required Workflow
 
 1. Start from a failing test or an explicit test gap.
