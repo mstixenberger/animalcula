@@ -11,10 +11,15 @@ from typing import Callable
 
 from animalcula.config import Config
 from animalcula.sim.brain import step_brain
-from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
+from animalcula.sim.energy import basal_cost, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.mutation import mutate_brain, mutate_edge, mutate_node
-from animalcula.sim.physics import apply_edge_springs, apply_motor_forces, apply_overdamped_dynamics
+from animalcula.sim.physics import (
+    apply_edge_springs,
+    apply_motor_forces,
+    apply_node_repulsion,
+    apply_overdamped_dynamics,
+)
 from animalcula.sim.seeding import build_demo_archetypes
 from animalcula.sim.types import BrainState, CreatureState, EdgeState, EventRecord, NodeState, NodeType, Vec2
 
@@ -70,6 +75,11 @@ class World:
             height=self.config.world.height,
             resolution=self.config.world.grid_resolution,
         )
+        self.detritus_grid = Grid2D(
+            width=self.config.world.width,
+            height=self.config.world.height,
+            resolution=self.config.world.grid_resolution,
+        )
         self._nutrient_source_cells = self._initialize_nutrient_sources()
         self._update_environment()
 
@@ -81,6 +91,14 @@ class World:
         for _ in range(ticks):
             snapshot = self._step_once()
         return snapshot
+
+    def get_top_creatures(self, n: int, metric: str = "energy") -> list[CreatureState]:
+        if metric != "energy":
+            msg = f"unsupported creature ranking metric: {metric}"
+            raise ValueError(msg)
+        if n <= 0:
+            return []
+        return sorted(self.creatures, key=lambda creature: creature.energy, reverse=True)[:n]
 
     def snapshot(self) -> Snapshot:
         return Snapshot(
@@ -167,6 +185,7 @@ class World:
             ],
             "nutrient_grid": self.nutrient_grid.values,
             "light_grid": self.light_grid.values,
+            "detritus_grid": self.detritus_grid.values,
             "nutrient_source_cells": self._nutrient_source_cells,
             "next_creature_id": self._next_creature_id,
         }
@@ -237,6 +256,7 @@ class World:
         ]
         world.nutrient_grid.values = payload["nutrient_grid"]
         world.light_grid.values = payload["light_grid"]
+        world.detritus_grid.values = payload.get("detritus_grid", [0.0] * len(world.detritus_grid.values))
         world._nutrient_source_cells = [tuple(cell) for cell in payload["nutrient_source_cells"]]
         world._next_creature_id = payload.get("next_creature_id", world._initial_next_creature_id())
         return world
@@ -274,6 +294,10 @@ class World:
         func()
 
     def _update_environment(self) -> None:
+        self.nutrient_grid.diffuse(rate=self.config.environment.nutrient_diffusion_rate)
+        self.nutrient_grid.decay(rate=self.config.environment.nutrient_decay_rate)
+        self._recycle_detritus()
+        self.detritus_grid.decay(rate=self.config.environment.detritus_decay_rate)
         for col, row in self._nutrient_source_cells:
             self.nutrient_grid.set_value(
                 col=col,
@@ -360,6 +384,10 @@ class World:
                     )
         self.nodes = apply_motor_forces(nodes=self.nodes, edges=self.edges, edge_outputs=edge_outputs)
         self.nodes = apply_edge_springs(nodes=self.nodes, edges=self.edges)
+        self.nodes = apply_node_repulsion(
+            nodes=self.nodes,
+            strength=self.config.physics.contact_repulsion,
+        )
         self.nodes = [
             apply_overdamped_dynamics(node=node, dt=self.config.physics.dt)
             for node in self.nodes
@@ -396,10 +424,12 @@ class World:
                 receptor_count=len(receptor_nodes),
                 photosynthesis_rate=self.config.energy.photosynthesis_rate,
             )
-            gain += feeding_gain(
-                nutrient_level=average_nutrients,
-                mouth_count=len(mouth_nodes),
-                feed_rate=self.config.energy.feed_rate,
+            gain += sum(
+                self.nutrient_grid.consume_at_position(
+                    position=node.position,
+                    amount=self.config.energy.feed_rate * self.nutrient_grid.sample(node.position),
+                )
+                for node in mouth_nodes
             )
             cost = basal_cost(
                 node_count=len(creature_nodes),
@@ -421,6 +451,7 @@ class World:
         self._reproduce_creatures()
         dead_creatures = [creature for creature in self.creatures if creature.energy <= 0.0]
         for creature in dead_creatures:
+            self._deposit_detritus(creature)
             self._record_event("death", creature_id=creature.id, parent_ids=(), energy=creature.energy)
         living_creatures = [creature for creature in self.creatures if creature.energy > 0.0]
         if len(living_creatures) == len(self.creatures):
@@ -589,3 +620,23 @@ class World:
                 energy=energy,
             )
         )
+
+    def _deposit_detritus(self, creature: CreatureState) -> None:
+        creature_nodes = [self.nodes[index] for index in creature.node_indices]
+        if not creature_nodes:
+            return
+
+        for node in creature_nodes:
+            self.detritus_grid.add_value_at_position(position=node.position, delta=max(node.radius, 0.1))
+
+    def _recycle_detritus(self) -> None:
+        rate = self.config.environment.detritus_recycling_rate
+        if rate <= 0.0:
+            return
+
+        recycled_values: list[float] = []
+        for index, detritus in enumerate(self.detritus_grid.values):
+            recycled = detritus * rate
+            self.nutrient_grid.values[index] += recycled
+            recycled_values.append(detritus - recycled)
+        self.detritus_grid.values = recycled_values

@@ -50,3 +50,16 @@ def test_nutrient_source_placement_is_deterministic_for_seed() -> None:
     world_b = World(config=config, seed=123)
 
     assert world_a.nutrient_grid.values == world_b.nutrient_grid.values
+
+
+def test_grid_diffusion_spreads_value_into_neighboring_cells() -> None:
+    grid = Grid2D(width=15.0, height=15.0, resolution=5.0)
+    grid.set_value(col=1, row=1, value=9.0)
+
+    grid.diffuse(rate=0.25)
+
+    center = grid.sample(Vec2(7.5, 7.5))
+    right_neighbor = grid.sample(Vec2(12.5, 7.5))
+
+    assert center < 9.0
+    assert right_neighbor > 0.0

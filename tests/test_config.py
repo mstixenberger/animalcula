@@ -50,3 +50,11 @@ def test_config_can_apply_nested_overrides() -> None:
 
     assert updated.energy.reproduction_threshold == 0.1
     assert updated.environment.nutrient_source_strength == 3.5
+
+
+def test_loads_nursery_config_profile() -> None:
+    config = Config.from_yaml(Path("config/nursery.yaml"))
+
+    assert config.energy.basal_cost_per_node < 0.001
+    assert config.environment.nutrient_source_strength > 2.0
+    assert config.creatures.min_population == 0

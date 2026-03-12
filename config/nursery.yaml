@@ -10,20 +10,20 @@ physics:
   contact_repulsion: 2.0
 
 environment:
-  nutrient_diffusion_rate: 0.1
-  nutrient_source_count: 5
-  nutrient_source_strength: 2.0
-  nutrient_decay_rate: 0.001
-  detritus_decay_rate: 0.01
-  detritus_recycling_rate: 0.05
-  light_intensity_max: 1.0
+  nutrient_diffusion_rate: 0.15
+  nutrient_source_count: 8
+  nutrient_source_strength: 4.0
+  nutrient_decay_rate: 0.0005
+  detritus_decay_rate: 0.005
+  detritus_recycling_rate: 0.08
+  light_intensity_max: 1.25
   light_direction: [1.0, 0.0]
 
 energy:
-  basal_cost_per_node: 0.001
-  feed_rate: 0.01
-  photosynthesis_rate: 0.005
-  reproduction_threshold: 100.0
+  basal_cost_per_node: 0.0005
+  feed_rate: 0.02
+  photosynthesis_rate: 0.008
+  reproduction_threshold: 60.0
 
 evolution:
   position_mutation_sigma: 0.5
@@ -39,7 +39,7 @@ brain:
 
 creatures:
   min_population: 0
-  max_population: 500
+  max_population: 800
 
 simulation:
   initial_seed: 42

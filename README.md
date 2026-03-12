@@ -4,7 +4,7 @@ Animalcula is a 2D artificial life simulator centered on evolved, physics-based 
 
 ## Status
 
-The repository now has an executable bootstrap scaffold. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a minimal headless CLI, YAML config loading, phase-ordered world stepping, node-level overdamped physics helpers, spring-connected node integration, grid-backed environment fields, a first creature energy loop, nutrient feeding, lifecycle cleanup on depletion, deterministic nutrient sources, deterministic starter archetypes, a CTRNN brain runtime with simple sensor-to-motor integration, motorized edges with brain-driven actuation, stable creature IDs, an append-only event log for births/deaths/reproduction, event-aware stats/reporting/sweep output, lifecycle-aware sweep scoring, checkpoint-backed event export, periodic JSONL stats logging, creature-level population safeguards, JSON checkpoints, a first asexual reproduction path, deterministic offspring body mutation, offspring brain parameter mutation, offspring motor-strength mutation, and a passing test suite.
+The repository now has an executable headless prototype. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a headless CLI, YAML config loading, dedicated default and nursery profiles, phase-ordered world stepping, overdamped spring-mass physics, soft node repulsion, grid-backed nutrient/light/detritus fields, nutrient diffusion and decay, finite nutrient consumption, detritus recycling, deterministic nutrient sources, deterministic starter archetypes, a CTRNN brain runtime with simple sensor-to-motor integration, motorized edges with brain-driven actuation, stable creature IDs, an append-only event log for births/deaths/reproduction, event-aware stats/reporting/sweep output, lifecycle-aware sweep scoring, checkpoint-backed event export, periodic JSONL stats logging, creature-level population safeguards, JSON checkpoints, a first asexual reproduction path, deterministic offspring body mutation, offspring brain parameter mutation, offspring motor-strength mutation, and a passing test suite.
 
 ## Development Priorities
 
@@ -63,8 +63,9 @@ uv run animalcula report checkpoints/demo.json
 uv run animalcula events checkpoints/demo.json
 uv run animalcula run --config config/default.yaml --ticks 100 --seed 42 --seed-demo --log-stats logs/demo.jsonl --log-every 10
 uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --out results.jsonl
+uv run animalcula nursery --ticks 100 --seed 42 --out checkpoints/nursery.json
 ```
 
 ## Next Build Step
 
-Build upward from the event-aware safeguarded mutation-and-sweep loop into fuller evolution and analytics: richer mutation operators, better motor mappings, reproduction controls, and better headless tooling.
+Build upward from the headless nursery-and-recycling loop into fuller evolution and analytics: richer sensory inputs, tighter energy tuning, better motor mappings, reproduction controls, and better headless tooling.

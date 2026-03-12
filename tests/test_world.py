@@ -237,6 +237,25 @@ def test_world_step_updates_creature_energy_from_nutrients() -> None:
     assert world.creatures[0].energy > 1.0
 
 
+def test_world_feeding_consumes_nutrients_from_field() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    node = NodeState(
+        position=Vec2(100.0, 100.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+        node_type=NodeType.MOUTH,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+    world.nutrient_grid.set_value(col=20, row=20, value=2.0)
+
+    world.step()
+
+    assert world.nutrient_grid.sample(Vec2(100.0, 100.0)) < 2.0
+
+
 def test_world_removes_creature_when_energy_is_depleted() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     node = NodeState(
@@ -255,6 +274,35 @@ def test_world_removes_creature_when_energy_is_depleted() -> None:
     assert world.nodes == []
 
 
+def test_world_turns_dead_creatures_into_detritus() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    node = NodeState(
+        position=Vec2(10.0, 10.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    creature = CreatureState(node_indices=(0,), energy=0.0005)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    assert max(world.detritus_grid.values) > 0.0
+
+
+def test_world_recycles_detritus_back_into_nutrients() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config)
+    world.detritus_grid.set_value(col=0, row=0, value=4.0)
+    nutrient_before = world.nutrient_grid.sample(Vec2(2.5, 2.5))
+
+    world.step()
+
+    assert world.detritus_grid.sample(Vec2(2.5, 2.5)) < 4.0
+    assert world.nutrient_grid.sample(Vec2(2.5, 2.5)) > nutrient_before
+
+
 def test_world_reseeds_when_population_drops_below_minimum() -> None:
     config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["creatures.min_population=3"])
     node = NodeState(
@@ -270,6 +318,35 @@ def test_world_reseeds_when_population_drops_below_minimum() -> None:
     world.step()
 
     assert len(world.creatures) >= 3
+
+
+def test_world_can_return_top_creatures_by_energy() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    nodes = [
+        NodeState(
+            position=Vec2(10.0, 10.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(20.0, 20.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, id=10),
+        CreatureState(node_indices=(1,), energy=2.0, id=20),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    top = world.get_top_creatures(n=1)
+
+    assert [creature.id for creature in top] == [20]
 
 
 def test_world_can_seed_demo_archetypes() -> None:
@@ -592,6 +669,33 @@ def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:
     assert len(lines) == 3
     assert "\"tick\": 1" in lines[0]
     assert "\"tick\": 3" in lines[-1]
+
+
+def test_cli_nursery_command_runs_and_saves_checkpoint(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "nursery.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "nursery",
+            "--ticks",
+            "5",
+            "--seed",
+            "11",
+            "--top",
+            "2",
+            "--out",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert checkpoint_path.exists()
+    assert "top_creatures=" in result.stdout
+    assert "saved=" in result.stdout
 
 
 def test_cli_run_command_accepts_config_overrides() -> None:

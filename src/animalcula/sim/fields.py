@@ -33,8 +33,26 @@ class Grid2D:
         col, row = self.index_for_position(position)
         return self.values[(row * self.cols) + col]
 
+    def consume_at_position(self, position: Vec2, amount: float) -> float:
+        if amount <= 0.0:
+            return 0.0
+
+        col, row = self.index_for_position(position)
+        index = (row * self.cols) + col
+        consumed = min(amount, self.values[index])
+        self.values[index] -= consumed
+        return consumed
+
     def set_value(self, col: int, row: int, value: float) -> None:
         self.values[(row * self.cols) + col] = value
+
+    def add_value(self, col: int, row: int, delta: float) -> None:
+        index = (row * self.cols) + col
+        self.values[index] += delta
+
+    def add_value_at_position(self, position: Vec2, delta: float) -> None:
+        col, row = self.index_for_position(position)
+        self.add_value(col=col, row=row, delta=delta)
 
     def position_for_cell(self, col: int, row: int) -> Vec2:
         return Vec2(
@@ -56,3 +74,30 @@ class Grid2D:
                 projection = (x * normalized[0]) + (y * normalized[1])
                 value = max(0.0, min(projection, 1.0)) * intensity
                 self.set_value(col=col, row=row, value=value)
+
+    def diffuse(self, rate: float) -> None:
+        if rate <= 0.0:
+            return
+
+        original = list(self.values)
+        updated = [0.0] * len(self.values)
+        for row in range(self.rows):
+            for col in range(self.cols):
+                index = (row * self.cols) + col
+                center = original[index]
+                neighbor_total = (
+                    original[(row * self.cols) + ((col - 1) % self.cols)]
+                    + original[(row * self.cols) + ((col + 1) % self.cols)]
+                    + original[(((row - 1) % self.rows) * self.cols) + col]
+                    + original[(((row + 1) % self.rows) * self.cols) + col]
+                )
+                neighbor_average = neighbor_total / 4.0
+                updated[index] = (center * (1.0 - rate)) + (neighbor_average * rate)
+        self.values = updated
+
+    def decay(self, rate: float) -> None:
+        if rate <= 0.0:
+            return
+
+        factor = max(0.0, 1.0 - rate)
+        self.values = [value * factor for value in self.values]

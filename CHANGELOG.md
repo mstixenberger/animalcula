@@ -43,7 +43,12 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Checkpoint-backed CLI event export for direct run-history inspection
 - Periodic JSONL stats logging during headless runs
 - Creature-level population safeguards with crowding pressure and optional immigration floor
+- A dedicated `config/nursery.yaml` profile and `animalcula nursery` workflow for generous bootstrap runs
+- Detritus field storage with recycling back into the nutrient grid
+- Grid diffusion/decay helpers for evolving environment fields
+- Soft node repulsion for first-pass contact handling in the physics loop
 
 ### Changed
 
 - Locked Python environment and dependency management to `uv` only
+- Feeding now consumes nutrients from the field instead of sampling an effectively infinite food source

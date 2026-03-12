@@ -22,6 +22,7 @@ class WorldConfig:
 class PhysicsConfig:
     dt: float
     default_drag: float
+    contact_repulsion: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -30,6 +31,8 @@ class EnvironmentConfig:
     nutrient_source_count: int
     nutrient_source_strength: float
     nutrient_decay_rate: float
+    detritus_decay_rate: float
+    detritus_recycling_rate: float
     light_intensity_max: float
     light_direction: tuple[float, float]
 

@@ -4,9 +4,9 @@ This file is a living document. It exists to give future coding agents and human
 
 ## Project Status
 
-- Repository state: executable bootstrap scaffold
+- Repository state: executable headless prototype
 - Current source of truth: `ANIMALCULA_SPEC.md`
-- Current priority: expand the node-level physics slice into creature- and field-level simulation
+- Current priority: tighten the spec-aligned headless ecosystem loop before adding broader analytics or UI
 - Primary product mode: headless simulation and parameter tuning
 - Initial implementation stack: Python + NumPy/Numba
 - Deferred stack: Rust core via PyO3, browser frontend
@@ -191,7 +191,9 @@ Current implementation baseline:
 - grid-backed nutrient and light field infrastructure
 - simple creature energy accounting with basal cost and photosynthesis
 - mouth-based nutrient feeding and dead-creature lifecycle cleanup
+- finite nutrient consumption from the field during feeding
 - deterministic nutrient source placement in the default world
+- nutrient diffusion/decay and detritus recycling in the environment update
 - deterministic starter archetype seeding for demo worlds
 - world stats reporting and richer CLI run summaries
 - JSON checkpoint save/load for headless workflow continuity
@@ -213,6 +215,8 @@ Current implementation baseline:
 - checkpoint-backed CLI event export for direct observation of run history
 - periodic JSONL stats logging during headless runs
 - creature-level population safeguards: crowding pressure and optional immigration floor
+- dedicated nursery config profile and nursery CLI workflow for generous bootstrapping runs
+- soft node repulsion for first-pass contact avoidance in dense physics states
 - initial passing pytest suite
 
 ## Update Protocol

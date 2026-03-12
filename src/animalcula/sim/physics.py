@@ -80,3 +80,32 @@ def apply_motor_forces(
         )
 
     return updated_nodes
+
+
+def apply_node_repulsion(nodes: list[NodeState], strength: float) -> list[NodeState]:
+    if strength <= 0.0:
+        return list(nodes)
+
+    updated_nodes = list(nodes)
+
+    for a_index in range(len(updated_nodes)):
+        for b_index in range(a_index + 1, len(updated_nodes)):
+            displacement = updated_nodes[b_index].position - updated_nodes[a_index].position
+            distance = displacement.magnitude()
+            minimum_distance = updated_nodes[a_index].radius + updated_nodes[b_index].radius
+            overlap = minimum_distance - distance
+            if overlap <= 0.0:
+                continue
+
+            direction = displacement.normalized() if distance > 0.0 else Vec2(1.0, 0.0)
+            force = direction * (strength * overlap)
+            updated_nodes[a_index] = replace(
+                updated_nodes[a_index],
+                accumulated_force=updated_nodes[a_index].accumulated_force - force,
+            )
+            updated_nodes[b_index] = replace(
+                updated_nodes[b_index],
+                accumulated_force=updated_nodes[b_index].accumulated_force + force,
+            )
+
+    return updated_nodes

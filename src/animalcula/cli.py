@@ -40,6 +40,13 @@ def build_parser() -> argparse.ArgumentParser:
     sweep_parser.add_argument("--seed-demo", action="store_true")
     sweep_parser.add_argument("--out", required=True)
 
+    nursery_parser = subparsers.add_parser("nursery", help="Run a seeded nursery simulation")
+    nursery_parser.add_argument("--config", default="config/nursery.yaml")
+    nursery_parser.add_argument("--ticks", type=int, default=100)
+    nursery_parser.add_argument("--seed", type=int, default=None)
+    nursery_parser.add_argument("--top", type=int, default=5)
+    nursery_parser.add_argument("--out", required=True)
+
     return parser
 
 
@@ -100,6 +107,17 @@ def main() -> int:
             out_path=args.out,
         )
         print(f"completed={completed} out={args.out}")
+        return 0
+
+    if args.command == "nursery":
+        config = Config.from_yaml(args.config)
+        world = World(config=config, seed=args.seed)
+        world.seed_demo_archetypes()
+        world.step(args.ticks)
+        world.save(args.out)
+        top_creatures = world.get_top_creatures(n=args.top, metric="energy")
+        top_summary = ",".join(f"{creature.id}:{creature.energy:.3f}" for creature in top_creatures)
+        print(f"saved={args.out} top_creatures={top_summary}")
         return 0
 
     parser.error(f"unknown command: {args.command}")
