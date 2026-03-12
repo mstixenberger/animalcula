@@ -6,7 +6,7 @@ This file is a living document. It exists to give future coding agents and human
 
 - Repository state: executable bootstrap scaffold
 - Current source of truth: `ANIMALCULA_SPEC.md`
-- Current priority: expand the testable simulation skeleton into the first physics slice
+- Current priority: expand the node-level physics slice into creature- and field-level simulation
 - Primary product mode: headless simulation and parameter tuning
 - Initial implementation stack: Python + NumPy/Numba
 - Deferred stack: Rust core via PyO3, browser frontend
@@ -178,6 +178,16 @@ Explicitly deferred:
 - sexual reproduction
 - species clustering
 - advanced analytics UI
+
+Current implementation baseline:
+
+- `uv`-managed Python package scaffold
+- YAML config loading
+- headless CLI stub
+- deterministic world seed handling
+- phase-ordered world stepping
+- node-level overdamped dynamics helpers
+- initial passing pytest suite
 
 ## Update Protocol
 

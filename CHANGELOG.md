@@ -15,6 +15,8 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Initial `uv`-managed Python package scaffold with a headless CLI entrypoint
 - Default YAML configuration and minimal public API surface
 - First passing test suite covering config loading, world stepping, deterministic seeding, and CLI execution
+- Node-level runtime types and overdamped physics helpers
+- Phase-ordered world stepping with basic node integration under test
 
 ### Changed
 
