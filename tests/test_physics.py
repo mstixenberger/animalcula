@@ -4,6 +4,7 @@ import pytest
 
 from animalcula.sim.physics import (
     apply_edge_springs,
+    apply_motor_forces,
     apply_overdamped_dynamics,
     spring_force,
 )
@@ -86,3 +87,30 @@ def test_apply_edge_springs_accumulates_equal_and_opposite_forces() -> None:
 
     assert updated[0].accumulated_force == Vec2(4.0, 0.0)
     assert updated[1].accumulated_force == Vec2(-4.0, 0.0)
+
+
+def test_apply_motor_forces_pushes_nodes_along_motorized_edge() -> None:
+    nodes = [
+        NodeState(
+            position=Vec2(0.0, 0.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(2.0, 0.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    edges = [
+        EdgeState(a=0, b=1, rest_length=2.0, stiffness=1.0, has_motor=True, motor_strength=3.0)
+    ]
+
+    updated = apply_motor_forces(nodes=nodes, edges=edges, edge_outputs={0: 1.0})
+
+    assert updated[0].accumulated_force == Vec2(3.0, 0.0)
+    assert updated[1].accumulated_force == Vec2(-3.0, 0.0)

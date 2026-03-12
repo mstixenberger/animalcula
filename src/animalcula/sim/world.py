@@ -14,7 +14,7 @@ from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.mutation import mutate_node
-from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
+from animalcula.sim.physics import apply_edge_springs, apply_motor_forces, apply_overdamped_dynamics
 from animalcula.sim.seeding import build_demo_archetypes
 from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
 
@@ -117,6 +117,8 @@ class World:
                     "b": edge.b,
                     "rest_length": edge.rest_length,
                     "stiffness": edge.stiffness,
+                    "has_motor": edge.has_motor,
+                    "motor_strength": edge.motor_strength,
                 }
                 for edge in self.edges
             ],
@@ -168,6 +170,8 @@ class World:
                     b=edge["b"],
                     rest_length=edge["rest_length"],
                     stiffness=edge["stiffness"],
+                    has_motor=edge.get("has_motor", False),
+                    motor_strength=edge.get("motor_strength", 0.0),
                 )
                 for edge in payload["edges"]
             ],
@@ -291,17 +295,29 @@ class World:
         self.creatures = updated_creatures
 
     def _apply_physics(self) -> None:
+        edge_outputs: dict[int, float] = {}
         for creature in self.creatures:
             if not creature.last_brain_outputs:
                 continue
-            drive = (2.0 * creature.last_brain_outputs[0]) - 1.0
-            force = Vec2(self.config.brain.motor_force_scale * drive, 0.0)
-            per_node_force = force / max(len(creature.node_indices), 1)
-            for node_index in creature.node_indices:
-                self.nodes[node_index] = replace(
-                    self.nodes[node_index],
-                    accumulated_force=self.nodes[node_index].accumulated_force + per_node_force,
-                )
+            node_index_set = set(creature.node_indices)
+            motor_edges = [
+                edge_index
+                for edge_index, edge in enumerate(self.edges)
+                if edge.has_motor and edge.a in node_index_set and edge.b in node_index_set
+            ]
+            if motor_edges:
+                for output, edge_index in zip(creature.last_brain_outputs, motor_edges, strict=False):
+                    edge_outputs[edge_index] = (2.0 * output) - 1.0
+            else:
+                drive = (2.0 * creature.last_brain_outputs[0]) - 1.0
+                force = Vec2(self.config.brain.motor_force_scale * drive, 0.0)
+                per_node_force = force / max(len(creature.node_indices), 1)
+                for node_index in creature.node_indices:
+                    self.nodes[node_index] = replace(
+                        self.nodes[node_index],
+                        accumulated_force=self.nodes[node_index].accumulated_force + per_node_force,
+                    )
+        self.nodes = apply_motor_forces(nodes=self.nodes, edges=self.edges, edge_outputs=edge_outputs)
         self.nodes = apply_edge_springs(nodes=self.nodes, edges=self.edges)
         self.nodes = [
             apply_overdamped_dynamics(node=node, dt=self.config.physics.dt)
@@ -367,6 +383,8 @@ class World:
                 b=node_index_map[edge.b],
                 rest_length=edge.rest_length,
                 stiffness=edge.stiffness,
+                has_motor=edge.has_motor,
+                motor_strength=edge.motor_strength,
             )
             for edge in self.edges
             if edge.a in node_index_map and edge.b in node_index_map
@@ -416,6 +434,8 @@ class World:
                             b=node_index_map[edge.b],
                             rest_length=edge.rest_length,
                             stiffness=edge.stiffness,
+                            has_motor=edge.has_motor,
+                            motor_strength=edge.motor_strength,
                         )
                     )
 

@@ -55,3 +55,28 @@ def apply_edge_springs(nodes: list[NodeState], edges: list[EdgeState]) -> list[N
         )
 
     return updated_nodes
+
+
+def apply_motor_forces(
+    nodes: list[NodeState],
+    edges: list[EdgeState],
+    edge_outputs: dict[int, float],
+) -> list[NodeState]:
+    updated_nodes = list(nodes)
+
+    for edge_index, output in edge_outputs.items():
+        edge = edges[edge_index]
+        if not edge.has_motor:
+            continue
+        direction = (updated_nodes[edge.b].position - updated_nodes[edge.a].position).normalized()
+        force = direction * (edge.motor_strength * output)
+        updated_nodes[edge.a] = replace(
+            updated_nodes[edge.a],
+            accumulated_force=updated_nodes[edge.a].accumulated_force + force,
+        )
+        updated_nodes[edge.b] = replace(
+            updated_nodes[edge.b],
+            accumulated_force=updated_nodes[edge.b].accumulated_force - force,
+        )
+
+    return updated_nodes

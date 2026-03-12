@@ -202,6 +202,7 @@ Current implementation baseline:
 - nested config overrides for experiment-driven CLI runs
 - CTRNN brain runtime with sensor inputs and simple motor-force output
 - demo archetypes now include deterministic starter brains where appropriate
+- motorized edges driven by brain outputs for simple joint actuation
 - initial passing pytest suite
 
 ## Update Protocol

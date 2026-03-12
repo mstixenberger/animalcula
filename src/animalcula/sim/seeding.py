@@ -124,6 +124,8 @@ def _append_creature(
             b=node_offset + b,
             rest_length=(world_nodes[node_offset + b].position - world_nodes[node_offset + a].position).magnitude(),
             stiffness=1.0,
+            has_motor=brain is not None,
+            motor_strength=2.0 if brain is not None else 0.0,
         )
         for a, b in local_edges
     )

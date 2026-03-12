@@ -60,6 +60,8 @@ class EdgeState:
     b: int
     rest_length: float
     stiffness: float
+    has_motor: bool = False
+    motor_strength: float = 0.0
 
 
 @dataclass(slots=True, frozen=True)
