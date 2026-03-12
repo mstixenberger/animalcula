@@ -17,6 +17,8 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--ticks", type=int, default=1)
     run_parser.add_argument("--seed", type=int, default=None)
     run_parser.add_argument("--seed-demo", action="store_true")
+    run_parser.add_argument("--save", default=None)
+    run_parser.add_argument("--resume", default=None)
 
     return parser
 
@@ -26,11 +28,16 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "run":
-        config = Config.from_yaml(args.config)
-        world = World(config=config, seed=args.seed)
-        if args.seed_demo:
+        if args.resume is not None:
+            world = World.load(args.resume)
+        else:
+            config = Config.from_yaml(args.config)
+            world = World(config=config, seed=args.seed)
+        if args.seed_demo and args.resume is None:
             world.seed_demo_archetypes()
         world.step(args.ticks)
+        if args.save is not None:
+            world.save(args.save)
         stats = world.stats()
         print(
             " ".join(

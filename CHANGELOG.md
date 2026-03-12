@@ -27,6 +27,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - JSON checkpoint save/load for world-state roundtrips
 - A first asexual reproduction path for energy-rich creatures
 - Deterministic offspring mutation on reproduction
+- CLI save/resume support for checkpoint-driven runs
 
 ### Changed
 

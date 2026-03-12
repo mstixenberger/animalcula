@@ -56,8 +56,10 @@ uv sync --group dev
 uv run pytest
 uv run animalcula run --config config/default.yaml --ticks 10 --seed 42
 uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-demo
+uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-demo --save checkpoints/demo.json
+uv run animalcula run --resume checkpoints/demo.json --ticks 100
 ```
 
 ## Next Build Step
 
-Build upward from the first mutation-bearing reproduction path into broader evolution: richer mutation operators, reproduction controls, and better headless tooling.
+Build upward from the checkpoint-capable evolutionary loop into broader evolution: richer mutation operators, reproduction controls, and better headless tooling.

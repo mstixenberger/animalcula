@@ -197,6 +197,7 @@ Current implementation baseline:
 - JSON checkpoint save/load for headless workflow continuity
 - first asexual reproduction path for energy-rich creatures
 - deterministic offspring mutation on reproduction
+- CLI save/resume support for checkpoint-driven runs
 - initial passing pytest suite
 
 ## Update Protocol

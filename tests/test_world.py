@@ -273,3 +273,72 @@ def test_cli_run_command_can_seed_demo_world() -> None:
     )
 
     assert "population=3" in result.stdout
+
+
+def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "saved-world.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "1",
+            "--seed",
+            "11",
+            "--seed-demo",
+            "--save",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert checkpoint_path.exists()
+    assert "tick=1" in result.stdout
+
+
+def test_cli_run_command_can_resume_checkpoint(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "saved-world.json"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "1",
+            "--seed",
+            "11",
+            "--seed-demo",
+            "--save",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--resume",
+            str(checkpoint_path),
+            "--ticks",
+            "2",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "tick=3" in result.stdout
