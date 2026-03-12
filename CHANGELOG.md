@@ -49,6 +49,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Grid diffusion/decay helpers for evolving environment fields
 - Soft node repulsion for first-pass contact handling in the physics loop
 - Field-gradient sensing added to the brain input pipeline alongside light, nutrients, and energy
+- Creature age tracking and normalized age sensing in the runtime and checkpoint format
 
 ### Changed
 

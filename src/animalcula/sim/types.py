@@ -83,6 +83,7 @@ class CreatureState:
     last_brain_outputs: tuple[float, ...] = ()
     id: int = -1
     parent_id: int | None = None
+    age_ticks: int = 0
 
 
 @dataclass(slots=True, frozen=True)

@@ -140,7 +140,7 @@ def _append_creature(
 
 def _simple_motor_brain(light_gain: float, nutrient_gain: float) -> BrainState:
     return BrainState(
-        input_weights=((light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0),),
+        input_weights=((light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),),
         recurrent_weights=((1.0,),),
         biases=(0.0,),
         time_constants=(1.0,),

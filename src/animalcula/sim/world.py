@@ -160,6 +160,7 @@ class World:
                     "energy": creature.energy,
                     "id": creature.id,
                     "parent_id": creature.parent_id,
+                    "age_ticks": creature.age_ticks,
                     "brain": None
                     if creature.brain is None
                     else {
@@ -241,6 +242,7 @@ class World:
                     last_brain_outputs=tuple(creature.get("last_brain_outputs", [])),
                     id=creature.get("id", -1),
                     parent_id=creature.get("parent_id"),
+                    age_ticks=creature.get("age_ticks", 0),
                 )
                 for creature in payload["creatures"]
             ],
@@ -315,6 +317,7 @@ class World:
     def _sense_environment(self) -> None:
         updated_creatures: list[CreatureState] = []
         for creature in self.creatures:
+            creature = replace(creature, age_ticks=creature.age_ticks + 1)
             creature_nodes = [self.nodes[index] for index in creature.node_indices]
             receptor_nodes = [
                 node for node in creature_nodes if node.node_type == NodeType.PHOTORECEPTOR
@@ -363,6 +366,7 @@ class World:
                         average_light_gradient.y,
                         average_nutrient_gradient.x,
                         average_nutrient_gradient.y,
+                        min(1.0, creature.age_ticks / 1000.0),
                     ),
                 )
             )

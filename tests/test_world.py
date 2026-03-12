@@ -142,9 +142,27 @@ def test_world_sensing_tracks_field_gradients() -> None:
     world.step()
 
     sensed = world.creatures[0].last_sensed_inputs
-    assert len(sensed) == 7
+    assert len(sensed) == 8
     assert sensed[3] > 0.0
     assert sensed[5] > 0.0
+    assert sensed[7] > 0.0
+
+
+def test_world_increments_creature_age_each_tick() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    node = NodeState(
+        position=Vec2(10.0, 10.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step(2)
+
+    assert world.creatures[0].age_ticks == 2
 
 
 def test_world_applies_crowding_pressure_above_population_cap() -> None:

@@ -219,6 +219,7 @@ Current implementation baseline:
 - soft node repulsion for first-pass contact avoidance in dense physics states
 - light and nutrient field gradients now feed the sensing phase alongside average intensity and energy
 - `turbo` world/CLI mode plus `config/turbo.yaml` for faster headless parameter exploration
+- creature age is now tracked, serialized, and exposed as a normalized brain input
 - initial passing pytest suite
 
 ## Update Protocol
