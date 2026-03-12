@@ -25,6 +25,8 @@ def test_loads_default_config() -> None:
     assert config.evolution.motor_strength_mutation_sigma == 0.2
     assert config.brain.motor_force_scale == 1.0
     assert config.brain.default_input_size == 3
+    assert config.creatures.min_population == 0
+    assert config.creatures.max_population == 500
     assert config.simulation.initial_seed == 42
 
 

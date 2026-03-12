@@ -367,6 +367,11 @@ class World:
 
     def _apply_energy(self) -> None:
         updated_creatures: list[CreatureState] = []
+        population_count = len(self.creatures)
+        crowding_multiplier = max(
+            1.0,
+            population_count / max(self.config.creatures.max_population, 1),
+        )
         for creature in self.creatures:
             creature_nodes = [self.nodes[index] for index in creature.node_indices]
             receptor_nodes = [
@@ -400,7 +405,12 @@ class World:
                 node_count=len(creature_nodes),
                 basal_cost_per_node=self.config.energy.basal_cost_per_node,
             )
-            updated_creatures.append(replace(creature, energy=creature.energy + gain - cost))
+            updated_creatures.append(
+                replace(
+                    creature,
+                    energy=creature.energy + gain - (cost * crowding_multiplier),
+                )
+            )
 
         self.creatures = updated_creatures
 
@@ -440,6 +450,7 @@ class World:
             )
             for creature in living_creatures
         ]
+        self._apply_population_floor()
         return None
 
     def _reproduce_creatures(self) -> None:
@@ -526,6 +537,10 @@ class World:
         self.nodes.extend(new_nodes)
         self.edges.extend(new_edges)
         self.creatures = updated_creatures + new_creatures
+
+    def _apply_population_floor(self) -> None:
+        while len(self.creatures) < self.config.creatures.min_population:
+            self.seed_demo_archetypes()
 
     def _initialize_nutrient_sources(self) -> list[tuple[int, int]]:
         source_cells: set[tuple[int, int]] = set()

@@ -212,6 +212,7 @@ Current implementation baseline:
 - interestingness scoring now rewards lifecycle activity, not just static population/energy
 - checkpoint-backed CLI event export for direct observation of run history
 - periodic JSONL stats logging during headless runs
+- creature-level population safeguards: crowding pressure and optional immigration floor
 - initial passing pytest suite
 
 ## Update Protocol

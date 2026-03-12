@@ -34,5 +34,9 @@ brain:
   default_input_size: 3
   motor_force_scale: 1.0
 
+creatures:
+  min_population: 0
+  max_population: 500
+
 simulation:
   initial_seed: 42

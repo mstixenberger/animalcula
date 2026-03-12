@@ -42,6 +42,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Interestingness scoring now rewards lifecycle activity as well as population/energy
 - Checkpoint-backed CLI event export for direct run-history inspection
 - Periodic JSONL stats logging during headless runs
+- Creature-level population safeguards with crowding pressure and optional immigration floor
 
 ### Changed
 

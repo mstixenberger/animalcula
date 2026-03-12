@@ -59,6 +59,12 @@ class BrainConfig:
 
 
 @dataclass(slots=True, frozen=True)
+class CreaturesConfig:
+    min_population: int
+    max_population: int
+
+
+@dataclass(slots=True, frozen=True)
 class SimulationConfig:
     initial_seed: int
 
@@ -71,6 +77,7 @@ class Config:
     energy: EnergyConfig
     evolution: EvolutionConfig
     brain: BrainConfig
+    creatures: CreaturesConfig
     simulation: SimulationConfig
 
     @classmethod
@@ -92,6 +99,7 @@ class Config:
             energy=EnergyConfig(**raw["energy"]),
             evolution=EvolutionConfig(**raw["evolution"]),
             brain=BrainConfig(**raw["brain"]),
+            creatures=CreaturesConfig(**raw["creatures"]),
             simulation=SimulationConfig(**raw["simulation"]),
         )
 

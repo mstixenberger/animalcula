@@ -114,6 +114,44 @@ def test_world_step_updates_creature_energy_from_light() -> None:
     assert world.creatures[0].energy > 1.0
 
 
+def test_world_applies_crowding_pressure_above_population_cap() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["creatures.max_population=1"])
+    creatures = [
+        CreatureState(
+            node_indices=(0,),
+            energy=1.0,
+            brain=None,
+        ),
+        CreatureState(
+            node_indices=(1,),
+            energy=1.0,
+            brain=None,
+        ),
+    ]
+    nodes = [
+        NodeState(
+            position=Vec2(10.0, 10.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(20.0, 20.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+
+    assert world.creatures[0].energy < 0.999
+    assert world.creatures[1].energy < 0.999
+
+
 def test_world_brain_phase_updates_brain_state_and_moves_creature() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     brain = BrainState(
@@ -215,6 +253,23 @@ def test_world_removes_creature_when_energy_is_depleted() -> None:
 
     assert world.creatures == []
     assert world.nodes == []
+
+
+def test_world_reseeds_when_population_drops_below_minimum() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["creatures.min_population=3"])
+    node = NodeState(
+        position=Vec2(10.0, 10.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    creature = CreatureState(node_indices=(0,), energy=0.0005)
+    world = World(config=config, nodes=[node], creatures=[creature], seed=7)
+
+    world.step()
+
+    assert len(world.creatures) >= 3
 
 
 def test_world_can_seed_demo_archetypes() -> None:
