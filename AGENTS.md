@@ -199,6 +199,7 @@ Current implementation baseline:
 - deterministic offspring mutation on reproduction
 - CLI save/resume support for checkpoint-driven runs
 - CLI checkpoint reporting for quick headless inspection
+- nested config overrides for experiment-driven CLI runs
 - initial passing pytest suite
 
 ## Update Protocol

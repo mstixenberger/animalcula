@@ -86,6 +86,18 @@ class Config:
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
+    def with_overrides(self, overrides: list[str]) -> "Config":
+        raw = self.to_dict()
+        for override in overrides:
+            path, raw_value = override.split("=", maxsplit=1)
+            value = yaml.safe_load(raw_value)
+            cursor: dict[str, Any] = raw
+            keys = path.split(".")
+            for key in keys[:-1]:
+                cursor = cursor[key]
+            cursor[keys[-1]] = value
+        return Config.from_dict(raw)
+
 
 def _load_yaml(path: str | Path) -> dict[str, Any]:
     with Path(path).open("r", encoding="utf-8") as handle:

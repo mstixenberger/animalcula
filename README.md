@@ -58,6 +58,7 @@ uv run animalcula run --config config/default.yaml --ticks 10 --seed 42
 uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-demo
 uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-demo --save checkpoints/demo.json
 uv run animalcula run --resume checkpoints/demo.json --ticks 100
+uv run animalcula run --config config/default.yaml --ticks 1 --seed 42 --seed-demo --set energy.reproduction_threshold=0.1
 uv run animalcula report checkpoints/demo.json
 ```
 

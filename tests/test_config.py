@@ -28,3 +28,17 @@ def test_rejects_non_mapping_root(tmp_path: Path) -> None:
 
     with pytest.raises(TypeError, match="configuration root must be a mapping"):
         Config.from_yaml(config_path)
+
+
+def test_config_can_apply_nested_overrides() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+
+    updated = config.with_overrides(
+        [
+            "energy.reproduction_threshold=0.1",
+            "environment.nutrient_source_strength=3.5",
+        ]
+    )
+
+    assert updated.energy.reproduction_threshold == 0.1
+    assert updated.environment.nutrient_source_strength == 3.5

@@ -382,3 +382,28 @@ def test_cli_report_command_reads_checkpoint(tmp_path: Path) -> None:
 
     assert "tick=2" in result.stdout
     assert "population=3" in result.stdout
+
+
+def test_cli_run_command_accepts_config_overrides() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "1",
+            "--seed",
+            "11",
+            "--seed-demo",
+            "--set",
+            "energy.reproduction_threshold=0.1",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "population=6" in result.stdout

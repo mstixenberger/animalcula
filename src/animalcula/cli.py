@@ -19,6 +19,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--seed-demo", action="store_true")
     run_parser.add_argument("--save", default=None)
     run_parser.add_argument("--resume", default=None)
+    run_parser.add_argument("--set", action="append", default=[])
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
@@ -33,8 +34,12 @@ def main() -> int:
     if args.command == "run":
         if args.resume is not None:
             world = World.load(args.resume)
+            if args.set:
+                world.config = world.config.with_overrides(args.set)
         else:
             config = Config.from_yaml(args.config)
+            if args.set:
+                config = config.with_overrides(args.set)
             world = World(config=config, seed=args.seed)
         if args.seed_demo and args.resume is None:
             world.seed_demo_archetypes()

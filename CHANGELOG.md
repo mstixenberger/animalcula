@@ -29,6 +29,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Deterministic offspring mutation on reproduction
 - CLI save/resume support for checkpoint-driven runs
 - CLI checkpoint reporting for quick saved-state inspection
+- Nested config overrides for experiment-driven CLI runs
 
 ### Changed
 
