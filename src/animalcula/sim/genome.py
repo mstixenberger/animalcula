@@ -150,8 +150,9 @@ def mutate_genome(
     bias_sigma: float,
     tau_sigma: float,
     motor_strength_sigma: float,
+    structural_mutation_rate: float = 0.0,
 ) -> CreatureGenome:
-    mutated_nodes = tuple(
+    mutated_nodes = [
         GenomeNodeGene(
             position=node.position
             + Vec2(
@@ -162,8 +163,8 @@ def mutate_genome(
             node_type=node.node_type,
         )
         for node in genome.nodes
-    )
-    mutated_edges = tuple(
+    ]
+    mutated_edges = [
         GenomeEdgeGene(
             a=edge.a,
             b=edge.b,
@@ -175,7 +176,28 @@ def mutate_genome(
             else edge.motor_strength,
         )
         for edge in genome.edges
-    )
+    ]
+    if mutated_nodes and rng.random() < structural_mutation_rate:
+        parent_index = rng.randrange(len(mutated_nodes))
+        parent_node = mutated_nodes[parent_index]
+        offset = Vec2(rng.uniform(-3.0, 3.0), rng.uniform(-3.0, 3.0))
+        new_node = GenomeNodeGene(
+            position=parent_node.position + offset,
+            radius=max(0.1, parent_node.radius + rng.gauss(0.0, max(radius_sigma, 0.01))),
+            node_type=NodeType.BODY,
+        )
+        new_node_index = len(mutated_nodes)
+        mutated_nodes.append(new_node)
+        mutated_edges.append(
+            GenomeEdgeGene(
+                a=parent_index,
+                b=new_node_index,
+                rest_length=max(offset.magnitude(), 0.1),
+                stiffness=1.0,
+                has_motor=False,
+                motor_strength=0.0,
+            )
+        )
     mutated_brain = None
     if genome.brain is not None:
         mutated_brain = GenomeBrainGene(
@@ -194,7 +216,7 @@ def mutate_genome(
             states=genome.brain.states,
             output_size=genome.brain.output_size,
         )
-    return CreatureGenome(nodes=mutated_nodes, edges=mutated_edges, brain=mutated_brain)
+    return CreatureGenome(nodes=tuple(mutated_nodes), edges=tuple(mutated_edges), brain=mutated_brain)
 
 
 def genome_to_dict(genome: CreatureGenome | None) -> dict[str, Any] | None:

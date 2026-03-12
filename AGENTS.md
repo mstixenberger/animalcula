@@ -232,6 +232,7 @@ Current implementation baseline:
 - a first predation slice exists: bite outputs on mouth nodes can drain overlapping victims and transfer energy
 - predation kills now surface as a distinct event type and stats count for headless analysis
 - the seeded amoeba-lite archetype now exposes motor plus bite outputs, so the default seed set matches the current predation wiring better
+- genomes now have a first structural mutation path that can grow one extra body node and edge
 - initial passing pytest suite
 
 ## Update Protocol

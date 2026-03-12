@@ -107,3 +107,27 @@ def test_mutate_genome_changes_shape_or_brain_but_keeps_bounds_valid() -> None:
     assert mutated.nodes[0].radius > 0.0
     assert mutated.brain is not None
     assert all(value > 0.0 for value in mutated.brain.time_constants)
+
+
+def test_mutate_genome_can_add_a_structural_body_node() -> None:
+    rng = random.Random(7)
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(),
+        brain=None,
+    )
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        structural_mutation_rate=1.0,
+    )
+
+    assert len(mutated.nodes) == 2
+    assert len(mutated.edges) == 1
