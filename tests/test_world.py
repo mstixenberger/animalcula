@@ -415,6 +415,54 @@ def test_world_can_scavenge_energy_from_detritus() -> None:
     assert world.detritus_grid.sample(Vec2(100.0, 100.0)) < 2.0
 
 
+def test_world_can_predate_overlapping_creature_with_bite_output() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.scavenging_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.predation_rate=0.5",
+            "energy.predation_transfer_efficiency=1.0",
+        ]
+    )
+    predator_brain = BrainState(
+        input_weights=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.MOUTH,
+        ),
+        NodeState(
+            position=Vec2(100.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, brain=predator_brain),
+        CreatureState(node_indices=(1,), energy=1.0),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+
+    assert world.creatures[0].energy > 1.0
+    assert world.creatures[1].energy < 1.0
+
+
 def test_world_turbo_mode_skips_expensive_field_updates_between_full_ticks() -> None:
     config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["environment.nutrient_source_count=0"])
     world = World(config=config, turbo=True)

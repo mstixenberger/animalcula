@@ -25,6 +25,8 @@ energy:
   scavenging_rate: 0.01
   photosynthesis_rate: 0.005
   motor_cost_per_unit: 0.001
+  predation_rate: 0.05
+  predation_transfer_efficiency: 0.6
   reproduction_threshold: 100.0
 
 evolution:

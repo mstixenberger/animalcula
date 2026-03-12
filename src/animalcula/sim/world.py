@@ -468,16 +468,12 @@ class World:
         for creature in self.creatures:
             if not creature.last_brain_outputs:
                 continue
-            node_index_set = set(creature.node_indices)
-            motor_edges = [
-                edge_index
-                for edge_index, edge in enumerate(self.edges)
-                if edge.has_motor and edge.a in node_index_set and edge.b in node_index_set
-            ]
+            motor_edges = self._motor_edge_indices_for_creature(creature)
             if motor_edges:
-                for output, edge_index in zip(creature.last_brain_outputs, motor_edges, strict=False):
+                motor_outputs, _, _ = self._control_outputs_for_creature(creature)
+                for output, edge_index in zip(motor_outputs, motor_edges, strict=False):
                     edge_outputs[edge_index] = (2.0 * output) - 1.0
-            else:
+            elif not self._mouth_nodes_for_creature(creature):
                 drive = (2.0 * creature.last_brain_outputs[0]) - 1.0
                 force = Vec2(self.config.brain.motor_force_scale * drive, 0.0)
                 per_node_force = force / max(len(creature.node_indices), 1)
@@ -576,6 +572,7 @@ class World:
                 )
             )
 
+        updated_creatures = self._apply_predation(updated_creatures)
         self.creatures = updated_creatures
 
     def _apply_lifecycle(self) -> None:
@@ -754,17 +751,71 @@ class World:
         return ensured
 
     def _reproduction_allowed(self, creature: CreatureState) -> bool:
-        if not creature.last_brain_outputs:
+        _, _, reproduce_output = self._control_outputs_for_creature(creature)
+        if reproduce_output is None:
             return True
+        return reproduce_output >= 0.5
 
-        motor_edge_count = sum(
-            1
-            for edge in self.edges
-            if edge.has_motor and edge.a in creature.node_indices and edge.b in creature.node_indices
-        )
-        if len(creature.last_brain_outputs) <= motor_edge_count:
-            return True
-        return creature.last_brain_outputs[motor_edge_count] >= 0.5
+    def _apply_predation(self, creatures: list[CreatureState]) -> list[CreatureState]:
+        if self.config.energy.predation_rate <= 0.0:
+            return creatures
+
+        energies = [creature.energy for creature in creatures]
+        for predator_index, predator in enumerate(creatures):
+            _, bite_outputs, _ = self._control_outputs_for_creature(predator)
+            mouth_nodes = self._mouth_nodes_for_creature(predator)
+            for mouth_node, bite_output in zip(mouth_nodes, bite_outputs, strict=False):
+                if bite_output <= 0.0:
+                    continue
+                for victim_index, victim in enumerate(creatures):
+                    if predator_index == victim_index or energies[victim_index] <= 0.0:
+                        continue
+                    if not any(self._nodes_overlap(mouth_node, self.nodes[node_index]) for node_index in victim.node_indices):
+                        continue
+                    damage = min(
+                        energies[victim_index],
+                        bite_output * self.config.energy.predation_rate,
+                    )
+                    energies[victim_index] -= damage
+                    energies[predator_index] += damage * self.config.energy.predation_transfer_efficiency
+                    break
+
+        return [replace(creature, energy=energy) for creature, energy in zip(creatures, energies, strict=True)]
+
+    def _motor_edge_indices_for_creature(self, creature: CreatureState) -> list[int]:
+        node_index_set = set(creature.node_indices)
+        return [
+            edge_index
+            for edge_index, edge in enumerate(self.edges)
+            if edge.has_motor and edge.a in node_index_set and edge.b in node_index_set
+        ]
+
+    def _mouth_nodes_for_creature(self, creature: CreatureState) -> list[NodeState]:
+        return [
+            self.nodes[node_index]
+            for node_index in creature.node_indices
+            if self.nodes[node_index].node_type == NodeType.MOUTH
+        ]
+
+    def _control_outputs_for_creature(
+        self,
+        creature: CreatureState,
+    ) -> tuple[tuple[float, ...], tuple[float, ...], float | None]:
+        outputs = creature.last_brain_outputs
+        if not outputs:
+            return (), (), None
+
+        motor_edge_count = len(self._motor_edge_indices_for_creature(creature))
+        mouth_count = len(self._mouth_nodes_for_creature(creature))
+        motor_outputs = outputs[:motor_edge_count]
+        bite_start = motor_edge_count
+        bite_end = bite_start + mouth_count
+        bite_outputs = outputs[bite_start:bite_end]
+        reproduce_output = outputs[bite_end] if len(outputs) > bite_end else None
+        return motor_outputs, bite_outputs, reproduce_output
+
+    def _nodes_overlap(self, a: NodeState, b: NodeState) -> bool:
+        return (a.position - b.position).magnitude() < (a.radius + b.radius)
 
     def _record_event(
         self,

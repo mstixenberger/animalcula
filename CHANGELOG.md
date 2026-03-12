@@ -59,6 +59,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Brain outputs can now explicitly permit or suppress reproduction when a creature has a reproduce control channel
 - Motor actuation now contributes to per-tick energy cost
 - Mouth nodes can now scavenge energy directly from detritus patches
+- A first predation path allows bite-output mouths to drain overlapping creatures and gain transferred energy
 
 ### Changed
 

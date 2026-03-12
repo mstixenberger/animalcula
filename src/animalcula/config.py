@@ -44,6 +44,8 @@ class EnergyConfig:
     scavenging_rate: float
     photosynthesis_rate: float
     motor_cost_per_unit: float
+    predation_rate: float
+    predation_transfer_efficiency: float
     reproduction_threshold: float
 
 
