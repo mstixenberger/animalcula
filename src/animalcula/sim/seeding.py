@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from animalcula.sim.fields import Grid2D
-from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType, Vec2
+from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
 
 
 def build_demo_archetypes(
@@ -58,7 +58,15 @@ def build_demo_archetypes(
             radius=1.0,
         ),
     ]
-    _append_creature(nodes, edges, creatures, grazer_nodes, [(0, 1)], energy=1.0)
+    _append_creature(
+        nodes,
+        edges,
+        creatures,
+        grazer_nodes,
+        [(0, 1)],
+        energy=1.0,
+        brain=_simple_motor_brain(light_gain=0.0, nutrient_gain=2.0),
+    )
 
     # Amoeba-lite: mixed feeder with both nutrient and light access.
     amoeba_nodes = [
@@ -86,7 +94,15 @@ def build_demo_archetypes(
             radius=1.0,
         ),
     ]
-    _append_creature(nodes, edges, creatures, amoeba_nodes, [(0, 1), (0, 2)], energy=1.0)
+    _append_creature(
+        nodes,
+        edges,
+        creatures,
+        amoeba_nodes,
+        [(0, 1), (0, 2)],
+        energy=1.0,
+        brain=_simple_motor_brain(light_gain=1.0, nutrient_gain=1.0),
+    )
 
     return nodes, edges, creatures
 
@@ -98,6 +114,7 @@ def _append_creature(
     creature_nodes: list[NodeState],
     local_edges: list[tuple[int, int]],
     energy: float,
+    brain: BrainState | None = None,
 ) -> None:
     node_offset = len(world_nodes)
     world_nodes.extend(creature_nodes)
@@ -114,5 +131,17 @@ def _append_creature(
         CreatureState(
             node_indices=tuple(range(node_offset, node_offset + len(creature_nodes))),
             energy=energy,
+            brain=brain,
         )
+    )
+
+
+def _simple_motor_brain(light_gain: float, nutrient_gain: float) -> BrainState:
+    return BrainState(
+        input_weights=((light_gain, nutrient_gain, 0.0),),
+        recurrent_weights=((1.0,),),
+        biases=(0.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
     )

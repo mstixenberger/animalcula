@@ -10,12 +10,13 @@ import random
 from typing import Callable
 
 from animalcula.config import Config
+from animalcula.sim.brain import step_brain
 from animalcula.sim.energy import basal_cost, feeding_gain, photosynthesis_gain
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.mutation import mutate_node
 from animalcula.sim.physics import apply_edge_springs, apply_overdamped_dynamics
 from animalcula.sim.seeding import build_demo_archetypes
-from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType, Vec2
+from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
 
 
 @dataclass(slots=True, frozen=True)
@@ -123,6 +124,18 @@ class World:
                 {
                     "node_indices": list(creature.node_indices),
                     "energy": creature.energy,
+                    "brain": None
+                    if creature.brain is None
+                    else {
+                        "input_weights": [list(row) for row in creature.brain.input_weights],
+                        "recurrent_weights": [list(row) for row in creature.brain.recurrent_weights],
+                        "biases": list(creature.brain.biases),
+                        "time_constants": list(creature.brain.time_constants),
+                        "states": list(creature.brain.states),
+                        "output_size": creature.brain.output_size,
+                    },
+                    "last_sensed_inputs": list(creature.last_sensed_inputs),
+                    "last_brain_outputs": list(creature.last_brain_outputs),
                 }
                 for creature in self.creatures
             ],
@@ -162,6 +175,20 @@ class World:
                 CreatureState(
                     node_indices=tuple(creature["node_indices"]),
                     energy=creature["energy"],
+                    brain=None
+                    if creature["brain"] is None
+                    else BrainState(
+                        input_weights=tuple(tuple(row) for row in creature["brain"]["input_weights"]),
+                        recurrent_weights=tuple(
+                            tuple(row) for row in creature["brain"]["recurrent_weights"]
+                        ),
+                        biases=tuple(creature["brain"]["biases"]),
+                        time_constants=tuple(creature["brain"]["time_constants"]),
+                        states=tuple(creature["brain"]["states"]),
+                        output_size=creature["brain"]["output_size"],
+                    ),
+                    last_sensed_inputs=tuple(creature.get("last_sensed_inputs", [])),
+                    last_brain_outputs=tuple(creature.get("last_brain_outputs", [])),
                 )
                 for creature in payload["creatures"]
             ],
@@ -214,12 +241,67 @@ class World:
         )
 
     def _sense_environment(self) -> None:
-        return None
+        updated_creatures: list[CreatureState] = []
+        for creature in self.creatures:
+            creature_nodes = [self.nodes[index] for index in creature.node_indices]
+            receptor_nodes = [
+                node for node in creature_nodes if node.node_type == NodeType.PHOTORECEPTOR
+            ]
+            mouth_nodes = [node for node in creature_nodes if node.node_type == NodeType.MOUTH]
+            average_light = (
+                sum(self.light_grid.sample(node.position) for node in receptor_nodes) / len(receptor_nodes)
+                if receptor_nodes
+                else 0.0
+            )
+            average_nutrients = (
+                sum(self.nutrient_grid.sample(node.position) for node in mouth_nodes) / len(mouth_nodes)
+                if mouth_nodes
+                else 0.0
+            )
+            normalized_energy = min(
+                1.0,
+                creature.energy / max(self.config.energy.reproduction_threshold, 1.0),
+            )
+            updated_creatures.append(
+                replace(
+                    creature,
+                    last_sensed_inputs=(average_light, average_nutrients, normalized_energy),
+                )
+            )
+        self.creatures = updated_creatures
 
     def _update_brains(self) -> None:
-        return None
+        updated_creatures: list[CreatureState] = []
+        for creature in self.creatures:
+            if creature.brain is None:
+                updated_creatures.append(creature)
+                continue
+            brain, outputs = step_brain(
+                brain=creature.brain,
+                inputs=creature.last_sensed_inputs,
+                dt=self.config.physics.dt,
+            )
+            updated_creatures.append(
+                replace(
+                    creature,
+                    brain=brain,
+                    last_brain_outputs=outputs,
+                )
+            )
+        self.creatures = updated_creatures
 
     def _apply_physics(self) -> None:
+        for creature in self.creatures:
+            if not creature.last_brain_outputs:
+                continue
+            drive = (2.0 * creature.last_brain_outputs[0]) - 1.0
+            force = Vec2(self.config.brain.motor_force_scale * drive, 0.0)
+            per_node_force = force / max(len(creature.node_indices), 1)
+            for node_index in creature.node_indices:
+                self.nodes[node_index] = replace(
+                    self.nodes[node_index],
+                    accumulated_force=self.nodes[node_index].accumulated_force + per_node_force,
+                )
         self.nodes = apply_edge_springs(nodes=self.nodes, edges=self.edges)
         self.nodes = [
             apply_overdamped_dynamics(node=node, dt=self.config.physics.dt)
@@ -343,6 +425,7 @@ class World:
                 CreatureState(
                     node_indices=tuple(node_index_map[index] for index in creature.node_indices),
                     energy=split_energy,
+                    brain=creature.brain,
                 )
             )
 

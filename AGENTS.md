@@ -200,6 +200,8 @@ Current implementation baseline:
 - CLI save/resume support for checkpoint-driven runs
 - CLI checkpoint reporting for quick headless inspection
 - nested config overrides for experiment-driven CLI runs
+- CTRNN brain runtime with sensor inputs and simple motor-force output
+- demo archetypes now include deterministic starter brains where appropriate
 - initial passing pytest suite
 
 ## Update Protocol

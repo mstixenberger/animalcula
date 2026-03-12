@@ -49,6 +49,12 @@ class EvolutionConfig:
 
 
 @dataclass(slots=True, frozen=True)
+class BrainConfig:
+    default_input_size: int
+    motor_force_scale: float
+
+
+@dataclass(slots=True, frozen=True)
 class SimulationConfig:
     initial_seed: int
 
@@ -60,6 +66,7 @@ class Config:
     environment: EnvironmentConfig
     energy: EnergyConfig
     evolution: EvolutionConfig
+    brain: BrainConfig
     simulation: SimulationConfig
 
     @classmethod
@@ -80,6 +87,7 @@ class Config:
             ),
             energy=EnergyConfig(**raw["energy"]),
             evolution=EvolutionConfig(**raw["evolution"]),
+            brain=BrainConfig(**raw["brain"]),
             simulation=SimulationConfig(**raw["simulation"]),
         )
 

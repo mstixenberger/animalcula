@@ -30,6 +30,8 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - CLI save/resume support for checkpoint-driven runs
 - CLI checkpoint reporting for quick saved-state inspection
 - Nested config overrides for experiment-driven CLI runs
+- CTRNN brain runtime with sensor inputs and simple motor-force integration
+- Brain-equipped deterministic starter archetypes in the demo population
 
 ### Changed
 

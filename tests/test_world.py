@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from animalcula import Config, World
-from animalcula.sim.types import CreatureState, EdgeState, NodeState, NodeType, Vec2
+from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
 
 
 def test_world_uses_default_seed_when_none_is_provided() -> None:
@@ -114,6 +114,35 @@ def test_world_step_updates_creature_energy_from_light() -> None:
     assert world.creatures[0].energy > 1.0
 
 
+def test_world_brain_phase_updates_brain_state_and_moves_creature() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    brain = BrainState(
+        input_weights=((2.0, 0.0, 0.0),),
+        recurrent_weights=((0.0,),),
+        biases=(0.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    node = NodeState(
+        position=Vec2(995.0, 500.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0, brain=brain)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    assert world.creatures[0].brain is not None
+    assert world.creatures[0].brain.states[0] > 0.0
+    assert world.creatures[0].last_sensed_inputs[0] > 0.0
+    assert world.nodes[0].position.x != 995.0
+
+
 def test_world_step_updates_creature_energy_from_nutrients() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     node = NodeState(
@@ -160,6 +189,7 @@ def test_world_can_seed_demo_archetypes() -> None:
     assert len(world.creatures) == 3
     assert len(world.nodes) >= 5
     assert len(world.edges) >= 2
+    assert sum(1 for creature in world.creatures if creature.brain is not None) >= 2
 
 
 def test_demo_archetype_seeding_is_deterministic_for_seed() -> None:
@@ -183,6 +213,7 @@ def test_seeded_demo_world_can_step_without_immediate_extinction() -> None:
     world.step()
 
     assert len(world.creatures) > 0
+    assert any(creature.last_brain_outputs for creature in world.creatures if creature.brain is not None)
 
 
 def test_world_reproduces_energy_rich_creatures() -> None:

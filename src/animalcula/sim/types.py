@@ -63,6 +63,19 @@ class EdgeState:
 
 
 @dataclass(slots=True, frozen=True)
+class BrainState:
+    input_weights: tuple[tuple[float, ...], ...]
+    recurrent_weights: tuple[tuple[float, ...], ...]
+    biases: tuple[float, ...]
+    time_constants: tuple[float, ...]
+    states: tuple[float, ...]
+    output_size: int
+
+
+@dataclass(slots=True, frozen=True)
 class CreatureState:
     node_indices: tuple[int, ...]
     energy: float
+    brain: BrainState | None = None
+    last_sensed_inputs: tuple[float, ...] = ()
+    last_brain_outputs: tuple[float, ...] = ()
