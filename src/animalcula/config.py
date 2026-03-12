@@ -31,6 +31,8 @@ class EnvironmentConfig:
     nutrient_source_count: int
     nutrient_source_strength: float
     nutrient_decay_rate: float
+    chemical_diffusion_rate: float
+    chemical_decay_rate: float
     detritus_decay_rate: float
     detritus_recycling_rate: float
     light_intensity_max: float

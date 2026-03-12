@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 class NodeType(str, Enum):
     BODY = "body"
     MOUTH = "mouth"
+    GRIPPER = "gripper"
+    SENSOR = "sensor"
     PHOTORECEPTOR = "photoreceptor"
 
 
@@ -84,6 +86,7 @@ class CreatureState:
     energy: float
     brain: BrainState | None = None
     genome: "CreatureGenome | None" = None
+    mean_speed_recent: float = 0.0
     last_sensed_inputs: tuple[float, ...] = ()
     last_brain_outputs: tuple[float, ...] = ()
     id: int = -1

@@ -302,6 +302,8 @@ def coarse_species_signature(genome: CreatureGenome | None) -> str:
     if genome is None:
         return ""
     mouths = sum(1 for node in genome.nodes if node.node_type == NodeType.MOUTH)
+    grippers = sum(1 for node in genome.nodes if node.node_type == NodeType.GRIPPER)
+    sensors = sum(1 for node in genome.nodes if node.node_type == NodeType.SENSOR)
     photoreceptors = sum(1 for node in genome.nodes if node.node_type == NodeType.PHOTORECEPTOR)
     motors = sum(1 for edge in genome.edges if edge.has_motor)
     mean_radius = round(sum(node.radius for node in genome.nodes) / max(len(genome.nodes), 1), 1)
@@ -310,6 +312,8 @@ def coarse_species_signature(genome: CreatureGenome | None) -> str:
             f"n{len(genome.nodes)}",
             f"e{len(genome.edges)}",
             f"m{mouths}",
+            f"g{grippers}",
+            f"s{sensors}",
             f"p{photoreceptors}",
             f"mot{motors}",
             f"r{mean_radius}",

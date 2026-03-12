@@ -66,8 +66,14 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Coarse species counts now surface in stats, CLI output, and sweep results alongside exact lineage counts
 - Trophic-role counts and mean node-count complexity now surface in stats, CLI output, and sweep results
 - `animalcula species <checkpoint>` now prints coarse per-species population snapshots from saved worlds
+- `animalcula phenotypes <checkpoint>` now prints per-creature phenotype snapshots from saved worlds
+- Chemical A/B environment grids with diffusion and decay
+- Sensor-node chemical sensing, including local chemical gradients in brain inputs
+- Brain-driven chemical emission and alarm-chemical deposition during predation
 
 ### Changed
 
 - Locked Python environment and dependency management to `uv` only
 - Feeding now consumes nutrients from the field instead of sampling an effectively infinite food source
+- Brain configs now default to the expanded 14-channel sensing vector used by the current world runtime
+- Species and phenotype snapshot exports now expose richer morphology and motion summaries

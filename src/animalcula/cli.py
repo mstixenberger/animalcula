@@ -37,6 +37,9 @@ def build_parser() -> argparse.ArgumentParser:
     species_parser = subparsers.add_parser("species", help="Print checkpoint species snapshots as JSON lines")
     species_parser.add_argument("checkpoint")
 
+    phenotypes_parser = subparsers.add_parser("phenotypes", help="Print checkpoint phenotype snapshots as JSON lines")
+    phenotypes_parser.add_argument("checkpoint")
+
     sweep_parser = subparsers.add_parser("sweep", help="Run a sequential parameter sweep")
     sweep_parser.add_argument("--config", default="config/default.yaml")
     sweep_parser.add_argument("--sweep", required=True)
@@ -112,6 +115,12 @@ def main() -> int:
     if args.command == "species":
         world = World.load(args.checkpoint)
         for snapshot in world.species_snapshots():
+            print(json.dumps(snapshot))
+        return 0
+
+    if args.command == "phenotypes":
+        world = World.load(args.checkpoint)
+        for snapshot in world.phenotype_snapshots():
             print(json.dumps(snapshot))
         return 0
 

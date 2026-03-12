@@ -135,19 +135,72 @@ def test_world_sensing_tracks_field_gradients() -> None:
             radius=1.0,
             node_type=NodeType.MOUTH,
         ),
+        NodeState(
+            position=Vec2(200.0, 200.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.SENSOR,
+        ),
     ]
-    creature = CreatureState(node_indices=(0, 1), energy=1.0)
+    creature = CreatureState(node_indices=(0, 1, 2), energy=1.0)
     world = World(config=config, nodes=nodes, creatures=[creature])
     world.nutrient_grid.set_value(col=19, row=20, value=1.0)
     world.nutrient_grid.set_value(col=21, row=20, value=3.0)
+    world.chemical_a_grid.set_value(col=39, row=40, value=1.0)
+    world.chemical_a_grid.set_value(col=41, row=40, value=3.0)
+    world.chemical_b_grid.set_value(col=40, row=40, value=2.0)
 
     world.step()
 
     sensed = world.creatures[0].last_sensed_inputs
-    assert len(sensed) == 8
+    assert len(sensed) == 14
     assert sensed[3] > 0.0
     assert sensed[5] > 0.0
     assert sensed[7] > 0.0
+    assert sensed[8] > 0.0
+    assert sensed[9] > 0.0
+    assert sensed[10] > 0.0
+
+
+def test_world_brain_outputs_can_emit_chemicals() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    brain = BrainState(
+        input_weights=(
+            (0.0,) * 14,
+            (0.0,) * 14,
+            (0.0,) * 14,
+            (0.0,) * 14,
+        ),
+        recurrent_weights=(
+            (0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0),
+        ),
+        biases=(0.0, 0.0, 10.0, 10.0),
+        time_constants=(1.0, 1.0, 1.0, 1.0),
+        states=(0.0, 0.0, 0.0, 0.0),
+        output_size=4,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.MOUTH,
+        ),
+    ]
+    creature = CreatureState(node_indices=(0,), energy=1.0, brain=brain)
+    world = World(config=config, nodes=nodes, creatures=[creature])
+
+    world.step()
+
+    assert world.chemical_a_grid.sample(Vec2(100.0, 100.0)) > 0.0
+    assert world.chemical_b_grid.sample(Vec2(100.0, 100.0)) > 0.0
 
 
 def test_world_increments_creature_age_each_tick() -> None:
@@ -738,6 +791,20 @@ def test_world_can_build_species_snapshots() -> None:
     assert all("mean_energy" in snapshot for snapshot in snapshots)
 
 
+def test_world_can_build_phenotype_snapshots() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+    world.seed_demo_archetypes()
+    world.step()
+
+    snapshots = world.phenotype_snapshots()
+
+    assert len(snapshots) == 3
+    assert all("num_nodes" in snapshot for snapshot in snapshots)
+    assert all("mean_speed_recent" in snapshot for snapshot in snapshots)
+    assert all("species_id" in snapshot for snapshot in snapshots)
+
+
 def test_cli_run_command_advances_the_world() -> None:
     result = subprocess.run(
         [
@@ -843,6 +910,30 @@ def test_cli_species_command_reads_checkpoint_species_snapshots(tmp_path: Path) 
 
     assert "\"species_id\": " in result.stdout
     assert "\"mean_energy\": " in result.stdout
+
+
+def test_cli_phenotypes_command_reads_checkpoint_phenotypes(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "phenotypes.json"
+    world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    world.seed_demo_archetypes()
+    world.step()
+    world.save(checkpoint_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "phenotypes",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "\"num_nodes\": " in result.stdout
+    assert "\"mean_speed_recent\": " in result.stdout
 
 
 def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:

@@ -172,9 +172,6 @@ Explicitly deferred:
 
 - Rust core
 - browser frontend
-- grippers
-- predation damage
-- chemicals
 - sexual reproduction
 - species clustering
 - advanced analytics UI
@@ -236,6 +233,11 @@ Current implementation baseline:
 - coarse species counting is now derived from genome structure and exposed in headless stats/reporting
 - headless stats/reporting now include trophic-role counts and mean node-count complexity
 - checkpoint inspection now includes per-species snapshot summaries via the CLI
+- checkpoint inspection now includes per-creature phenotype snapshot summaries via the CLI
+- chemical A/B fields now diffuse and decay alongside nutrient/light/detritus fields
+- sensor nodes now contribute chemical intensity and gradient signals to the brain input pipeline
+- brains can now emit chemical A/B signals into the environment
+- predation now emits an alarm-style chemical trace from attacked creatures
 - initial passing pytest suite
 
 ## Update Protocol

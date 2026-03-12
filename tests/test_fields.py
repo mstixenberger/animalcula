@@ -27,6 +27,16 @@ def test_world_initializes_light_grid_from_config() -> None:
     assert world.light_grid.rows == 200
 
 
+def test_world_initializes_chemical_grids_from_config() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config)
+
+    assert world.chemical_a_grid.cols == 200
+    assert world.chemical_a_grid.rows == 200
+    assert world.chemical_b_grid.cols == 200
+    assert world.chemical_b_grid.rows == 200
+
+
 def test_world_light_grid_forms_a_directional_gradient() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     world = World(config=config)

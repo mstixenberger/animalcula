@@ -20,4 +20,6 @@ def test_world_checkpoint_roundtrip_preserves_state(tmp_path: Path) -> None:
     assert restored.creatures == world.creatures
     assert restored.nutrient_grid.values == world.nutrient_grid.values
     assert restored.light_grid.values == world.light_grid.values
+    assert restored.chemical_a_grid.values == world.chemical_a_grid.values
+    assert restored.chemical_b_grid.values == world.chemical_b_grid.values
     assert restored.events == world.events

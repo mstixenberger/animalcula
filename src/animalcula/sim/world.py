@@ -97,6 +97,16 @@ class World:
             height=self.config.world.height,
             resolution=self.config.world.grid_resolution,
         )
+        self.chemical_a_grid = Grid2D(
+            width=self.config.world.width,
+            height=self.config.world.height,
+            resolution=self.config.world.grid_resolution,
+        )
+        self.chemical_b_grid = Grid2D(
+            width=self.config.world.width,
+            height=self.config.world.height,
+            resolution=self.config.world.grid_resolution,
+        )
         self.detritus_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
@@ -142,6 +152,40 @@ class World:
                     "count": len(creatures),
                     "mean_energy": sum(creature.energy for creature in creatures) / len(creatures),
                     "mean_size": sum(node_counts) / len(node_counts),
+                    "mean_speed": sum(creature.mean_speed_recent for creature in creatures) / len(creatures),
+                }
+            )
+        return snapshots
+
+    def phenotype_snapshots(self) -> list[dict[str, float | int | str]]:
+        snapshots: list[dict[str, float | int | str]] = []
+        for creature in self.creatures:
+            node_states = [self.nodes[node_index] for node_index in creature.node_indices]
+            mouths = sum(1 for node in node_states if node.node_type == NodeType.MOUTH)
+            grippers = sum(1 for node in node_states if node.node_type == NodeType.GRIPPER)
+            sensors = sum(1 for node in node_states if node.node_type == NodeType.SENSOR)
+            photoreceptors = sum(1 for node in node_states if node.node_type == NodeType.PHOTORECEPTOR)
+            creature_node_set = set(creature.node_indices)
+            creature_edges = [
+                edge for edge in self.edges if edge.a in creature_node_set and edge.b in creature_node_set
+            ]
+            edge_count = len(creature_edges)
+            snapshots.append(
+                {
+                    "tick": self.tick,
+                    "creature_id": creature.id,
+                    "species_id": coarse_species_signature(creature.genome),
+                    "num_nodes": len(creature.node_indices),
+                    "num_edges": edge_count,
+                    "mean_segment_length": (
+                        sum(edge.rest_length for edge in creature_edges) / edge_count if edge_count else 0.0
+                    ),
+                    "num_mouths": mouths,
+                    "num_grippers": grippers,
+                    "num_sensors": sensors,
+                    "num_photoreceptors": photoreceptors,
+                    "energy": creature.energy,
+                    "mean_speed_recent": creature.mean_speed_recent,
                 }
             )
         return snapshots
@@ -302,6 +346,8 @@ class World:
             ],
             "nutrient_grid": self.nutrient_grid.values,
             "light_grid": self.light_grid.values,
+            "chemical_a_grid": self.chemical_a_grid.values,
+            "chemical_b_grid": self.chemical_b_grid.values,
             "detritus_grid": self.detritus_grid.values,
             "nutrient_source_cells": self._nutrient_source_cells,
             "next_creature_id": self._next_creature_id,
@@ -354,6 +400,7 @@ class World:
                     ),
                     last_sensed_inputs=tuple(creature.get("last_sensed_inputs", [])),
                     last_brain_outputs=tuple(creature.get("last_brain_outputs", [])),
+                    mean_speed_recent=creature.get("mean_speed_recent", 0.0),
                     id=creature.get("id", -1),
                     parent_id=creature.get("parent_id"),
                     age_ticks=creature.get("age_ticks", 0),
@@ -376,6 +423,14 @@ class World:
         ]
         world.nutrient_grid.values = payload["nutrient_grid"]
         world.light_grid.values = payload["light_grid"]
+        world.chemical_a_grid.values = payload.get(
+            "chemical_a_grid",
+            [0.0] * len(world.chemical_a_grid.values),
+        )
+        world.chemical_b_grid.values = payload.get(
+            "chemical_b_grid",
+            [0.0] * len(world.chemical_b_grid.values),
+        )
         world.detritus_grid.values = payload.get("detritus_grid", [0.0] * len(world.detritus_grid.values))
         world._nutrient_source_cells = [tuple(cell) for cell in payload["nutrient_source_cells"]]
         world._next_creature_id = payload.get("next_creature_id", world._initial_next_creature_id())
@@ -423,6 +478,10 @@ class World:
         if (not self.turbo) or ((self.tick + 1) % 4 == 0):
             self.nutrient_grid.diffuse(rate=self.config.environment.nutrient_diffusion_rate)
             self.nutrient_grid.decay(rate=self.config.environment.nutrient_decay_rate)
+            self.chemical_a_grid.diffuse(rate=self.config.environment.chemical_diffusion_rate)
+            self.chemical_a_grid.decay(rate=self.config.environment.chemical_decay_rate)
+            self.chemical_b_grid.diffuse(rate=self.config.environment.chemical_diffusion_rate)
+            self.chemical_b_grid.decay(rate=self.config.environment.chemical_decay_rate)
             self._recycle_detritus()
             self.detritus_grid.decay(rate=self.config.environment.detritus_decay_rate)
         for col, row in self._nutrient_source_cells:
@@ -445,6 +504,7 @@ class World:
                 node for node in creature_nodes if node.node_type == NodeType.PHOTORECEPTOR
             ]
             mouth_nodes = [node for node in creature_nodes if node.node_type == NodeType.MOUTH]
+            sensor_nodes = [node for node in creature_nodes if node.node_type == NodeType.SENSOR]
             average_light = (
                 sum(self.light_grid.sample(node.position) for node in receptor_nodes) / len(receptor_nodes)
                 if receptor_nodes
@@ -473,6 +533,34 @@ class World:
                 if mouth_nodes
                 else Vec2.zero()
             )
+            average_chemical_a = (
+                sum(self.chemical_a_grid.sample(node.position) for node in sensor_nodes) / len(sensor_nodes)
+                if sensor_nodes
+                else 0.0
+            )
+            average_chemical_b = (
+                sum(self.chemical_b_grid.sample(node.position) for node in sensor_nodes) / len(sensor_nodes)
+                if sensor_nodes
+                else 0.0
+            )
+            average_chemical_a_gradient = (
+                sum(
+                    (self.chemical_a_grid.sample_gradient(node.position) for node in sensor_nodes),
+                    start=Vec2.zero(),
+                )
+                / len(sensor_nodes)
+                if sensor_nodes
+                else Vec2.zero()
+            )
+            average_chemical_b_gradient = (
+                sum(
+                    (self.chemical_b_grid.sample_gradient(node.position) for node in sensor_nodes),
+                    start=Vec2.zero(),
+                )
+                / len(sensor_nodes)
+                if sensor_nodes
+                else Vec2.zero()
+            )
             normalized_energy = min(
                 1.0,
                 creature.energy / max(self.config.energy.reproduction_threshold, 1.0),
@@ -489,6 +577,12 @@ class World:
                         average_nutrient_gradient.x,
                         average_nutrient_gradient.y,
                         min(1.0, creature.age_ticks / 1000.0),
+                        average_chemical_a,
+                        average_chemical_b,
+                        average_chemical_a_gradient.x,
+                        average_chemical_a_gradient.y,
+                        average_chemical_b_gradient.x,
+                        average_chemical_b_gradient.y,
                     ),
                 )
             )
@@ -521,7 +615,7 @@ class World:
                 continue
             motor_edges = self._motor_edge_indices_for_creature(creature)
             if motor_edges:
-                motor_outputs, _, _ = self._control_outputs_for_creature(creature)
+                motor_outputs, _, _, _ = self._control_outputs_for_creature(creature)
                 for output, edge_index in zip(motor_outputs, motor_edges, strict=False):
                     edge_outputs[edge_index] = (2.0 * output) - 1.0
             elif not self._mouth_nodes_for_creature(creature):
@@ -543,6 +637,7 @@ class World:
             apply_overdamped_dynamics(node=node, dt=self.config.physics.dt)
             for node in self.nodes
         ]
+        self.creatures = self._update_recent_speeds(self.creatures)
 
     def _apply_energy(self) -> None:
         updated_creatures: list[CreatureState] = []
@@ -623,6 +718,7 @@ class World:
                 )
             )
 
+        self._emit_chemicals(updated_creatures)
         updated_creatures = self._apply_predation(updated_creatures)
         self.creatures = updated_creatures
 
@@ -811,8 +907,25 @@ class World:
             ensured.append(replace(creature, genome=genome))
         return ensured
 
+    def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
+        updated: list[CreatureState] = []
+        for creature in creatures:
+            if not creature.node_indices:
+                updated.append(creature)
+                continue
+            current_mean_speed = sum(
+                self.nodes[node_index].velocity.magnitude() for node_index in creature.node_indices
+            ) / len(creature.node_indices)
+            updated.append(
+                replace(
+                    creature,
+                    mean_speed_recent=(0.9 * creature.mean_speed_recent) + (0.1 * current_mean_speed),
+                )
+            )
+        return updated
+
     def _reproduction_allowed(self, creature: CreatureState) -> bool:
-        _, _, reproduce_output = self._control_outputs_for_creature(creature)
+        _, _, reproduce_output, _ = self._control_outputs_for_creature(creature)
         if reproduce_output is None:
             return True
         return reproduce_output >= 0.5
@@ -824,7 +937,7 @@ class World:
         energies = [creature.energy for creature in creatures]
         self._predation_kill_ids = set()
         for predator_index, predator in enumerate(creatures):
-            _, bite_outputs, _ = self._control_outputs_for_creature(predator)
+            _, bite_outputs, _, _ = self._control_outputs_for_creature(predator)
             mouth_nodes = self._mouth_nodes_for_creature(predator)
             for mouth_node, bite_output in zip(mouth_nodes, bite_outputs, strict=False):
                 if bite_output <= 0.0:
@@ -840,11 +953,29 @@ class World:
                     )
                     energies[victim_index] -= damage
                     energies[predator_index] += damage * self.config.energy.predation_transfer_efficiency
+                    self._emit_alarm_chemicals(victim)
                     if energies[victim_index] <= 0.0:
                         self._predation_kill_ids.add(victim.id)
                     break
 
         return [replace(creature, energy=energy) for creature, energy in zip(creatures, energies, strict=True)]
+
+    def _emit_chemicals(self, creatures: list[CreatureState]) -> None:
+        for creature in creatures:
+            _, _, _, chemical_outputs = self._control_outputs_for_creature(creature)
+            if not chemical_outputs:
+                continue
+            centroid = self._creature_centroid(creature)
+            if centroid is None:
+                continue
+            if len(chemical_outputs) >= 1 and chemical_outputs[0] > 0.0:
+                self.chemical_a_grid.add_value_at_position(centroid, chemical_outputs[0])
+            if len(chemical_outputs) >= 2 and chemical_outputs[1] > 0.0:
+                self.chemical_b_grid.add_value_at_position(centroid, chemical_outputs[1])
+
+    def _emit_alarm_chemicals(self, creature: CreatureState) -> None:
+        for node_index in creature.node_indices:
+            self.chemical_a_grid.add_value_at_position(self.nodes[node_index].position, 0.5)
 
     def _motor_edge_indices_for_creature(self, creature: CreatureState) -> list[int]:
         node_index_set = set(creature.node_indices)
@@ -864,10 +995,10 @@ class World:
     def _control_outputs_for_creature(
         self,
         creature: CreatureState,
-    ) -> tuple[tuple[float, ...], tuple[float, ...], float | None]:
+    ) -> tuple[tuple[float, ...], tuple[float, ...], float | None, tuple[float, ...]]:
         outputs = creature.last_brain_outputs
         if not outputs:
-            return (), (), None
+            return (), (), None, ()
 
         motor_edge_count = len(self._motor_edge_indices_for_creature(creature))
         mouth_count = len(self._mouth_nodes_for_creature(creature))
@@ -875,8 +1006,19 @@ class World:
         bite_start = motor_edge_count
         bite_end = bite_start + mouth_count
         bite_outputs = outputs[bite_start:bite_end]
-        reproduce_output = outputs[bite_end] if len(outputs) > bite_end else None
-        return motor_outputs, bite_outputs, reproduce_output
+        remaining_outputs = outputs[bite_end:]
+        reproduce_output = remaining_outputs[0] if remaining_outputs else None
+        chemical_outputs = remaining_outputs[1:3] if len(remaining_outputs) >= 3 else ()
+        return motor_outputs, bite_outputs, reproduce_output, chemical_outputs
+
+    def _creature_centroid(self, creature: CreatureState) -> Vec2 | None:
+        if not creature.node_indices:
+            return None
+        positions = [self.nodes[node_index].position for node_index in creature.node_indices]
+        return Vec2(
+            sum(position.x for position in positions) / len(positions),
+            sum(position.y for position in positions) / len(positions),
+        )
 
     def _nodes_overlap(self, a: NodeState, b: NodeState) -> bool:
         return (a.position - b.position).magnitude() < (a.radius + b.radius)
@@ -948,6 +1090,7 @@ class World:
             "id": creature.id,
             "parent_id": creature.parent_id,
             "age_ticks": creature.age_ticks,
+            "mean_speed_recent": creature.mean_speed_recent,
             "genome": genome_to_dict(creature.genome),
             "brain": None
             if creature.brain is None
