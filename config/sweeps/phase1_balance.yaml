@@ -1,0 +1,16 @@
+energy.reproduction_threshold:
+  - 20.0
+  - 25.0
+  - 30.0
+environment.nutrient_source_strength:
+  - 4.0
+energy.feed_rate:
+  - 0.02
+energy.photosynthesis_rate:
+  - 0.008
+energy.predation_rate:
+  - 0.02
+  - 0.05
+energy.predation_transfer_efficiency:
+  - 0.4
+  - 0.6

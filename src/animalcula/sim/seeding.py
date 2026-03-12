@@ -68,7 +68,7 @@ def build_demo_archetypes(
         brain=_simple_motor_brain(light_gain=0.0, nutrient_gain=2.0),
     )
 
-    # Amoeba-lite: mixed feeder with both nutrient and light access.
+    # Amoeba: triangular predator with a mouth and gripper.
     amoeba_nodes = [
         NodeState(
             position=source_b,
@@ -84,7 +84,7 @@ def build_demo_archetypes(
             accumulated_force=Vec2.zero(),
             drag_coeff=1.0,
             radius=1.0,
-            node_type=NodeType.PHOTORECEPTOR,
+            node_type=NodeType.GRIPPER,
         ),
         NodeState(
             position=Vec2(source_b.x - 4.0, source_b.y + 4.0),
@@ -99,7 +99,7 @@ def build_demo_archetypes(
         edges,
         creatures,
         amoeba_nodes,
-        [(0, 1), (0, 2)],
+        [(0, 1), (1, 2), (2, 0)],
         energy=1.0,
         brain=_predator_brain(light_gain=1.0, nutrient_gain=1.0),
     )
@@ -155,14 +155,20 @@ def _predator_brain(light_gain: float, nutrient_gain: float) -> BrainState:
             (light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             (light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
             (light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
         ),
         recurrent_weights=(
-            (1.0, 0.2, 0.0),
-            (0.2, 1.0, 0.0),
-            (0.0, 0.0, 1.0),
+            (1.0, 0.2, 0.0, 0.0, 0.0, 0.0),
+            (0.2, 1.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.2, 1.0, 0.0, 0.0),
+            (0.0, 0.0, 0.4, 0.2, 1.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0, 0.0, 1.0),
         ),
-        biases=(0.0, 0.0, 2.0),
-        time_constants=(1.0, 1.0, 1.0),
-        states=(0.0, 0.0, 0.0),
-        output_size=3,
+        biases=(0.0, 0.0, 0.0, 0.5, 1.0, -2.0),
+        time_constants=(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+        states=(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        output_size=6,
     )

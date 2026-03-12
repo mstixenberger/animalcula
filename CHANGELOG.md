@@ -80,6 +80,11 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Species-extinction events and longest-species-lifespan tracking in the headless species ledger
 - `animalcula extract-genomes <checkpoint> --top N --out ...` for generic checkpoint-to-seed export
 - Sweep output now includes explicit run-health flags such as extinction/speciation/predation presence
+- A workerized `scripts/tune_phase1.py` batch runner for multi-seed tuning with raw and aggregate outputs
+- Aggregate sweep summaries now include diversity and trophic-balance averages
+- Focused phase-1 sweep configs for economy and trophic-balance tuning
+- A living tuning note in `docs/tuning/phase1.md` with current viability findings and validation commands
+- A spec-aligned seeded triangle predator archetype with a mouth, gripper, and three motorized edges
 
 ### Changed
 
@@ -88,3 +93,4 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Brain configs now default to the expanded 16-channel sensing vector used by the current world runtime
 - Species and phenotype snapshot exports now expose richer morphology and motion summaries
 - Active grip latches now contribute to the per-tick energy budget
+- The default starter trio now matches the spec more closely: passive alga, grazer, and triangular predator instead of a mislabeled light-feeding generalist

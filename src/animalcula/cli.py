@@ -45,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract_parser.add_argument("--top", type=int, default=10)
     extract_parser.add_argument("--out", required=True)
 
-    sweep_parser = subparsers.add_parser("sweep", help="Run a sequential parameter sweep")
+    sweep_parser = subparsers.add_parser("sweep", help="Run a parameter sweep")
     sweep_parser.add_argument("--config", default="config/default.yaml")
     sweep_parser.add_argument("--sweep", required=True)
     sweep_parser.add_argument("--ticks", type=int, default=1)
@@ -53,6 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
     sweep_parser.add_argument("--seed-demo", action="store_true")
     sweep_parser.add_argument("--out", required=True)
     sweep_parser.add_argument("--turbo", action="store_true")
+    sweep_parser.add_argument("--workers", type=int, default=1)
 
     nursery_parser = subparsers.add_parser("nursery", help="Run a seeded nursery simulation")
     nursery_parser.add_argument("--config", default="config/nursery.yaml")
@@ -144,6 +145,7 @@ def main() -> int:
             seed_demo=args.seed_demo,
             out_path=args.out,
             turbo=args.turbo,
+            workers=args.workers,
         )
         print(f"completed={completed} out={args.out}")
         return 0

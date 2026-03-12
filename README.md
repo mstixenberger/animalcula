@@ -48,6 +48,7 @@ Milestone 1 is to prove that hand-seeded creatures can survive, feed, and reprod
 - See `AGENTS.md` for living project context and architectural rules.
 - See `CONTRIBUTING.md` for engineering workflow and commit expectations.
 - See `CHANGELOG.md` for notable changes.
+- See `docs/tuning/phase1.md` for current tuning workflow and findings.
 
 ## Quickstart
 
@@ -65,11 +66,12 @@ uv run animalcula species checkpoints/demo.json
 uv run animalcula phenotypes checkpoints/demo.json
 uv run animalcula extract-genomes checkpoints/demo.json --top 10 --out checkpoints/top_creatures.json
 uv run animalcula run --config config/default.yaml --ticks 100 --seed 42 --seed-demo --log-stats logs/demo.jsonl --log-every 10
-uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --out results.jsonl
+uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --workers 4 --out results.jsonl
 uv run animalcula nursery --ticks 100 --seed 42 --out checkpoints/nursery.json
 uv run animalcula nursery --ticks 100 --seed 42 --top 5 --save-top checkpoints/top_creatures.json --out checkpoints/nursery.json
 uv run animalcula run --config config/default.yaml --ticks 0 --seed 42 --seed-from checkpoints/top_creatures.json
 uv run animalcula run --config config/turbo.yaml --ticks 300 --seed 42 --seed-demo --turbo
+uv run python scripts/tune_phase1.py --ticks 1000 --seeds 41,42,43 --workers 4 --turbo --out /tmp/animalcula_phase1.jsonl
 ```
 
 ## Next Build Step

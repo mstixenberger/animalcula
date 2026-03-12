@@ -999,6 +999,31 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
     assert stats.predator_count >= 1
 
 
+def test_demo_seed_includes_spec_aligned_triangle_predator() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+    world.seed_demo_archetypes()
+
+    predator = next(
+        creature
+        for creature in world.creatures
+        if any(world.nodes[node_index].node_type == NodeType.GRIPPER for node_index in creature.node_indices)
+    )
+
+    predator_nodes = [world.nodes[node_index] for node_index in predator.node_indices]
+    internal_edges = [
+        edge
+        for edge in world.edges
+        if edge.a in predator.node_indices and edge.b in predator.node_indices
+    ]
+
+    assert len(predator_nodes) == 3
+    assert sum(1 for node in predator_nodes if node.node_type == NodeType.MOUTH) == 1
+    assert sum(1 for node in predator_nodes if node.node_type == NodeType.GRIPPER) == 1
+    assert sum(1 for node in predator_nodes if node.node_type == NodeType.PHOTORECEPTOR) == 0
+    assert len(internal_edges) == 3
+
+
 def test_world_can_build_species_snapshots() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     world = World(config=config, seed=7)
@@ -1426,7 +1451,8 @@ def test_cli_run_command_accepts_config_overrides() -> None:
         text=True,
     )
 
-    assert "population=6" in result.stdout
+    assert "population=5" in result.stdout
+    assert "reproductions=2" in result.stdout
 
 
 def test_cli_run_command_accepts_turbo_mode() -> None:

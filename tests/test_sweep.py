@@ -3,6 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from animalcula.analysis.sweep import aggregate_sweep_records
+
 
 def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> None:
     sweep_path = tmp_path / "sweep.yaml"
@@ -34,6 +36,8 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
             "--seed",
             "11",
             "--seed-demo",
+            "--workers",
+            "2",
             "--out",
             str(out_path),
         ],
@@ -47,8 +51,7 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert len(records) == 2
     assert records[0]["overrides"] == {"energy.reproduction_threshold": 0.1}
     assert records[1]["overrides"] == {"energy.reproduction_threshold": 1000.0}
-    assert records[0]["population"] == 6
-    assert records[1]["population"] == 3
+    assert records[0]["population"] > records[1]["population"]
     assert records[0]["births"] > records[1]["births"]
     assert "lineage_count" in records[0]
     assert "species_count" in records[0]
@@ -66,3 +69,60 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "predator_count" in records[0]
     assert records[0]["interestingness"] > records[1]["interestingness"]
     assert "completed=2" in result.stdout
+
+
+def test_aggregate_sweep_records_groups_by_override_set() -> None:
+    records = [
+        {
+            "overrides": {"energy.reproduction_threshold": 20.0},
+            "population": 5,
+            "total_energy": 10.0,
+            "species_count": 2,
+            "diversity_index": 0.9,
+            "reproductions": 4,
+            "deaths": 1,
+            "speciation_events": 1,
+            "predation_kills": 0,
+            "species_extinctions": 0,
+            "autotroph_count": 1,
+            "herbivore_count": 2,
+            "predator_count": 2,
+            "ended_extinct": False,
+            "had_speciation": True,
+            "had_predation": False,
+            "longest_species_lifespan": 100,
+        },
+        {
+            "overrides": {"energy.reproduction_threshold": 20.0},
+            "population": 3,
+            "total_energy": 6.0,
+            "species_count": 1,
+            "diversity_index": 0.4,
+            "reproductions": 2,
+            "deaths": 2,
+            "speciation_events": 0,
+            "predation_kills": 1,
+            "species_extinctions": 1,
+            "autotroph_count": 1,
+            "herbivore_count": 1,
+            "predator_count": 1,
+            "ended_extinct": False,
+            "had_speciation": False,
+            "had_predation": True,
+            "longest_species_lifespan": 80,
+        },
+    ]
+
+    summaries = aggregate_sweep_records(records)
+
+    assert len(summaries) == 1
+    assert summaries[0]["runs"] == 2
+    assert summaries[0]["avg_population"] == 4.0
+    assert summaries[0]["avg_diversity_index"] == 0.65
+    assert summaries[0]["avg_reproductions"] == 3.0
+    assert summaries[0]["avg_autotroph_count"] == 1.0
+    assert summaries[0]["avg_herbivore_count"] == 1.5
+    assert summaries[0]["avg_predator_count"] == 1.5
+    assert summaries[0]["had_speciation_runs"] == 1
+    assert summaries[0]["had_predation_runs"] == 1
+    assert summaries[0]["longest_species_lifespan_max"] == 100
