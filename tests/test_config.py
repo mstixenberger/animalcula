@@ -28,6 +28,7 @@ def test_loads_default_config() -> None:
     assert config.evolution.bias_mutation_sigma == 0.05
     assert config.evolution.tau_mutation_sigma == 0.02
     assert config.evolution.motor_strength_mutation_sigma == 0.2
+    assert config.evolution.node_type_mutation_rate == 0.0
     assert config.evolution.structural_mutation_rate == 0.0
     assert config.brain.motor_force_scale == 1.0
     assert config.brain.default_input_size == 16

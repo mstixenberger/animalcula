@@ -851,6 +851,7 @@ class World:
                 bias_sigma=self.config.evolution.bias_mutation_sigma,
                 tau_sigma=self.config.evolution.tau_mutation_sigma,
                 motor_strength_sigma=self.config.evolution.motor_strength_mutation_sigma,
+                node_type_mutation_rate=self.config.evolution.node_type_mutation_rate,
                 structural_mutation_rate=self.config.evolution.structural_mutation_rate,
             )
             child_offset = Vec2(2.0 * (creature_index + 1), 2.0 * (creature_index + 1))

@@ -62,6 +62,7 @@ class EvolutionConfig:
     bias_mutation_sigma: float
     tau_mutation_sigma: float
     motor_strength_mutation_sigma: float
+    node_type_mutation_rate: float
     structural_mutation_rate: float
 
 

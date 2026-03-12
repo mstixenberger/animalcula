@@ -49,6 +49,70 @@ CreatureGenome.NodeGene = GenomeNodeGene  # type: ignore[attr-defined]
 CreatureGenome.EdgeGene = GenomeEdgeGene  # type: ignore[attr-defined]
 CreatureGenome.BrainGene = GenomeBrainGene  # type: ignore[attr-defined]
 
+MUTABLE_NODE_TYPES: tuple[NodeType, ...] = (
+    NodeType.BODY,
+    NodeType.MOUTH,
+    NodeType.GRIPPER,
+    NodeType.SENSOR,
+    NodeType.PHOTORECEPTOR,
+)
+
+
+def required_control_outputs(genome: CreatureGenome) -> int:
+    return (
+        sum(1 for edge in genome.edges if edge.has_motor)
+        + sum(1 for node in genome.nodes if node.node_type == NodeType.GRIPPER)
+        + sum(1 for node in genome.nodes if node.node_type == NodeType.MOUTH)
+    )
+
+
+def _mutated_node_type(current: NodeType, rng: random.Random) -> NodeType:
+    choices = [node_type for node_type in MUTABLE_NODE_TYPES if node_type != current]
+    return rng.choice(choices)
+
+
+def _resize_brain_for_outputs(
+    brain: GenomeBrainGene,
+    target_output_size: int,
+) -> GenomeBrainGene:
+    current_hidden = len(brain.biases)
+    target_hidden = max(current_hidden, target_output_size)
+    input_size = len(brain.input_weights[0]) if brain.input_weights else 0
+
+    input_weights = [list(row) for row in brain.input_weights]
+    recurrent_weights = [list(row) for row in brain.recurrent_weights]
+
+    for row in input_weights:
+        if len(row) < input_size:
+            row.extend(0.0 for _ in range(input_size - len(row)))
+    while len(input_weights) < target_hidden:
+        input_weights.append([0.0] * input_size)
+
+    for row in recurrent_weights:
+        if len(row) < target_hidden:
+            row.extend(0.0 for _ in range(target_hidden - len(row)))
+    while len(recurrent_weights) < target_hidden:
+        recurrent_weights.append([0.0] * target_hidden)
+
+    biases = list(brain.biases)
+    time_constants = list(brain.time_constants)
+    states = list(brain.states)
+    while len(biases) < target_hidden:
+        biases.append(0.0)
+    while len(time_constants) < target_hidden:
+        time_constants.append(1.0)
+    while len(states) < target_hidden:
+        states.append(0.0)
+
+    return GenomeBrainGene(
+        input_weights=tuple(tuple(row) for row in input_weights),
+        recurrent_weights=tuple(tuple(row) for row in recurrent_weights),
+        biases=tuple(biases),
+        time_constants=tuple(time_constants),
+        output_size=target_output_size,
+        states=tuple(states),
+    )
+
 
 def encode_creature_genome(
     *,
@@ -150,6 +214,7 @@ def mutate_genome(
     bias_sigma: float,
     tau_sigma: float,
     motor_strength_sigma: float,
+    node_type_mutation_rate: float = 0.0,
     structural_mutation_rate: float = 0.0,
 ) -> CreatureGenome:
     mutated_nodes = [
@@ -160,7 +225,11 @@ def mutate_genome(
                 rng.gauss(0.0, position_sigma),
             ),
             radius=max(0.1, node.radius + rng.gauss(0.0, radius_sigma)),
-            node_type=node.node_type,
+            node_type=(
+                _mutated_node_type(node.node_type, rng)
+                if rng.random() < node_type_mutation_rate
+                else node.node_type
+            ),
         )
         for node in genome.nodes
     ]
@@ -184,7 +253,7 @@ def mutate_genome(
         new_node = GenomeNodeGene(
             position=parent_node.position + offset,
             radius=max(0.1, parent_node.radius + rng.gauss(0.0, max(radius_sigma, 0.01))),
-            node_type=NodeType.BODY,
+            node_type=rng.choice(MUTABLE_NODE_TYPES),
         )
         new_node_index = len(mutated_nodes)
         mutated_nodes.append(new_node)
@@ -198,8 +267,15 @@ def mutate_genome(
                 motor_strength=0.0,
             )
         )
+    mutated_genome_without_brain = CreatureGenome(
+        nodes=tuple(mutated_nodes),
+        edges=tuple(mutated_edges),
+        brain=None,
+    )
     mutated_brain = None
     if genome.brain is not None:
+        original_surplus_outputs = max(0, genome.brain.output_size - required_control_outputs(genome))
+        target_output_size = required_control_outputs(mutated_genome_without_brain) + original_surplus_outputs
         mutated_brain = GenomeBrainGene(
             input_weights=tuple(
                 tuple(weight + rng.gauss(0.0, weight_sigma) for weight in row)
@@ -216,6 +292,7 @@ def mutate_genome(
             states=genome.brain.states,
             output_size=genome.brain.output_size,
         )
+        mutated_brain = _resize_brain_for_outputs(mutated_brain, target_output_size)
     return CreatureGenome(nodes=tuple(mutated_nodes), edges=tuple(mutated_edges), brain=mutated_brain)
 
 

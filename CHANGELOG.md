@@ -72,6 +72,8 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Brain-driven chemical emission and alarm-chemical deposition during predation
 - A first gripper mechanics slice with latch creation, release, checkpoint persistence, and grip-spring forces
 - Gripper contact and active-state signals in the brain input pipeline
+- Node-type genome mutation across body, mouth, gripper, sensor, and photoreceptor roles
+- Automatic CTRNN output resizing during genome mutation so control-channel counts stay valid as morphology changes
 
 ### Changed
 

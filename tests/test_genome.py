@@ -131,3 +131,110 @@ def test_mutate_genome_can_add_a_structural_body_node() -> None:
 
     assert len(mutated.nodes) == 2
     assert len(mutated.edges) == 1
+
+
+def test_mutate_genome_can_change_a_node_type() -> None:
+    rng = random.Random(7)
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(),
+        brain=None,
+    )
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        node_type_mutation_rate=1.0,
+    )
+
+    assert mutated.nodes[0].node_type != NodeType.BODY
+
+
+def test_mutate_genome_preserves_extra_control_channels_when_resizing_outputs() -> None:
+    rng = random.Random(7)
+    genome = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.GRIPPER),
+            CreatureGenome.NodeGene(position=Vec2(2.0, 0.0), radius=1.0, node_type=NodeType.MOUTH),
+        ),
+        edges=(
+            CreatureGenome.EdgeGene(
+                a=0,
+                b=1,
+                rest_length=2.0,
+                stiffness=1.0,
+                has_motor=True,
+                motor_strength=1.0,
+            ),
+        ),
+        brain=CreatureGenome.BrainGene(
+            input_weights=((0.0,) * 16,),
+            recurrent_weights=((0.0,),),
+            biases=(0.0,),
+            time_constants=(1.0,),
+            output_size=5,
+        ),
+    )
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        node_type_mutation_rate=0.0,
+    )
+
+    assert mutated.brain is not None
+    assert mutated.brain.output_size == 5
+
+
+def test_mutate_genome_expands_outputs_to_match_morphology() -> None:
+    rng = random.Random(7)
+    genome = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.GRIPPER),
+            CreatureGenome.NodeGene(position=Vec2(2.0, 0.0), radius=1.0, node_type=NodeType.MOUTH),
+        ),
+        edges=(
+            CreatureGenome.EdgeGene(
+                a=0,
+                b=1,
+                rest_length=2.0,
+                stiffness=1.0,
+                has_motor=True,
+                motor_strength=1.0,
+            ),
+        ),
+        brain=CreatureGenome.BrainGene(
+            input_weights=((0.0,) * 16,),
+            recurrent_weights=((0.0,),),
+            biases=(0.0,),
+            time_constants=(1.0,),
+            output_size=1,
+        ),
+    )
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        node_type_mutation_rate=0.0,
+    )
+
+    assert mutated.brain is not None
+    assert mutated.brain.output_size == 3

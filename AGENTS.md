@@ -240,6 +240,8 @@ Current implementation baseline:
 - predation now emits an alarm-style chemical trace from attacked creatures
 - gripper nodes can now latch across creatures, apply latch-spring forces, and release when grip outputs drop or yield is exceeded
 - gripper contact/active state is now part of the sensed control state and grip upkeep contributes to the energy budget
+- genome mutation can now change node roles across body, mouth, gripper, sensor, and photoreceptor types
+- genome mutation now resizes CTRNN output capacity to stay aligned with morphology control requirements while preserving surplus control channels
 - initial passing pytest suite
 
 ## Update Protocol
