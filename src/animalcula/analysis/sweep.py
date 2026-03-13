@@ -246,6 +246,10 @@ def _run_sweep_combination(
             speciation_events=stats.speciation_events,
             species_extinctions=stats.species_extinctions,
             predation_kills=stats.predation_kills,
+            species_turnover=stats.species_turnover,
+            observed_species_count=stats.observed_species_count,
+            peak_species_fraction=stats.peak_species_fraction,
+            runaway_dominance_detected=stats.runaway_dominance_detected,
         ),
     }
 

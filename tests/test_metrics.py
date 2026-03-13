@@ -23,6 +23,33 @@ def test_interestingness_score_rewards_lifecycle_activity() -> None:
     assert active > quiet
 
 
+def test_interestingness_score_penalizes_runaway_dominance() -> None:
+    diverse = interestingness_score(
+        population=10,
+        total_energy=10.0,
+        births=4,
+        deaths=1,
+        reproductions=4,
+        species_turnover=2,
+        observed_species_count=4,
+        peak_species_fraction=0.55,
+        runaway_dominance_detected=False,
+    )
+    monoculture = interestingness_score(
+        population=10,
+        total_energy=10.0,
+        births=4,
+        deaths=1,
+        reproductions=4,
+        species_turnover=2,
+        observed_species_count=4,
+        peak_species_fraction=0.95,
+        runaway_dominance_detected=True,
+    )
+
+    assert diverse > monoculture
+
+
 def test_shannon_diversity_is_zero_for_single_lineage() -> None:
     assert shannon_diversity({"aaa": 5}) == 0.0
 

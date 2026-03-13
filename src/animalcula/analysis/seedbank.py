@@ -143,6 +143,8 @@ def _evaluate_seed_candidate(
             predation_kills=stats.predation_kills,
             species_turnover=stats.species_turnover,
             observed_species_count=stats.observed_species_count,
+            peak_species_fraction=stats.peak_species_fraction,
+            runaway_dominance_detected=stats.runaway_dominance_detected,
         ),
     }
 
