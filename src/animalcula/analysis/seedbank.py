@@ -132,6 +132,7 @@ def _evaluate_seed_candidate(
         "peak_species_count": stats.peak_species_count,
         "peak_species_fraction": stats.peak_species_fraction,
         "diversity_index": stats.diversity_index,
+        "mean_speed_recent": stats.mean_speed_recent,
         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
         "longest_species_lifespan": stats.longest_species_lifespan,
         "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,
@@ -210,6 +211,7 @@ def _aggregate_seed_runs(
                 "peak_species_sum": 0,
                 "peak_species_fraction_max": 0.0,
                 "diversity_sum": 0.0,
+                "mean_speed_sum": 0.0,
                 "lineage_sum": 0,
                 "complexity_sum": 0.0,
                 "longest_species_lifespan_max": 0,
@@ -263,6 +265,7 @@ def _aggregate_seed_runs(
         bucket["peak_species_sum"] += record["peak_species_count"]
         bucket["peak_species_fraction_max"] = max(bucket["peak_species_fraction_max"], record["peak_species_fraction"])
         bucket["diversity_sum"] += record["diversity_index"]
+        bucket["mean_speed_sum"] += record["mean_speed_recent"]
         bucket["lineage_sum"] += record["lineage_count"]
         bucket["complexity_sum"] += record["mean_nodes_per_creature"]
         bucket["longest_species_lifespan_max"] = max(
@@ -337,6 +340,7 @@ def _aggregate_seed_runs(
             "avg_peak_species_count": round(bucket["peak_species_sum"] / bucket["runs"], 3),
             "peak_species_fraction_max": round(bucket["peak_species_fraction_max"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
+            "avg_mean_speed_recent": round(bucket["mean_speed_sum"] / bucket["runs"], 3),
             "avg_lineage_count": round(bucket["lineage_sum"] / bucket["runs"], 3),
             "avg_mean_nodes_per_creature": round(bucket["complexity_sum"] / bucket["runs"], 3),
             "longest_species_lifespan_max": bucket["longest_species_lifespan_max"],

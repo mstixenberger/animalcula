@@ -109,6 +109,7 @@ class Stats:
     peak_species_count: int
     diversity_index: float
     mean_nodes_per_creature: float
+    mean_speed_recent: float
     longest_species_lifespan: int
     mean_extinct_species_lifespan: float
     autotroph_count: int
@@ -432,6 +433,11 @@ class World:
             peak_species_count=self._peak_species_count,
             diversity_index=shannon_diversity(dict(lineage_counts)),
             mean_nodes_per_creature=(len(self.nodes) / len(self.creatures)) if self.creatures else 0.0,
+            mean_speed_recent=(
+                sum(creature.mean_speed_recent for creature in self.creatures) / len(self.creatures)
+                if self.creatures
+                else 0.0
+            ),
             longest_species_lifespan=self._longest_species_lifespan(),
             mean_extinct_species_lifespan=self._mean_extinct_species_lifespan(),
             autotroph_count=autotroph_count,

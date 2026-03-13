@@ -95,6 +95,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "nutrient_source_strength_multiplier_sum": 0.0,
                 "species_sum": 0,
                 "diversity_sum": 0.0,
+                "mean_speed_sum": 0.0,
                 "reproductions_sum": 0,
                 "deaths_sum": 0,
                 "speciation_sum": 0,
@@ -140,6 +141,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["nutrient_source_strength_multiplier_sum"] += record["nutrient_source_strength_multiplier"]
         bucket["species_sum"] += record["species_count"]
         bucket["diversity_sum"] += record["diversity_index"]
+        bucket["mean_speed_sum"] += record["mean_speed_recent"]
         bucket["reproductions_sum"] += record["reproductions"]
         bucket["deaths_sum"] += record["deaths"]
         bucket["speciation_sum"] += record["speciation_events"]
@@ -187,6 +189,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             ),
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
+            "avg_mean_speed_recent": round(bucket["mean_speed_sum"] / bucket["runs"], 3),
             "avg_reproductions": round(bucket["reproductions_sum"] / bucket["runs"], 3),
             "avg_deaths": round(bucket["deaths_sum"] / bucket["runs"], 3),
             "avg_speciation_events": round(bucket["speciation_sum"] / bucket["runs"], 3),
@@ -282,6 +285,7 @@ def _run_sweep_combination(
         "peak_species_count": stats.peak_species_count,
         "peak_species_fraction": stats.peak_species_fraction,
         "diversity_index": stats.diversity_index,
+        "mean_speed_recent": stats.mean_speed_recent,
         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
         "longest_species_lifespan": stats.longest_species_lifespan,
         "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,

@@ -17,6 +17,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - SQLite event-table capture for lifecycle/environment events during logged runs
 - nutrient and detritus pool visibility in headless stats/logs/sweeps/seed-bank summaries
 - total chemical A/B field visibility in headless stats/logs/sweeps/seed-bank summaries
+- population-level recent-speed visibility in headless stats/logs/sweeps/seed-bank summaries
 
 ## Current Priority
 

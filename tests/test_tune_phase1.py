@@ -60,6 +60,7 @@ def test_tune_phase1_writes_raw_and_summary_outputs(tmp_path: Path) -> None:
     assert "avg_detritus_total" in summaries[0]
     assert "avg_chemical_a_total" in summaries[0]
     assert "avg_chemical_b_total" in summaries[0]
+    assert "avg_mean_speed_recent" in summaries[0]
     assert "avg_drag_multiplier" in summaries[0]
     assert "avg_nutrient_source_strength_multiplier" in summaries[0]
     assert "avg_species_turnover" in summaries[0]
