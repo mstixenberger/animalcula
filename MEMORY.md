@@ -11,9 +11,10 @@ This file is a rolling handoff note for active implementation progress. Keep it 
   - direct trophic-balance weighting in shared interestingness scoring
   - deterministic nutrient epoch reseeding with source-strength multipliers
   - dominance-triggered nutrient perturbations with explicit environment events
-  - SQLite periodic stats logging
-  - SQLite run metadata table with seed/turbo/effective config payload
-  - direct crowding-stress visibility in CLI/logs/sweeps/seed-bank summaries
+- SQLite periodic stats logging
+- SQLite run metadata table with seed/turbo/effective config payload
+- direct crowding-stress visibility in CLI/logs/sweeps/seed-bank summaries
+- SQLite event-table capture for lifecycle/environment events during logged runs
 
 ## Current Priority
 
@@ -30,6 +31,5 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 ## Likely Next Slices
 
-- Make SQLite logs more self-contained by capturing lifecycle events alongside stats
 - Expand long-run observability where runtime mechanics already exist but are not yet surfaced
 - Continue closing small headless-spec gaps before attempting larger UI or Rust work

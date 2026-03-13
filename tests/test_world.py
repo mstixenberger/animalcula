@@ -2004,6 +2004,13 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
             WHERE id = 1
             """
         ).fetchone()
+        event_rows = connection.execute(
+            """
+            SELECT event_index, tick, event_type, creature_id, parent_ids_json
+            FROM events_log
+            ORDER BY event_index
+            """
+        ).fetchall()
         rows = connection.execute(
             """
             SELECT tick, peak_population, crowding_multiplier, peak_crowding_multiplier,
@@ -2018,6 +2025,10 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
     assert metadata[0] == 11
     assert metadata[1] == 0
     assert "\"max_population\": 500" in metadata[2]
+    assert len(event_rows) >= 3
+    assert event_rows[0][0] == 0
+    assert event_rows[0][2] == "birth"
+    assert event_rows[0][4] == "[]"
     assert len(rows) == 3
     assert rows[0][0] == 1
     assert rows[0][1] >= 3

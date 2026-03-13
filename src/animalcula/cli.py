@@ -342,6 +342,7 @@ def _run_with_stats_log(
 ) -> None:
     records: list[str] = []
     connection: sqlite3.Connection | None = None
+    logged_event_count = 0
     if log_path is not None:
         output = Path(log_path)
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -350,9 +351,12 @@ def _run_with_stats_log(
         sqlite_output.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(sqlite_output)
         _initialize_stats_sqlite(connection, world=world)
+        logged_event_count = _sync_events_sqlite(connection, world.events, start_index=0)
 
     for tick_index in range(1, ticks + 1):
         world.step(1)
+        if connection is not None:
+            logged_event_count = _sync_events_sqlite(connection, world.events, start_index=logged_event_count)
         if tick_index % log_every == 0 or tick_index == ticks:
             record = _stats_record(world.stats())
             if log_path is not None:
@@ -419,6 +423,19 @@ def _initialize_stats_sqlite(connection: sqlite3.Connection, world: World) -> No
     )
     connection.execute(
         """
+        CREATE TABLE IF NOT EXISTS events_log (
+            event_index INTEGER PRIMARY KEY,
+            tick INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            creature_id INTEGER NOT NULL,
+            parent_ids_json TEXT NOT NULL,
+            energy REAL NOT NULL,
+            genome_hash TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
         INSERT OR REPLACE INTO run_metadata (id, seed, turbo, config_json)
         VALUES (1, ?, ?, ?)
         """,
@@ -439,6 +456,35 @@ def _append_stats_sqlite(connection: sqlite3.Connection, record: dict[str, objec
         tuple(record[column] for column in columns),
     )
     connection.commit()
+
+
+def _sync_events_sqlite(connection: sqlite3.Connection, events: list[object], start_index: int) -> int:
+    for event_index, event in enumerate(events[start_index:], start=start_index):
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO events_log (
+                event_index,
+                tick,
+                event_type,
+                creature_id,
+                parent_ids_json,
+                energy,
+                genome_hash
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                event_index,
+                event.tick,
+                event.event_type,
+                event.creature_id,
+                json.dumps(list(event.parent_ids)),
+                event.energy,
+                event.genome_hash,
+            ),
+        )
+    connection.commit()
+    return len(events)
 
 def _load_or_create_world(args: argparse.Namespace) -> World:
     if args.resume is not None:
