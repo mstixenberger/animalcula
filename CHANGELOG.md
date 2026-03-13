@@ -6,6 +6,10 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 
 ## [Unreleased]
 
+### Changed
+
+- The README landing section is now much more compact and scan-friendly, with grouped capabilities, clearer viewer-path guidance, and shorter runnable examples
+
 ## [0.1.0] - 2026-03-13
 
 ### Added

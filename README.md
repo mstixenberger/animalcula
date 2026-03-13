@@ -2,91 +2,78 @@
 
 ![Example Animalcula critter](docs/assets/example-critter.svg)
 
-Animalcula is a 2D artificial life simulator centered on evolved, physics-based microscopic creatures. The current project focus is to keep the headless sim rigorous while building the permanent browser frontend path now, then layer on richer analytics and later a Rust acceleration path.
+Animalcula is a 2D artificial life simulator about evolving, physics-based microscopic creatures. The project is building toward a long-running browser display where lineages diversify, compete, feed, reproduce, and slowly reshape an ecosystem over time.
 
-## Status
+## What It Is
 
-The repository now has an executable headless prototype. The main design source is `ANIMALCULA_SPEC.md`, and the current implementation includes a `uv`-managed Python package, a headless CLI, YAML config loading, dedicated default/nursery/turbo/display profiles, phase-ordered world stepping, overdamped spring-mass physics, soft node repulsion, gripper latch springs with release thresholds, short-range grip capture against nearby prey nodes, grid-backed nutrient/light/chemical/detritus fields, nutrient diffusion and decay, deterministic nutrient-source shifting on a timestep cycle, deterministic long-cycle nutrient-epoch reseeding with source-strength multipliers, dominance-triggered nutrient perturbations when monoculture lock-in is detected, deterministic medium-cycle light seasons with rotating direction and dim/bright intensity swings, deterministic long-cycle drag-regime shifts, chemical diffusion and decay, finite nutrient consumption, detritus recycling, direct detritus scavenging by mouths, deterministic nutrient sources, deterministic starter archetypes with a slightly more durable viewer-facing starting energy, a nine-creature deterministic demo founder set built from repeated archetypes, a spec-aligned four-node worm grazer, larger tripod/triangle seeded shapes for clearer viewing, a direct genome encoding for morphology and CTRNN parameters, inherited genome color genes for visual lineage tracking, bounded inherited visual traits for silhouette scale, appendage glyph scale, and body banding, genome-driven reproduction, nonzero structural/node-role/motor-topology exploration in the shipped headless profiles, structural mutation that can add a new node and edge, node-type mutation across body/mouth/gripper/sensor/photoreceptor roles, motor-topology mutation that can turn passive edges into motorized joints, bounded hidden-neuron evolution in CTRNN brains, automatic CTRNN output resizing to keep control channels aligned with morphology, genome export/import for headless seeding, exported-seed-bank evaluation and survivor-based multi-round promotion, a CTRNN brain runtime with energy, age, field-gradient sensing, sensor-node chemical sensing, and gripper contact/active signals, motorized edges with brain-driven actuation, brain-driven chemical emission, explicit motor and grip upkeep energy costs, a gripper-specialized bite predation path that can consume actively gripped prey, alarm-chemical deposition on attack, a seeded predator archetype with a real bite-capable output layout and a grazer-basin starting position for trophic bootstrapping, explicit predation kill logging/counting, an explicit reproduce-output control channel when a brain exposes one, stable creature IDs, creature age tracking, deterministic genome hashes plus lineage colors in lifecycle events, phenotype snapshots, checkpoint phylogeny export in JSON and Newick formats, JSONL periodic stats logging, SQLite periodic stats logging with embedded run metadata and lifecycle-event capture, a permanent live browser viewer path via `animalcula web` using FastAPI/WebSocket, a Tk local fallback viewer plus automatic self-contained HTML fallback on machines without `_tkinter`, viewer-visible lineage colors in all current viewer backends, selectable low-resolution nutrient/light/chemical/detritus field overlays in the existing debug backends, click-to-inspect creature metadata in the existing debug backends, follow-and-zoom camera controls in the existing debug backends, ambient auto-cycling camera mode for display use, stronger fast-forward controls for tuning and triage, clearer mouth/gripper/sensor/photoreceptor glyphs in the existing debug backends, translucent creature silhouettes in the existing debug backends, direct on-canvas identity labels for the followed creature, viewer-rendered banding and scale differences from genome visuals, compact ecology HUD/history readouts in the existing debug backends, default viewer warmup ticks for better first inspection, a TTY warmup progress bar for `animalcula view`, a second HTML-recording progress phase for fallback startup, automatic browser opening for generated HTML viewers, a dedicated `config/display.yaml` profile for more active display-friendly runs, and activity-aware ambient camera selection so the display camera prefers creatures that are actually doing something, plus viewer defaults tuned for clearer first-run motion and a less muddy nutrient-first field presentation, and lineage-aware stats/reporting with lineage count, genome-distance species clustering, clustered species snapshots, explicit speciation events, species-extinction events, environment-perturbation events, observed/peak species counts, species-turnover summaries, peak-species-share and runaway-dominance tracking, peak-population and population-variance tracking, carrying-capacity fraction tracking, direct crowding-multiplier tracking, nutrient and detritus pool visibility in headless reports, total chemical A/B field visibility in headless reports, population-level recent-speed visibility in headless reports, mean and max creature-age visibility in headless reports, mean and max creature-energy visibility in headless reports, mean edge, motor-edge, and segment-length visibility in headless reports, mean mouth and gripper counts per creature in headless reports, mean sensor and photoreceptor counts per creature in headless reports, active and peak grip-latch visibility in headless reports, current seasonal light intensity and direction visibility in headless reports, population-level gripper contact and active-signal visibility in headless reports, longest-species-lifespan tracking, extinct-species lifespan averages, active drag-regime and nutrient-regime reporting, Shannon diversity, trophic structure counts, mean node-count complexity, and trophic-balance scoring throughout CLI, sweep, and seed-bank analysis output, with shared interestingness ranking now penalizing monoculture lock-in and rewarding both the spec’s midrange carrying-capacity band and balanced food webs.
+Each creature is a small articulated body with an evolvable CTRNN brain. Bodies can include mouths, grippers, sensors, and photoreceptors; the world provides nutrient, light, chemical, and detritus fields; and selection happens through energy gain, movement, predation, reproduction, and death instead of scripted behavior.
 
-## Development Priorities
+## What Works Today
 
-1. Test-driven simulation scaffold
-2. Headless execution and deterministic runs
-3. Checkpoints, logging, and parameter sweeps
-4. Minimal debug visualization
-5. Rust port for hot paths
-6. Browser frontend and advanced analytics
+- deterministic seeded runs with checkpoints, resumes, JSONL logs, SQLite logs, sweeps, and seed-bank promotion workflows
+- evolving morphology and brains, including structural mutation, node-role mutation, motor-topology mutation, hidden-neuron growth, and lineage coloring
+- a real ecology loop with photosynthesis, feeding, detritus scavenging, gripper-assisted predation, reproduction, speciation/extinction tracking, and environmental variation
+- live inspection paths through `animalcula view` and the new browser-first `animalcula web`
 
-## Working Principles
+## Viewer Paths
 
-- Continuous test-driven development
-- Documentation updated alongside code
-- Reproducible runs through seeded randomness
-- `uv` only for Python environments, dependency management, and command execution
-- Small, frequent, descriptive commits
-- Keep a Changelog from the beginning
+- `animalcula web` is the main frontend path: live FastAPI/WebSocket browser viewer with transport controls, inspection, and timeline scaffolding
+- `animalcula view --viewer-backend tk` is a local live fallback/debug viewer
+- `animalcula view --viewer-backend html` is a prerecorded HTML fallback for machines without Tk
 
-## Planned Initial Architecture
+## Current Focus
 
-- Python package for orchestration and initial simulation
-- NumPy/Numba for early performance
-- Later Rust core with PyO3 bindings
-- Headless CLI as the primary workflow
-- Minimal local viewer for debugging
-
-## Near-Term Milestone
-
-Milestone 1 is to prove that hand-seeded creatures can survive, feed, and reproduce in a stable headless simulation with:
-
-- overdamped spring-mass physics
-- nutrient and light fields
-- CTRNN brains
-- energy accounting
-- asexual reproduction
-- checkpoints and basic metrics
-
-## Repository Conventions
-
-- See `AGENTS.md` for living project context and architectural rules.
-- See `CONTRIBUTING.md` for engineering workflow and commit expectations.
-- See `CHANGELOG.md` for notable changes.
-- See `docs/tuning/phase1.md` for current tuning workflow and findings.
+- deepen the browser frontend into the real long-running display UI
+- keep tuning for stable, visually legible multi-niche ecologies
+- preserve a clean seam between Python orchestration and the eventual Rust core
 
 ## Quickstart
+
+Install and validate:
 
 ```bash
 uv sync --group dev
 uv run pytest
-uv run animalcula run --config config/default.yaml --ticks 10 --seed 42
-uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-demo
-uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-demo --save checkpoints/demo.json
-uv run animalcula run --resume checkpoints/demo.json --ticks 100
-uv run animalcula run --config config/default.yaml --ticks 1 --seed 42 --seed-demo --set energy.reproduction_threshold=0.1
-uv run animalcula report checkpoints/demo.json
-uv run animalcula events checkpoints/demo.json
-uv run animalcula phylogeny checkpoints/demo.json
-uv run animalcula phylogeny checkpoints/demo.json --format newick
-uv run animalcula species checkpoints/demo.json
-uv run animalcula phenotypes checkpoints/demo.json
-uv run animalcula extract-genomes checkpoints/demo.json --top 10 --out checkpoints/top_creatures.json
-uv run animalcula evaluate-genomes checkpoints/top_creatures.json --config config/default.yaml --ticks 300 --seeds 41,42,43 --workers 4 --out checkpoints/top_creatures.report.json --save-top checkpoints/promoted_top_creatures.json --top 3
-uv run animalcula promote-genomes checkpoints/top_creatures.json --config config/default.yaml --ticks 300 --seeds 41,42,43 --workers 4 --rounds 3 --top 3 --out-dir checkpoints/promotion_rounds
-uv run animalcula run --config config/default.yaml --ticks 100 --seed 42 --seed-demo --log-stats logs/demo.jsonl --log-every 10
-uv run animalcula run --config config/default.yaml --ticks 100 --seed 42 --seed-demo --log-stats-sqlite logs/demo.sqlite --log-every 10
-uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --workers 4 --out results.jsonl
-uv run animalcula nursery --ticks 100 --seed 42 --out checkpoints/nursery.json
-uv run animalcula nursery --ticks 100 --seed 42 --top 5 --save-top checkpoints/top_creatures.json --out checkpoints/nursery.json
-uv run animalcula run --config config/default.yaml --ticks 0 --seed 42 --seed-from checkpoints/top_creatures.json
-uv run animalcula run --config config/turbo.yaml --ticks 300 --seed 42 --seed-demo --turbo
-uv run animalcula view --config config/default.yaml --seed 42 --seed-demo
-uv run animalcula view --config config/default.yaml --seed 42 --seed-demo --viewer-backend html --html-out /tmp/animalcula_view.html --max-frames 600
-uv run animalcula view --config config/display.yaml --seed 42 --seed-demo
-uv run animalcula web --config config/display.yaml --seed 42 --seed-demo
-uv run python scripts/tune_phase1.py --ticks 1000 --seeds 41,42,43 --workers 4 --turbo --out /tmp/animalcula_phase1.jsonl
-uv run python scripts/tune_phase1.py --ticks 1000 --seeds 41,42,43 --workers 4 --turbo --out /tmp/animalcula_phase1.jsonl --save-top /tmp/animalcula_phase1.seedbank.json --top-runs 3 --top-creatures 5 --promote-out-dir /tmp/animalcula_phase1_promotion --promote-rounds 3
 ```
 
-When `animalcula view` has to build the HTML fallback, TTY terminals now show two phases: `warming viewer` for pre-roll ticks and `recording html viewer` while the fallback frames are baked.
+Run a short headless simulation:
+
+```bash
+uv run animalcula run --config config/default.yaml --ticks 10 --seed 42
+uv run animalcula run --config config/default.yaml --ticks 10 --seed 42 --seed-demo
+```
+
+Open the live browser viewer:
+
+```bash
+uv run animalcula web --config config/display.yaml --seed 42 --seed-demo
+```
+
+Open a local viewer fallback:
+
+```bash
+uv run animalcula view --config config/display.yaml --seed 42 --seed-demo --viewer-backend tk --warmup-ticks 0
+uv run animalcula view --config config/default.yaml --seed 42 --seed-demo --viewer-backend html --html-out /tmp/animalcula_view.html --max-frames 600
+```
+
+Headless analysis and tuning:
+
+```bash
+uv run animalcula report checkpoints/demo.json
+uv run animalcula phylogeny checkpoints/demo.json --format newick
+uv run animalcula sweep --config config/default.yaml --sweep sweep.yaml --ticks 100 --seed 42 --seed-demo --workers 4 --out results.jsonl
+uv run python scripts/tune_phase1.py --ticks 1000 --seeds 41,42,43 --workers 4 --turbo --out /tmp/animalcula_phase1.jsonl
+```
+
+When `animalcula view` has to build the HTML fallback, TTY terminals show two phases: `warming viewer` and `recording html viewer`.
+
+## Project Docs
+
+- `ANIMALCULA_SPEC.md`: design source of truth
+- `AGENTS.md`: project context and working rules
+- `CONTRIBUTING.md`: workflow and commit conventions
+- `CHANGELOG.md`: notable changes
+- `docs/tuning/phase1.md`: current tuning workflow and findings
 
 ## Next Build Step
 
