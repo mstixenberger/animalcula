@@ -32,6 +32,8 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     payload = html_path.read_text(encoding="utf-8")
     assert "Animalcula Debug Viewer" in payload
     assert "Generated from <code>animalcula view</code> HTML fallback" in payload
+    assert 'id="speed"' in payload
+    assert 'id="predatorStat"' in payload
     assert "\"tick\": 0" in payload
 
 
@@ -63,4 +65,6 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
 
     assert html_path.exists()
     assert "saved_html_viewer=" in result.stdout
-    assert "Animalcula Debug Viewer" in html_path.read_text(encoding="utf-8")
+    payload = html_path.read_text(encoding="utf-8")
+    assert "Animalcula Debug Viewer" in payload
+    assert "speed=" in payload

@@ -97,6 +97,29 @@ HTML_TEMPLATE = """<!doctype html>
       color: var(--muted);
       font-size: 0.95rem;
     }}
+    .stats {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }}
+    .card {{
+      padding: 10px 12px;
+      background: rgba(29, 36, 48, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+    }}
+    .label {{
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }}
+    .value {{
+      font-size: 1.05rem;
+      font-weight: 700;
+    }}
     code {{
       font-family: "Iosevka Term", "SFMono-Regular", monospace;
       color: var(--text);
@@ -111,8 +134,17 @@ HTML_TEMPLATE = """<!doctype html>
         <button id="toggle">Pause</button>
         <button id="step">Step</button>
         <input id="scrub" type="range" min="0" max="0" value="0">
+        <label class="meta" for="speed">speed</label>
+        <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1">
       </div>
       <div class="meta" id="status"></div>
+      <div class="stats">
+        <div class="card"><span class="label">Population</span><span class="value" id="populationStat"></span></div>
+        <div class="card"><span class="label">Energy</span><span class="value" id="energyStat"></span></div>
+        <div class="card"><span class="label">Autotrophs</span><span class="value" id="autotrophStat"></span></div>
+        <div class="card"><span class="label">Herbivores</span><span class="value" id="herbivoreStat"></span></div>
+        <div class="card"><span class="label">Predators</span><span class="value" id="predatorStat"></span></div>
+      </div>
       <div class="meta">
         Generated from <code>animalcula view</code> HTML fallback because Tkinter was unavailable.
       </div>
@@ -127,9 +159,18 @@ HTML_TEMPLATE = """<!doctype html>
     const toggle = document.getElementById("toggle");
     const step = document.getElementById("step");
     const scrub = document.getElementById("scrub");
+    const speed = document.getElementById("speed");
     const status = document.getElementById("status");
+    const populationStat = document.getElementById("populationStat");
+    const energyStat = document.getElementById("energyStat");
+    const autotrophStat = document.getElementById("autotrophStat");
+    const herbivoreStat = document.getElementById("herbivoreStat");
+    const predatorStat = document.getElementById("predatorStat");
     let frame = 0;
     let running = true;
+    let playbackRate = 1;
+    let lastTimestamp = 0;
+    let frameAccumulator = 0;
 
     scrub.max = String(Math.max(0, snapshots.length - 1));
 
@@ -173,7 +214,17 @@ HTML_TEMPLATE = """<!doctype html>
         "frame=" + (frame + 1) + "/" + snapshots.length +
         " tick=" + snapshot.tick +
         " population=" + snapshot.population +
-        " total_energy=" + snapshot.total_energy.toFixed(2);
+        " total_energy=" + snapshot.total_energy.toFixed(2) +
+        " speed=" + playbackRate.toFixed(2) + "x";
+      const roleCounts = snapshot.creatures.reduce((counts, creature) => {{
+        counts[creature.trophic_role] = (counts[creature.trophic_role] || 0) + 1;
+        return counts;
+      }}, {{}});
+      populationStat.textContent = String(snapshot.population);
+      energyStat.textContent = snapshot.total_energy.toFixed(2);
+      autotrophStat.textContent = String(roleCounts.autotroph || 0);
+      herbivoreStat.textContent = String(roleCounts.herbivore || 0);
+      predatorStat.textContent = String(roleCounts.predator || 0);
       scrub.value = String(frame);
     }}
 
@@ -204,6 +255,11 @@ HTML_TEMPLATE = """<!doctype html>
       renderCurrent();
     }});
 
+    speed.addEventListener("input", (event) => {{
+      playbackRate = Number(event.target.value);
+      renderCurrent();
+    }});
+
     window.addEventListener("keydown", (event) => {{
       if (event.code === "Space") {{
         event.preventDefault();
@@ -214,12 +270,24 @@ HTML_TEMPLATE = """<!doctype html>
       }}
     }});
 
-    renderCurrent();
-    setInterval(() => {{
-      if (running) {{
-        advanceFrame();
+    function animationLoop(timestamp) {{
+      if (!lastTimestamp) {{
+        lastTimestamp = timestamp;
       }}
-    }}, Math.max(16, {frame_delay_ms}));
+      const delta = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+      if (running) {{
+        frameAccumulator += delta * playbackRate;
+        while (frameAccumulator >= Math.max(16, {frame_delay_ms})) {{
+          advanceFrame();
+          frameAccumulator -= Math.max(16, {frame_delay_ms});
+        }}
+      }}
+      window.requestAnimationFrame(animationLoop);
+    }}
+
+    renderCurrent();
+    window.requestAnimationFrame(animationLoop);
   </script>
 </body>
 </html>

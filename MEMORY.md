@@ -6,7 +6,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 - Branch state: working directly on `main` with frequent stable checkpoints
 - Product focus: spec-aligned headless simulation, logging, and tuning loop
-- Test status at last update: full `uv run pytest` passing after the Tk-free HTML viewer fallback slice
+- Test status at last update: full `uv run pytest` passing after the HTML-viewer enhancement slice
 - Recent completed slices:
   - direct trophic-balance weighting in shared interestingness scoring
   - deterministic nutrient epoch reseeding with source-strength multipliers
@@ -28,6 +28,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - mean edge count and segment length in headless stats/logs/sweeps/seed-bank summaries
 - mean motor-edge count in headless stats/logs/sweeps/seed-bank summaries
 - `animalcula view` now has an HTML fallback path for machines without Tkinter
+- the HTML fallback viewer now has playback-speed control plus per-frame trophic summary cards
 
 ## Current Priority
 
