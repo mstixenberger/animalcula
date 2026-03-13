@@ -59,6 +59,8 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "peak_population_capacity_fraction" in records[0]
     assert "crowding_multiplier" in records[0]
     assert "peak_crowding_multiplier" in records[0]
+    assert "nutrient_total" in records[0]
+    assert "detritus_total" in records[0]
     assert "chemical_a_total" in records[0]
     assert "chemical_b_total" in records[0]
     assert "drag_multiplier" in records[0]
@@ -101,6 +103,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "crowding_multiplier": 1.0,
             "peak_crowding_multiplier": 1.0,
             "total_energy": 10.0,
+            "nutrient_total": 4.0,
+            "detritus_total": 0.2,
             "chemical_a_total": 0.3,
             "chemical_b_total": 0.1,
             "drag_multiplier": 1.0,
@@ -138,6 +142,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "crowding_multiplier": 1.2,
             "peak_crowding_multiplier": 1.4,
             "total_energy": 6.0,
+            "nutrient_total": 2.0,
+            "detritus_total": 0.6,
             "chemical_a_total": 0.9,
             "chemical_b_total": 0.4,
             "drag_multiplier": 1.5,
@@ -179,6 +185,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["avg_crowding_multiplier"] == 1.1
     assert summaries[0]["peak_crowding_multiplier_max"] == 1.4
     assert summaries[0]["avg_diversity_index"] == 0.65
+    assert summaries[0]["avg_nutrient_total"] == 3.0
+    assert summaries[0]["avg_detritus_total"] == 0.4
     assert summaries[0]["avg_chemical_a_total"] == 0.6
     assert summaries[0]["avg_chemical_b_total"] == 0.25
     assert summaries[0]["avg_drag_multiplier"] == 1.25

@@ -15,6 +15,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - SQLite run metadata table with seed/turbo/effective config payload
 - direct crowding-stress visibility in CLI/logs/sweeps/seed-bank summaries
 - SQLite event-table capture for lifecycle/environment events during logged runs
+- nutrient and detritus pool visibility in headless stats/logs/sweeps/seed-bank summaries
 - total chemical A/B field visibility in headless stats/logs/sweeps/seed-bank summaries
 
 ## Current Priority

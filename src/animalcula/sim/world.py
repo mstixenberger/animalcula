@@ -91,6 +91,8 @@ class Stats:
     node_count: int
     edge_count: int
     total_energy: float
+    nutrient_total: float
+    detritus_total: float
     chemical_a_total: float
     chemical_b_total: float
     births: int
@@ -412,6 +414,8 @@ class World:
             node_count=len(self.nodes),
             edge_count=len(self.edges),
             total_energy=sum(creature.energy for creature in self.creatures),
+            nutrient_total=sum(self.nutrient_grid.values),
+            detritus_total=sum(self.detritus_grid.values),
             chemical_a_total=sum(self.chemical_a_grid.values),
             chemical_b_total=sum(self.chemical_b_grid.values),
             births=births,
