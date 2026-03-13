@@ -79,6 +79,10 @@ Documentation must be developed in parallel with the codebase.
   - development workflow
 - `AGENTS.md`
   - current project context and operational rules
+- `MEMORY.md`
+  - recent progress checkpoints
+  - current implementation focus
+  - likely next slices for continuity
 - `CHANGELOG.md`
   - notable changes only
   - grouped under `Added`, `Changed`, `Fixed`, `Removed`
