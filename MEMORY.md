@@ -44,6 +44,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - `animalcula view` now pre-warms fresh worlds before opening by default, and the repo now has `config/display.yaml` as the first committed “something actually happens” inspection profile
 - ambient viewer selection is now activity-aware; HTML/Tk both rank creatures by recent speed, energy, and age instead of cycling blindly by creature ID
 - both debug viewer backends now render translucent body silhouettes grouped by creature, which materially improves ambient legibility at non-max zoom
+- both debug viewer backends now render a compact identity tag next to the selected creature, reducing the need to read the side inspector while tracking motion
 
 ## Current Priority
 

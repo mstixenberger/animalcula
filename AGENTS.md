@@ -306,6 +306,7 @@ Current implementation baseline:
 - `animalcula view` now pre-warms fresh worlds by default before opening, and the repo ships `config/display.yaml` for a more active display/inspection profile without ad hoc CLI overrides
 - ambient viewer selection is now activity-aware instead of purely ID-ordered, so the display camera tends to stay on critters that are moving or otherwise visually alive
 - both debug viewer backends now draw translucent creature silhouettes beneath the node graph, so body plans read more like organisms than disconnected springs
+- both debug viewer backends now draw a compact on-canvas identity label for the selected creature, which keeps species/role context visible during follow mode
 
 ## Update Protocol
 

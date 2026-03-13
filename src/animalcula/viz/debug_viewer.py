@@ -361,6 +361,7 @@ HTML_TEMPLATE = """<!doctype html>
         ctx.strokeStyle = rgbToCss(selected.color_rgb);
         ctx.lineWidth = 3;
         ctx.stroke();
+        drawSelectedLabel(selected, sx, sy);
       }}
 
       status.textContent =
@@ -482,6 +483,26 @@ HTML_TEMPLATE = """<!doctype html>
         ctx.arc(cx, cy, Math.max(1.4, radius * 0.52), 0, Math.PI * 2);
         ctx.stroke();
       }}
+      ctx.restore();
+    }}
+
+    function drawSelectedLabel(selected, sx, sy) {{
+      const species = (selected.species_id || "species").replace("species-", "s");
+      const label = "#" + selected.creature_id + " " + species + " " + selected.trophic_role;
+      ctx.save();
+      ctx.font = '600 13px "Iosevka Aile", "IBM Plex Sans", sans-serif';
+      const width = ctx.measureText(label).width + 14;
+      const height = 22;
+      const left = sx + 16;
+      const top = sy - 30;
+      ctx.fillStyle = "rgba(16, 19, 23, 0.82)";
+      ctx.fillRect(left, top, width, height);
+      ctx.strokeStyle = rgbToCss(selected.color_rgb);
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(left, top, width, height);
+      ctx.fillStyle = "#e5edf5";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, left + 7, top + (height / 2));
       ctx.restore();
     }}
 
@@ -1301,6 +1322,32 @@ def _launch_tk_viewer(
                 outline=_rgb_to_css(selected.color_rgb),
                 width=3,
             )
+            species_label = (selected.species_id or "species").replace("species-", "s")
+            label = f"#{selected.creature_id} {species_label} {selected.trophic_role}"
+            left = sx + 16
+            top = sy - 30
+            text_id = canvas.create_text(
+                left + 7,
+                top + 11,
+                anchor="w",
+                text=label,
+                fill="#e5edf5",
+                font=("Iosevka Aile", 12, "bold"),
+            )
+            bbox = canvas.bbox(text_id)
+            if bbox is not None:
+                x0, y0, x1, y1 = bbox
+                pad = 4
+                canvas.create_rectangle(
+                    x0 - pad,
+                    y0 - pad,
+                    x1 + pad,
+                    y1 + pad,
+                    fill="#101317",
+                    outline=_rgb_to_css(selected.color_rgb),
+                    width=1,
+                )
+                canvas.tag_raise(text_id)
 
         overlay.set(
             "\n".join(

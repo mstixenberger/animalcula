@@ -130,6 +130,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `animalcula view` now pre-warms fresh worlds before opening by default, and the repo now ships `config/display.yaml` for more active inspection/display runs
 - Ambient viewer follow mode now prefers high-activity creatures instead of cycling blindly by ID, making the display camera more likely to land on visible motion
 - Both debug viewer backends now render translucent creature silhouettes beneath the node graph so organisms read as unified bodies instead of loose points and lines
+- Both debug viewer backends now draw a compact identity tag for the selected creature directly on the canvas, so species/role context stays visible while following motion
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints
