@@ -93,6 +93,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "chemical_b_total_sum": 0.0,
                 "drag_multiplier_sum": 0.0,
                 "nutrient_source_strength_multiplier_sum": 0.0,
+                "light_intensity_sum": 0.0,
+                "light_direction_degrees_sum": 0.0,
                 "species_sum": 0,
                 "diversity_sum": 0.0,
                 "mean_speed_sum": 0.0,
@@ -141,6 +143,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["chemical_b_total_sum"] += record["chemical_b_total"]
         bucket["drag_multiplier_sum"] += record["drag_multiplier"]
         bucket["nutrient_source_strength_multiplier_sum"] += record["nutrient_source_strength_multiplier"]
+        bucket["light_intensity_sum"] += record["light_intensity"]
+        bucket["light_direction_degrees_sum"] += record["light_direction_degrees"]
         bucket["species_sum"] += record["species_count"]
         bucket["diversity_sum"] += record["diversity_index"]
         bucket["mean_speed_sum"] += record["mean_speed_recent"]
@@ -191,6 +195,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 bucket["nutrient_source_strength_multiplier_sum"] / bucket["runs"],
                 3,
             ),
+            "avg_light_intensity": round(bucket["light_intensity_sum"] / bucket["runs"], 3),
+            "avg_light_direction_degrees": round(bucket["light_direction_degrees_sum"] / bucket["runs"], 3),
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
             "avg_mean_speed_recent": round(bucket["mean_speed_sum"] / bucket["runs"], 3),
@@ -274,6 +280,8 @@ def _run_sweep_combination(
         "chemical_b_total": stats.chemical_b_total,
         "drag_multiplier": stats.drag_multiplier,
         "nutrient_source_strength_multiplier": stats.nutrient_source_strength_multiplier,
+        "light_intensity": stats.light_intensity,
+        "light_direction_degrees": stats.light_direction_degrees,
         "births": stats.births,
         "deaths": stats.deaths,
         "reproductions": stats.reproductions,

@@ -65,6 +65,8 @@ def test_tune_phase1_writes_raw_and_summary_outputs(tmp_path: Path) -> None:
     assert "peak_grip_latch_count_max" in summaries[0]
     assert "avg_drag_multiplier" in summaries[0]
     assert "avg_nutrient_source_strength_multiplier" in summaries[0]
+    assert "avg_light_intensity" in summaries[0]
+    assert "avg_light_direction_degrees" in summaries[0]
     assert "avg_species_turnover" in summaries[0]
     assert "avg_environment_perturbations" in summaries[0]
     assert "avg_observed_species_count" in summaries[0]

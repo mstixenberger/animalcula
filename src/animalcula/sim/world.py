@@ -119,6 +119,8 @@ class Stats:
     predator_count: int
     drag_multiplier: float
     nutrient_source_strength_multiplier: float
+    light_intensity: float
+    light_direction_degrees: float
     peak_species_fraction: float
     runaway_dominance_detected: bool
 
@@ -406,6 +408,7 @@ class World:
                 herbivore_count += 1
             elif trophic_role == "predator":
                 predator_count += 1
+        _, light_intensity = self.current_light_state()
         return Stats(
             tick=self.tick,
             population=len(self.creatures) if self.creatures else len(self.nodes),
@@ -450,6 +453,8 @@ class World:
             predator_count=predator_count,
             drag_multiplier=self.current_drag_multiplier(),
             nutrient_source_strength_multiplier=self.current_nutrient_source_strength_multiplier(),
+            light_intensity=light_intensity,
+            light_direction_degrees=self.current_light_direction_degrees(),
             peak_species_fraction=self._peak_species_fraction,
             runaway_dominance_detected=self._runaway_dominance_detected,
         )
@@ -743,6 +748,11 @@ class World:
             return float(multipliers[0]) if multipliers else 1.0
         regime_index = ((self.tick + 1) // interval) % len(multipliers)
         return max(0.0, float(multipliers[regime_index]))
+
+    def current_light_direction_degrees(self) -> float:
+        direction, _ = self.current_light_state()
+        angle = math.degrees(math.atan2(direction[1], direction[0]))
+        return angle if angle >= 0.0 else angle + 360.0
 
     def _sense_environment(self) -> None:
         updated_creatures: list[CreatureState] = []

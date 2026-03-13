@@ -68,6 +68,8 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "peak_grip_latch_count" in records[0]
     assert "drag_multiplier" in records[0]
     assert "nutrient_source_strength_multiplier" in records[0]
+    assert "light_intensity" in records[0]
+    assert "light_direction_degrees" in records[0]
     assert "lineage_count" in records[0]
     assert "species_count" in records[0]
     assert "diversity_index" in records[0]
@@ -112,6 +114,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "chemical_b_total": 0.1,
             "drag_multiplier": 1.0,
             "nutrient_source_strength_multiplier": 1.0,
+            "light_intensity": 1.0,
+            "light_direction_degrees": 0.0,
             "species_count": 2,
             "diversity_index": 0.9,
             "mean_speed_recent": 0.2,
@@ -154,6 +158,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "chemical_b_total": 0.4,
             "drag_multiplier": 1.5,
             "nutrient_source_strength_multiplier": 0.75,
+            "light_intensity": 0.6,
+            "light_direction_degrees": 90.0,
             "species_count": 1,
             "diversity_index": 0.4,
             "mean_speed_recent": 0.4,
@@ -203,6 +209,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["peak_grip_latch_count_max"] == 5
     assert summaries[0]["avg_drag_multiplier"] == 1.25
     assert summaries[0]["avg_nutrient_source_strength_multiplier"] == 0.875
+    assert summaries[0]["avg_light_intensity"] == 0.8
+    assert summaries[0]["avg_light_direction_degrees"] == 45.0
     assert summaries[0]["avg_reproductions"] == 3.0
     assert summaries[0]["avg_species_turnover"] == 1.0
     assert summaries[0]["avg_environment_perturbations"] == 0.5

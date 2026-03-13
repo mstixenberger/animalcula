@@ -49,6 +49,8 @@ def test_evaluate_seed_bank_ranks_candidates_by_aggregate_results(tmp_path: Path
     assert "peak_grip_latch_count_max" in report["rankings"][0]
     assert "avg_drag_multiplier" in report["rankings"][0]
     assert "avg_nutrient_source_strength_multiplier" in report["rankings"][0]
+    assert "avg_light_intensity" in report["rankings"][0]
+    assert "avg_light_direction_degrees" in report["rankings"][0]
     assert "avg_species_turnover" in report["rankings"][0]
     assert "avg_environment_perturbations" in report["rankings"][0]
     assert "avg_observed_species_count" in report["rankings"][0]

@@ -115,6 +115,8 @@ def _evaluate_seed_candidate(
         "chemical_b_total": stats.chemical_b_total,
         "drag_multiplier": stats.drag_multiplier,
         "nutrient_source_strength_multiplier": stats.nutrient_source_strength_multiplier,
+        "light_intensity": stats.light_intensity,
+        "light_direction_degrees": stats.light_direction_degrees,
         "births": stats.births,
         "deaths": stats.deaths,
         "reproductions": stats.reproductions,
@@ -200,6 +202,8 @@ def _aggregate_seed_runs(
                 "chemical_b_total_sum": 0.0,
                 "drag_multiplier_sum": 0.0,
                 "nutrient_source_strength_multiplier_sum": 0.0,
+                "light_intensity_sum": 0.0,
+                "light_direction_degrees_sum": 0.0,
                 "births_sum": 0,
                 "deaths_sum": 0,
                 "reproductions_sum": 0,
@@ -256,6 +260,8 @@ def _aggregate_seed_runs(
         bucket["chemical_b_total_sum"] += record["chemical_b_total"]
         bucket["drag_multiplier_sum"] += record["drag_multiplier"]
         bucket["nutrient_source_strength_multiplier_sum"] += record["nutrient_source_strength_multiplier"]
+        bucket["light_intensity_sum"] += record["light_intensity"]
+        bucket["light_direction_degrees_sum"] += record["light_direction_degrees"]
         bucket["births_sum"] += record["births"]
         bucket["deaths_sum"] += record["deaths"]
         bucket["reproductions_sum"] += record["reproductions"]
@@ -333,6 +339,8 @@ def _aggregate_seed_runs(
                 bucket["nutrient_source_strength_multiplier_sum"] / bucket["runs"],
                 3,
             ),
+            "avg_light_intensity": round(bucket["light_intensity_sum"] / bucket["runs"], 3),
+            "avg_light_direction_degrees": round(bucket["light_direction_degrees_sum"] / bucket["runs"], 3),
             "avg_births": round(bucket["births_sum"] / bucket["runs"], 3),
             "avg_deaths": round(bucket["deaths_sum"] / bucket["runs"], 3),
             "avg_reproductions": round(bucket["reproductions_sum"] / bucket["runs"], 3),
