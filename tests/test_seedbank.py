@@ -40,6 +40,8 @@ def test_evaluate_seed_bank_ranks_candidates_by_aggregate_results(tmp_path: Path
     assert "peak_population_capacity_fraction_max" in report["rankings"][0]
     assert "avg_crowding_multiplier" in report["rankings"][0]
     assert "peak_crowding_multiplier_max" in report["rankings"][0]
+    assert "avg_chemical_a_total" in report["rankings"][0]
+    assert "avg_chemical_b_total" in report["rankings"][0]
     assert "avg_drag_multiplier" in report["rankings"][0]
     assert "avg_nutrient_source_strength_multiplier" in report["rankings"][0]
     assert "avg_species_turnover" in report["rankings"][0]

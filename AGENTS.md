@@ -276,6 +276,7 @@ Current implementation baseline:
 - headless stats/logs/sweeps/seed-bank reports now also expose peak population and population variance so tuning can distinguish flatlined runs from boom-bust ecology
 - headless stats/logs/sweeps/seed-bank reports now also expose current and peak carrying-capacity fractions, and shared interestingness scoring now rewards the spec’s midrange population band instead of blindly favoring cap-saturation
 - headless stats/logs/sweeps/seed-bank reports now also expose current and peak crowding multipliers, so the existing over-cap metabolic stress is directly inspectable during tuning
+- headless stats/logs/sweeps/seed-bank reports now also expose total chemical A/B field mass, so signaling activity is visible in headless analysis
 - direct CLI run/report output and periodic stats logs now also expose trophic-balance scoring, so single-run inspection uses the same ecology metric vocabulary as sweeps and seed-bank analysis
 - shared interestingness scoring now also rewards trophic balance directly, so automated ranking favors actual mixed food webs rather than treating role balance as a passive side metric
 - sweep and seed-bank analysis now expose a trophic-balance score so headless selection loops can reward viable mixed ecologies, not just high population

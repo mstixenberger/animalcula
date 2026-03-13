@@ -109,6 +109,8 @@ def _evaluate_seed_candidate(
         "crowding_multiplier": stats.crowding_multiplier,
         "peak_crowding_multiplier": stats.peak_crowding_multiplier,
         "total_energy": stats.total_energy,
+        "chemical_a_total": stats.chemical_a_total,
+        "chemical_b_total": stats.chemical_b_total,
         "drag_multiplier": stats.drag_multiplier,
         "nutrient_source_strength_multiplier": stats.nutrient_source_strength_multiplier,
         "births": stats.births,
@@ -187,6 +189,8 @@ def _aggregate_seed_runs(
                 "crowding_multiplier_sum": 0.0,
                 "peak_crowding_multiplier_max": 0.0,
                 "energy_sum": 0.0,
+                "chemical_a_total_sum": 0.0,
+                "chemical_b_total_sum": 0.0,
                 "drag_multiplier_sum": 0.0,
                 "nutrient_source_strength_multiplier_sum": 0.0,
                 "births_sum": 0,
@@ -236,6 +240,8 @@ def _aggregate_seed_runs(
             record["peak_crowding_multiplier"],
         )
         bucket["energy_sum"] += record["total_energy"]
+        bucket["chemical_a_total_sum"] += record["chemical_a_total"]
+        bucket["chemical_b_total_sum"] += record["chemical_b_total"]
         bucket["drag_multiplier_sum"] += record["drag_multiplier"]
         bucket["nutrient_source_strength_multiplier_sum"] += record["nutrient_source_strength_multiplier"]
         bucket["births_sum"] += record["births"]
@@ -303,6 +309,8 @@ def _aggregate_seed_runs(
             "avg_crowding_multiplier": round(bucket["crowding_multiplier_sum"] / bucket["runs"], 3),
             "peak_crowding_multiplier_max": round(bucket["peak_crowding_multiplier_max"], 3),
             "avg_total_energy": round(bucket["energy_sum"] / bucket["runs"], 3),
+            "avg_chemical_a_total": round(bucket["chemical_a_total_sum"] / bucket["runs"], 3),
+            "avg_chemical_b_total": round(bucket["chemical_b_total_sum"] / bucket["runs"], 3),
             "avg_drag_multiplier": round(bucket["drag_multiplier_sum"] / bucket["runs"], 3),
             "avg_nutrient_source_strength_multiplier": round(
                 bucket["nutrient_source_strength_multiplier_sum"] / bucket["runs"],
