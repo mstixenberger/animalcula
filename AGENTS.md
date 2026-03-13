@@ -253,6 +253,7 @@ Current implementation baseline:
 - exported genome seed banks can now be evaluated across fresh multi-seed runs and promoted back into smaller ranked seed artifacts through the headless CLI
 - multi-round `promote-genomes` workflows now chain survivor-derived promoted artifacts across rounds and emit per-round reports plus a promotion manifest
 - promotion manifests now summarize genome-hash carryover, top-rank continuity, and diversity drift across rounds for headless lineage analysis
+- `scripts/tune_phase1.py` can now export combined seed banks from the highest-ranked tuning runs and optionally chain them straight into multi-round promotion manifests
 - the shipped default, turbo, and nursery profiles now use low nonzero structural/node-role/motor-topology mutation rates so long-run headless runs can actually explore beyond the starter morphology basin
 - predation is now treated as a gripper-specialized niche in the simulation and trophic-role reporting, so mouth-only descendants default back to herbivore/scavenger behavior instead of inflating predator counts
 - grippers can now capture nearby prey nodes instead of requiring exact overlap, and bite damage can be applied to actively gripped victims to make specialized predators mechanically viable again

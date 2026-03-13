@@ -75,6 +75,7 @@ uv run animalcula run --config config/default.yaml --ticks 0 --seed 42 --seed-fr
 uv run animalcula run --config config/turbo.yaml --ticks 300 --seed 42 --seed-demo --turbo
 uv run animalcula view --config config/default.yaml --seed 42 --seed-demo
 uv run python scripts/tune_phase1.py --ticks 1000 --seeds 41,42,43 --workers 4 --turbo --out /tmp/animalcula_phase1.jsonl
+uv run python scripts/tune_phase1.py --ticks 1000 --seeds 41,42,43 --workers 4 --turbo --out /tmp/animalcula_phase1.jsonl --save-top /tmp/animalcula_phase1.seedbank.json --top-runs 3 --top-creatures 5 --promote-out-dir /tmp/animalcula_phase1_promotion --promote-rounds 3
 ```
 
 ## Next Build Step

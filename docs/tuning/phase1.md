@@ -22,6 +22,32 @@ Useful sweep configs:
 - `config/sweeps/phase1_default_economy.yaml`
 - `config/sweeps/phase1_balance.yaml`
 
+The tuning batch can now hand off directly into the seed-bank workflow by replaying the highest-ranked runs, exporting their top survivors into one combined seed artifact, and optionally launching multi-round promotion:
+
+```bash
+uv run python scripts/tune_phase1.py \
+  --config config/default.yaml \
+  --sweep config/sweeps/phase1_balance.yaml \
+  --ticks 1000 \
+  --seeds 41,42,43 \
+  --workers 4 \
+  --turbo \
+  --out /tmp/animalcula_phase1.jsonl \
+  --save-top /tmp/animalcula_phase1.seedbank.json \
+  --top-runs 3 \
+  --top-creatures 5 \
+  --promote-out-dir /tmp/animalcula_phase1_promotion \
+  --promote-rounds 3
+```
+
+This emits:
+
+- the usual raw JSONL tuning results
+- a `.summary.json` aggregate summary
+- a combined seed-bank JSON file built from the strongest replayed runs
+- a seed-bank manifest describing which runs contributed survivors
+- optional promotion round reports plus `promotion.json`
+
 The raw JSONL and `.summary.json` outputs now include turnover-oriented ecology fields in addition to end-state counts:
 
 - `species_turnover`

@@ -90,6 +90,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `animalcula evaluate-genomes` for ranking exported seed banks across fresh multi-seed runs and exporting promoted seed artifacts
 - `animalcula promote-genomes` for chaining multi-round seed-bank evaluation and survivor promotion with a round-by-round manifest
 - Promotion manifests now include genome-hash carryover, top-rank continuity, and diversity-drift analytics across rounds
+- `scripts/tune_phase1.py` can now export survivor seed banks from top-ranked runs and optionally launch multi-round promotion directly from the tuning batch
 - Default, turbo, and nursery profiles now enable low nonzero structural, node-role, and motor-topology mutation rates for real exploratory evolution
 - Predation and trophic-role classification now require gripper-bearing morphology, reducing accidental predator labeling from mouth-only descendants
 - Sweep and seed-bank analysis now expose a trophic-balance score for ranking ecologies by role mix, not only size/activity
@@ -117,3 +118,4 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Old config/checkpoint payloads now backfill sane defaults for the new hidden-neuron evolution settings instead of failing to load
 - Old config/checkpoint payloads now also backfill sane defaults for nutrient-source shifting settings instead of failing to load
 - Old config/checkpoint payloads now backfill sane defaults for seasonal light-cycle settings instead of failing to load
+- Phase-1 tuning can now hand off directly into seed-bank promotion without manual checkpoint/export steps between the batch run and promotion loop
