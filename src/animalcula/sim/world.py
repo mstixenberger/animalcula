@@ -110,6 +110,8 @@ class Stats:
     diversity_index: float
     mean_nodes_per_creature: float
     mean_speed_recent: float
+    active_grip_latch_count: int
+    peak_grip_latch_count: int
     longest_species_lifespan: int
     mean_extinct_species_lifespan: float
     autotroph_count: int
@@ -163,6 +165,7 @@ class World:
         self._population_mean = 0.0
         self._population_m2 = 0.0
         self._peak_population = 0
+        self._peak_grip_latch_count = 0
         self._update_species_dominance_metrics(self._species_labels())
         self._record_population_observation()
         self.nutrient_grid = Grid2D(
@@ -438,6 +441,8 @@ class World:
                 if self.creatures
                 else 0.0
             ),
+            active_grip_latch_count=len(self.grip_latches),
+            peak_grip_latch_count=self._peak_grip_latch_count,
             longest_species_lifespan=self._longest_species_lifespan(),
             mean_extinct_species_lifespan=self._mean_extinct_species_lifespan(),
             autotroph_count=autotroph_count,
@@ -517,6 +522,7 @@ class World:
             "population_mean": self._population_mean,
             "population_m2": self._population_m2,
             "peak_population": self._peak_population,
+            "peak_grip_latch_count": self._peak_grip_latch_count,
             "grip_latches": [
                 {
                     "creature_a_id": latch.creature_a_id,
@@ -633,6 +639,7 @@ class World:
             )
             for latch in payload.get("grip_latches", [])
         ]
+        world._peak_grip_latch_count = payload.get("peak_grip_latch_count", len(world.grip_latches))
         return world
 
     def random_unit(self) -> float:
@@ -1602,6 +1609,7 @@ class World:
                         break
 
         self.grip_latches = refreshed
+        self._peak_grip_latch_count = max(self._peak_grip_latch_count, len(self.grip_latches))
 
     def _latch_endpoint_is_active(self, creature: CreatureState, node_index: int) -> bool:
         if node_index not in creature.node_indices:

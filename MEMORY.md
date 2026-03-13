@@ -6,7 +6,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 - Branch state: working directly on `main` with frequent stable checkpoints
 - Product focus: spec-aligned headless simulation, logging, and tuning loop
-- Test status at last update: `uv run pytest` passing after `baaf044`
+- Test status at last update: full `uv run pytest` passing after the grip-latch observability slice
 - Recent completed slices:
   - direct trophic-balance weighting in shared interestingness scoring
   - deterministic nutrient epoch reseeding with source-strength multipliers
@@ -18,6 +18,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - nutrient and detritus pool visibility in headless stats/logs/sweeps/seed-bank summaries
 - total chemical A/B field visibility in headless stats/logs/sweeps/seed-bank summaries
 - population-level recent-speed visibility in headless stats/logs/sweeps/seed-bank summaries
+- active and peak grip-latch visibility in headless stats/logs/sweeps/seed-bank summaries
 
 ## Current Priority
 
@@ -35,4 +36,5 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 ## Likely Next Slices
 
 - Expand long-run observability where runtime mechanics already exist but are not yet surfaced
+- Continue surfacing runtime mechanics that matter for trophic interaction quality, not just aggregate population health
 - Continue closing small headless-spec gaps before attempting larger UI or Rust work

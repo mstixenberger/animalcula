@@ -133,6 +133,8 @@ def _evaluate_seed_candidate(
         "peak_species_fraction": stats.peak_species_fraction,
         "diversity_index": stats.diversity_index,
         "mean_speed_recent": stats.mean_speed_recent,
+        "active_grip_latch_count": stats.active_grip_latch_count,
+        "peak_grip_latch_count": stats.peak_grip_latch_count,
         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
         "longest_species_lifespan": stats.longest_species_lifespan,
         "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,
@@ -212,6 +214,8 @@ def _aggregate_seed_runs(
                 "peak_species_fraction_max": 0.0,
                 "diversity_sum": 0.0,
                 "mean_speed_sum": 0.0,
+                "active_grip_latch_sum": 0,
+                "peak_grip_latch_max": 0,
                 "lineage_sum": 0,
                 "complexity_sum": 0.0,
                 "longest_species_lifespan_max": 0,
@@ -266,6 +270,8 @@ def _aggregate_seed_runs(
         bucket["peak_species_fraction_max"] = max(bucket["peak_species_fraction_max"], record["peak_species_fraction"])
         bucket["diversity_sum"] += record["diversity_index"]
         bucket["mean_speed_sum"] += record["mean_speed_recent"]
+        bucket["active_grip_latch_sum"] += record["active_grip_latch_count"]
+        bucket["peak_grip_latch_max"] = max(bucket["peak_grip_latch_max"], record["peak_grip_latch_count"])
         bucket["lineage_sum"] += record["lineage_count"]
         bucket["complexity_sum"] += record["mean_nodes_per_creature"]
         bucket["longest_species_lifespan_max"] = max(
@@ -341,6 +347,8 @@ def _aggregate_seed_runs(
             "peak_species_fraction_max": round(bucket["peak_species_fraction_max"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
             "avg_mean_speed_recent": round(bucket["mean_speed_sum"] / bucket["runs"], 3),
+            "avg_active_grip_latch_count": round(bucket["active_grip_latch_sum"] / bucket["runs"], 3),
+            "peak_grip_latch_count_max": bucket["peak_grip_latch_max"],
             "avg_lineage_count": round(bucket["lineage_sum"] / bucket["runs"], 3),
             "avg_mean_nodes_per_creature": round(bucket["complexity_sum"] / bucket["runs"], 3),
             "longest_species_lifespan_max": bucket["longest_species_lifespan_max"],

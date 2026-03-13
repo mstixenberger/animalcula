@@ -64,6 +64,8 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "chemical_a_total" in records[0]
     assert "chemical_b_total" in records[0]
     assert "mean_speed_recent" in records[0]
+    assert "active_grip_latch_count" in records[0]
+    assert "peak_grip_latch_count" in records[0]
     assert "drag_multiplier" in records[0]
     assert "nutrient_source_strength_multiplier" in records[0]
     assert "lineage_count" in records[0]
@@ -113,6 +115,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "species_count": 2,
             "diversity_index": 0.9,
             "mean_speed_recent": 0.2,
+            "active_grip_latch_count": 1,
+            "peak_grip_latch_count": 2,
             "reproductions": 4,
             "deaths": 1,
             "speciation_events": 1,
@@ -153,6 +157,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "species_count": 1,
             "diversity_index": 0.4,
             "mean_speed_recent": 0.4,
+            "active_grip_latch_count": 3,
+            "peak_grip_latch_count": 5,
             "reproductions": 2,
             "deaths": 2,
             "speciation_events": 0,
@@ -193,6 +199,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["avg_chemical_a_total"] == 0.6
     assert summaries[0]["avg_chemical_b_total"] == 0.25
     assert summaries[0]["avg_mean_speed_recent"] == 0.3
+    assert summaries[0]["avg_active_grip_latch_count"] == 2.0
+    assert summaries[0]["peak_grip_latch_count_max"] == 5
     assert summaries[0]["avg_drag_multiplier"] == 1.25
     assert summaries[0]["avg_nutrient_source_strength_multiplier"] == 0.875
     assert summaries[0]["avg_reproductions"] == 3.0
