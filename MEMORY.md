@@ -35,6 +35,8 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - `animalcula phylogeny` now emits checkpoint lineage graphs as JSON or Newick from recorded parent pointers
 - both debug viewer backends now render coarse nutrient and light field overlays instead of showing creatures against a contextless background
 - both debug viewer backends now support selectable nutrient/light/chemical/detritus overlays rather than a single baked field blend
+- render snapshots now carry species ID, genome hash, parent ID, and birth/age metadata for living creatures
+- both debug viewer backends now support click-to-inspect creature metadata, with an HTML inspector card stack and Tk overlay selection readout
 
 ## Current Priority
 
@@ -54,4 +56,4 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - Close the next spec-facing runtime or viewer gap with clear user-visible payoff
 - Prefer slices that make evolving lineages/ecologies easier to inspect without committing to the full browser frontend yet
 - Good next candidates: lightweight field visualization in the debug viewer, richer checkpoint/species lineage summaries, or first phenotype-space export
-- Good next candidates: richer checkpoint/species lineage summaries, first phenotype-space export, or stronger viewer-side lineage/species inspection
+- Good next candidates: richer checkpoint/species lineage summaries, first phenotype-space export, or stronger species/lineage analytics beyond single-creature inspection

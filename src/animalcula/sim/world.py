@@ -82,6 +82,11 @@ class EdgeSnapshot:
 @dataclass(slots=True, frozen=True)
 class CreatureSnapshot:
     creature_id: int
+    species_id: str
+    genome_hash: str
+    parent_id: int | None
+    born_tick: int
+    age_ticks: int
     energy: float
     trophic_role: str
     center_x: float
@@ -484,6 +489,7 @@ class World:
             )
 
     def snapshot(self) -> Snapshot:
+        species_labels = self._species_labels()
         node_to_creature = {
             node_index: creature.id
             for creature in self.creatures
@@ -512,6 +518,11 @@ class World:
         creature_snapshots = tuple(
             CreatureSnapshot(
                 creature_id=creature.id,
+                species_id=species_labels.get(creature.id, coarse_species_signature(creature.genome)),
+                genome_hash=genome_hash(creature.genome),
+                parent_id=creature.parent_id,
+                born_tick=max(0, self.tick - creature.age_ticks),
+                age_ticks=creature.age_ticks,
                 energy=creature.energy,
                 trophic_role=self._trophic_role(creature),
                 center_x=self._creature_centroid(creature).x if self._creature_centroid(creature) is not None else 0.0,

@@ -298,6 +298,7 @@ Current implementation baseline:
 - saved lifecycle events now preserve lineage colors too, and the CLI can export checkpoint phylogeny graphs as JSON or Newick from the recorded parent pointers
 - both debug viewer backends now also render coarse nutrient and light field overlays so the current environment is visible during local inspection
 - both debug viewer backends now support cycling/selecting nutrient, light, chemical A/B, and detritus overlays for fuller spec-aligned field inspection
+- render snapshots now carry species/lineage metadata for living creatures, and both debug viewer backends now support basic click-to-inspect creature metadata
 
 ## Update Protocol
 

@@ -34,12 +34,16 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     assert "Generated from <code>animalcula view</code> HTML fallback" in payload
     assert 'id="speed"' in payload
     assert 'id="fieldMode"' in payload
+    assert 'id="inspector"' in payload
+    assert 'id="selectedSpecies"' in payload
     assert 'id="predatorStat"' in payload
     assert '"color_rgb": [' in payload
     assert '"fields": {' in payload
     assert '"chemical_a": [[' in payload
     assert '"chemical_b": [[' in payload
     assert '"detritus": [[' in payload
+    assert '"species_id": "species-' in payload
+    assert '"genome_hash": "' in payload
     assert "\"tick\": 0" in payload
 
 
@@ -76,3 +80,4 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
     assert "speed=" in payload
     assert '"light": [[' in payload
     assert "chemical-a" in payload
+    assert 'canvas.addEventListener("click"' in payload

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 import json
+import math
 from pathlib import Path
 import tempfile
 from types import ModuleType
@@ -144,6 +145,11 @@ HTML_TEMPLATE = """<!doctype html>
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 10px;
     }}
+    .inspector {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }}
     .card {{
       padding: 10px 12px;
       background: rgba(29, 36, 48, 0.78);
@@ -196,6 +202,16 @@ HTML_TEMPLATE = """<!doctype html>
         <div class="card"><span class="label">Herbivores</span><span class="value" id="herbivoreStat"></span></div>
         <div class="card"><span class="label">Predators</span><span class="value" id="predatorStat"></span></div>
       </div>
+      <div class="inspector" id="inspector">
+        <div class="card"><span class="label">Selected</span><span class="value" id="selectedCreatureId"></span></div>
+        <div class="card"><span class="label">Species</span><span class="value" id="selectedSpecies"></span></div>
+        <div class="card"><span class="label">Role</span><span class="value" id="selectedRole"></span></div>
+        <div class="card"><span class="label">Energy</span><span class="value" id="selectedEnergy"></span></div>
+        <div class="card"><span class="label">Parent</span><span class="value" id="selectedParent"></span></div>
+        <div class="card"><span class="label">Age</span><span class="value" id="selectedAge"></span></div>
+        <div class="card"><span class="label">Born</span><span class="value" id="selectedBorn"></span></div>
+        <div class="card"><span class="label">Genome Hash</span><span class="value" id="selectedGenomeHash"></span></div>
+      </div>
       <div class="meta">
         Generated from <code>animalcula view</code> HTML fallback because Tkinter was unavailable.
       </div>
@@ -218,10 +234,19 @@ HTML_TEMPLATE = """<!doctype html>
     const autotrophStat = document.getElementById("autotrophStat");
     const herbivoreStat = document.getElementById("herbivoreStat");
     const predatorStat = document.getElementById("predatorStat");
+    const selectedCreatureIdStat = document.getElementById("selectedCreatureId");
+    const selectedSpeciesStat = document.getElementById("selectedSpecies");
+    const selectedRoleStat = document.getElementById("selectedRole");
+    const selectedEnergyStat = document.getElementById("selectedEnergy");
+    const selectedParentStat = document.getElementById("selectedParent");
+    const selectedAgeStat = document.getElementById("selectedAge");
+    const selectedBornStat = document.getElementById("selectedBorn");
+    const selectedGenomeHashStat = document.getElementById("selectedGenomeHash");
     let frame = 0;
     let running = true;
     let playbackRate = 1;
     let activeFieldMode = "combined";
+    let selectedCreatureId = null;
     let lastTimestamp = 0;
     let frameAccumulator = 0;
 
@@ -236,6 +261,7 @@ HTML_TEMPLATE = """<!doctype html>
 
     function draw(snapshot) {{
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      syncSelectedCreature(snapshot);
       const creatureRoles = new Map(snapshot.creatures.map((creature) => [creature.creature_id, creature.trophic_role]));
       const creatureColors = new Map(snapshot.creatures.map((creature) => [creature.creature_id, rgbToCss(creature.color_rgb)]));
       drawFields(snapshot);
@@ -265,6 +291,16 @@ HTML_TEMPLATE = """<!doctype html>
         ctx.stroke();
       }}
 
+      const selected = snapshot.creatures.find((creature) => creature.creature_id === selectedCreatureId);
+      if (selected) {{
+        const [sx, sy] = toCanvas(selected.center_x, selected.center_y, snapshot);
+        ctx.beginPath();
+        ctx.arc(sx, sy, 14, 0, Math.PI * 2);
+        ctx.strokeStyle = rgbToCss(selected.color_rgb);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }}
+
       status.textContent =
         "frame=" + (frame + 1) + "/" + snapshots.length +
         " tick=" + snapshot.tick +
@@ -281,6 +317,7 @@ HTML_TEMPLATE = """<!doctype html>
       autotrophStat.textContent = String(roleCounts.autotroph || 0);
       herbivoreStat.textContent = String(roleCounts.herbivore || 0);
       predatorStat.textContent = String(roleCounts.predator || 0);
+      updateInspector(selected);
       scrub.value = String(frame);
     }}
 
@@ -345,6 +382,38 @@ HTML_TEMPLATE = """<!doctype html>
       return ["rgba(0, 0, 0, ", 0];
     }}
 
+    function syncSelectedCreature(snapshot) {{
+      if (!snapshot.creatures.length) {{
+        selectedCreatureId = null;
+        return;
+      }}
+      if (!snapshot.creatures.some((creature) => creature.creature_id === selectedCreatureId)) {{
+        selectedCreatureId = snapshot.creatures[0].creature_id;
+      }}
+    }}
+
+    function updateInspector(creature) {{
+      if (!creature) {{
+        selectedCreatureIdStat.textContent = "none";
+        selectedSpeciesStat.textContent = "-";
+        selectedRoleStat.textContent = "-";
+        selectedEnergyStat.textContent = "-";
+        selectedParentStat.textContent = "-";
+        selectedAgeStat.textContent = "-";
+        selectedBornStat.textContent = "-";
+        selectedGenomeHashStat.textContent = "-";
+        return;
+      }}
+      selectedCreatureIdStat.textContent = "#" + creature.creature_id;
+      selectedSpeciesStat.textContent = creature.species_id || "-";
+      selectedRoleStat.textContent = creature.trophic_role;
+      selectedEnergyStat.textContent = creature.energy.toFixed(2);
+      selectedParentStat.textContent = creature.parent_id === null ? "root" : "#" + creature.parent_id;
+      selectedAgeStat.textContent = String(creature.age_ticks);
+      selectedBornStat.textContent = String(creature.born_tick);
+      selectedGenomeHashStat.textContent = creature.genome_hash || "-";
+    }}
+
     function rgbToCss(rgb) {{
       if (!Array.isArray(rgb) || rgb.length !== 3) {{
         return "#cbd5e1";
@@ -378,6 +447,29 @@ HTML_TEMPLATE = """<!doctype html>
     fieldMode.addEventListener("input", (event) => {{
       activeFieldMode = event.target.value;
       renderCurrent();
+    }});
+
+    canvas.addEventListener("click", (event) => {{
+      const snapshot = snapshots[frame];
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clickX = (event.clientX - rect.left) * scaleX;
+      const clickY = (event.clientY - rect.top) * scaleY;
+      let best = null;
+      let bestDistance = Infinity;
+      for (const creature of snapshot.creatures) {{
+        const [cx, cy] = toCanvas(creature.center_x, creature.center_y, snapshot);
+        const distance = Math.hypot(clickX - cx, clickY - cy);
+        if (distance < bestDistance) {{
+          best = creature;
+          bestDistance = distance;
+        }}
+      }}
+      if (best && bestDistance <= 28) {{
+        selectedCreatureId = best.creature_id;
+        renderCurrent();
+      }}
     }});
 
     window.addEventListener("keydown", (event) => {{
@@ -590,6 +682,7 @@ def _launch_tk_viewer(
     running = True
     pending_single_step = False
     field_mode_index = 0
+    selected_creature_id: int | None = None
 
     def _toggle_running(_: object | None = None) -> None:
         nonlocal running
@@ -603,17 +696,46 @@ def _launch_tk_viewer(
         nonlocal field_mode_index
         field_mode_index = (field_mode_index + 1) % len(FIELD_MODE_SEQUENCE)
 
+    def _select_creature(event: object) -> None:
+        nonlocal selected_creature_id
+        snapshot = world.snapshot()
+        if not snapshot.creatures:
+            selected_creature_id = None
+            return
+        click_x = float(getattr(event, "x", 0.0))
+        click_y = float(getattr(event, "y", 0.0))
+        best_creature = None
+        best_distance = float("inf")
+        for creature in snapshot.creatures:
+            cx, cy = _to_canvas(
+                creature.center_x,
+                creature.center_y,
+                snapshot,
+                canvas_width=canvas_width,
+                canvas_height=canvas_height,
+            )
+            distance = math.hypot(click_x - cx, click_y - cy)
+            if distance < best_distance:
+                best_distance = distance
+                best_creature = creature
+        if best_creature is not None and best_distance <= 28.0:
+            selected_creature_id = best_creature.creature_id
+
     root.bind("<space>", _toggle_running)
     root.bind("<Right>", _single_step)
     root.bind("f", _cycle_field_mode)
     root.bind("F", _cycle_field_mode)
+    canvas.bind("<Button-1>", _select_creature)
 
     def _draw(snapshot: Snapshot) -> None:
+        nonlocal selected_creature_id
         canvas.delete("all")
         field_samples = _sample_fields(world)
         cell_width = canvas_width / max(int(field_samples["cols"]), 1)
         cell_height = canvas_height / max(int(field_samples["rows"]), 1)
         field_mode = FIELD_MODE_SEQUENCE[field_mode_index]
+        if snapshot.creatures and not any(creature.creature_id == selected_creature_id for creature in snapshot.creatures):
+            selected_creature_id = snapshot.creatures[0].creature_id
 
         for row_index, rows in enumerate(
             zip(
@@ -704,11 +826,38 @@ def _launch_tk_viewer(
                     outline="",
                 )
 
+        selected = next(
+            (creature for creature in snapshot.creatures if creature.creature_id == selected_creature_id),
+            None,
+        )
+        if selected is not None:
+            sx, sy = _to_canvas(
+                selected.center_x,
+                selected.center_y,
+                snapshot,
+                canvas_width=canvas_width,
+                canvas_height=canvas_height,
+            )
+            canvas.create_oval(
+                sx - 14,
+                sy - 14,
+                sx + 14,
+                sy + 14,
+                outline=_rgb_to_css(selected.color_rgb),
+                width=3,
+            )
+
         overlay.set(
             "\n".join(
                 [
                     f"tick={snapshot.tick} population={snapshot.population} total_energy={snapshot.total_energy:.2f}",
-                    f"space=play/pause right=step f=field-mode({field_mode}) steps_per_frame={steps_per_frame} frame_delay_ms={frame_delay_ms}",
+                    (
+                        f"selected=#{selected.creature_id} species={selected.species_id} role={selected.trophic_role} "
+                        f"energy={selected.energy:.2f} age={selected.age_ticks}"
+                        if selected is not None
+                        else "selected=none"
+                    ),
+                    f"space=play/pause right=step click=inspect f=field-mode({field_mode}) steps_per_frame={steps_per_frame} frame_delay_ms={frame_delay_ms}",
                 ]
             )
         )
