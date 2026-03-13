@@ -101,6 +101,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Environment configs can now also cycle long-horizon drag regimes across configured multipliers
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
+- Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints
 
 ### Changed
 
@@ -125,3 +126,4 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Headless stats, logs, sweeps, and seed-bank analysis now expose the active drag multiplier so long-cycle regime shifts remain observable during tuning
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now also expose peak species share plus runaway-dominance flags for long-run ecology triage
 - Sweep and seed-bank ranking now use the new dominance signals instead of merely logging them
+- Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now also expose peak population and population variance for boom-bust triage

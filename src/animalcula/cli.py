@@ -246,6 +246,8 @@ def _format_stats(seed: int, stats: object) -> str:
             f"seed={seed}",
             f"drag_multiplier={stats.drag_multiplier:.2f}",
             f"population={stats.population}",
+            f"peak_population={stats.peak_population}",
+            f"population_variance={stats.population_variance:.3f}",
             f"nodes={stats.node_count}",
             f"total_energy={stats.total_energy:.3f}",
             f"births={stats.births}",
@@ -286,6 +288,8 @@ def _run_with_stats_log(world: World, ticks: int, log_path: str, log_every: int)
                     {
                         "tick": stats.tick,
                         "population": stats.population,
+                        "peak_population": stats.peak_population,
+                        "population_variance": stats.population_variance,
                         "drag_multiplier": stats.drag_multiplier,
                         "nodes": stats.node_count,
                         "total_energy": stats.total_energy,

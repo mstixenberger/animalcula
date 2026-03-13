@@ -50,6 +50,8 @@ This emits:
 
 The raw JSONL and `.summary.json` outputs now include turnover-oriented ecology fields in addition to end-state counts:
 
+- `peak_population`
+- `population_variance`
 - `species_turnover`
 - `observed_species_count`
 - `peak_species_count`
@@ -142,6 +144,8 @@ As of March 12, 2026, after correcting the starter predator archetype to match t
   This lands the first spec-facing major environmental shift without adding obstacle mechanics yet. The immediate follow-up is empirical, not structural: long multi-seed runs now need to verify whether regime changes trigger useful turnover instead of simple collapse.
 - As of March 13, 2026, headless reporting also tracks peak species share and flags runaway dominance once a species holds more than `80%` of the population for over `5000` ticks.
   That gives tuning runs a first direct monoculture alarm instead of inferring collapse or stagnation only from end-state species counts.
+- As of March 13, 2026, headless reporting also tracks peak population and whole-run population variance.
+  That closes another health-metric gap from the spec: tuning can now separate flatline runs from real boom-bust ecologies without needing a full external time-series analysis step.
 
 ## Interpretation
 

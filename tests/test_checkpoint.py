@@ -62,5 +62,7 @@ def test_world_checkpoint_roundtrip_preserves_state(tmp_path: Path) -> None:
     assert restored.chemical_b_grid.values == world.chemical_b_grid.values
     assert restored.grip_latches == world.grip_latches
     assert restored.events == world.events
+    assert restored.stats().peak_population == world.stats().peak_population
+    assert restored.stats().population_variance == world.stats().population_variance
     assert restored.stats().peak_species_fraction == world.stats().peak_species_fraction
     assert restored.stats().runaway_dominance_detected == world.stats().runaway_dominance_detected

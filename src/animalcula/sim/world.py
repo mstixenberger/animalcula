@@ -82,6 +82,8 @@ class CreatureSnapshot:
 class Stats:
     tick: int
     population: int
+    peak_population: int
+    population_variance: float
     node_count: int
     edge_count: int
     total_energy: float
@@ -146,7 +148,12 @@ class World:
         self._dominant_species_streak = 0
         self._runaway_dominance_fraction_threshold = 0.8
         self._runaway_dominance_tick_threshold = 5000
+        self._population_observation_count = 0
+        self._population_mean = 0.0
+        self._population_m2 = 0.0
+        self._peak_population = 0
         self._update_species_dominance_metrics(self._species_labels())
+        self._record_population_observation()
         self.nutrient_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
@@ -387,6 +394,8 @@ class World:
         return Stats(
             tick=self.tick,
             population=len(self.creatures) if self.creatures else len(self.nodes),
+            peak_population=self._peak_population,
+            population_variance=self.population_variance(),
             node_count=len(self.nodes),
             edge_count=len(self.edges),
             total_energy=sum(creature.energy for creature in self.creatures),
@@ -477,6 +486,10 @@ class World:
             "runaway_dominance_detected": self._runaway_dominance_detected,
             "dominant_species_id": self._dominant_species_id,
             "dominant_species_streak": self._dominant_species_streak,
+            "population_observation_count": self._population_observation_count,
+            "population_mean": self._population_mean,
+            "population_m2": self._population_m2,
+            "peak_population": self._peak_population,
             "grip_latches": [
                 {
                     "creature_a_id": latch.creature_a_id,
@@ -579,6 +592,10 @@ class World:
         world._runaway_dominance_detected = payload.get("runaway_dominance_detected", False)
         world._dominant_species_id = payload.get("dominant_species_id")
         world._dominant_species_streak = payload.get("dominant_species_streak", 0)
+        world._population_observation_count = payload.get("population_observation_count", 1)
+        world._population_mean = payload.get("population_mean", float(len(world.creatures)))
+        world._population_m2 = payload.get("population_m2", 0.0)
+        world._peak_population = payload.get("peak_population", len(world.creatures))
         world.grip_latches = [
             GripLatch(
                 creature_a_id=latch["creature_a_id"],
@@ -623,6 +640,7 @@ class World:
         self._run_phase("physics", self._apply_physics)
         self._run_phase("energy", self._apply_energy)
         self._run_phase("lifecycle", self._apply_lifecycle)
+        self._record_population_observation()
         self.tick += 1
         return self.snapshot()
 
@@ -1255,6 +1273,20 @@ class World:
 
         if self._dominant_species_streak > self._runaway_dominance_tick_threshold:
             self._runaway_dominance_detected = True
+
+    def _record_population_observation(self) -> None:
+        population = len(self.creatures) if self.creatures else len(self.nodes)
+        self._peak_population = max(self._peak_population, population)
+        self._population_observation_count += 1
+        delta = population - self._population_mean
+        self._population_mean += delta / self._population_observation_count
+        delta2 = population - self._population_mean
+        self._population_m2 += delta * delta2
+
+    def population_variance(self) -> float:
+        if self._population_observation_count <= 1:
+            return 0.0
+        return self._population_m2 / self._population_observation_count
 
     def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
         updated: list[CreatureState] = []

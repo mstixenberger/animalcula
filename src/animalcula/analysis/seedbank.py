@@ -102,6 +102,8 @@ def _evaluate_seed_candidate(
         "promoted_creature": promoted_creature[0] if promoted_creature else None,
         "promoted_energy": promoted_creature[0]["energy"] if promoted_creature else 0.0,
         "population": stats.population,
+        "peak_population": stats.peak_population,
+        "population_variance": stats.population_variance,
         "total_energy": stats.total_energy,
         "drag_multiplier": stats.drag_multiplier,
         "births": stats.births,
@@ -166,6 +168,8 @@ def _aggregate_seed_runs(
                 "genome_hash": record["genome_hash"],
                 "runs": 0,
                 "population_sum": 0,
+                "population_variance_sum": 0.0,
+                "peak_population_max": 0,
                 "energy_sum": 0.0,
                 "drag_multiplier_sum": 0.0,
                 "births_sum": 0,
@@ -201,6 +205,8 @@ def _aggregate_seed_runs(
         bucket = grouped[candidate_index]
         bucket["runs"] += 1
         bucket["population_sum"] += record["population"]
+        bucket["population_variance_sum"] += record["population_variance"]
+        bucket["peak_population_max"] = max(bucket["peak_population_max"], record["peak_population"])
         bucket["energy_sum"] += record["total_energy"]
         bucket["drag_multiplier_sum"] += record["drag_multiplier"]
         bucket["births_sum"] += record["births"]
@@ -257,6 +263,8 @@ def _aggregate_seed_runs(
             "promoted_seed": bucket["promoted_seed"],
             "runs": bucket["runs"],
             "avg_population": round(bucket["population_sum"] / bucket["runs"], 3),
+            "avg_population_variance": round(bucket["population_variance_sum"] / bucket["runs"], 3),
+            "peak_population_max": bucket["peak_population_max"],
             "avg_total_energy": round(bucket["energy_sum"] / bucket["runs"], 3),
             "avg_drag_multiplier": round(bucket["drag_multiplier_sum"] / bucket["runs"], 3),
             "avg_births": round(bucket["births_sum"] / bucket["runs"], 3),
