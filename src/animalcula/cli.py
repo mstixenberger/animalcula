@@ -349,7 +349,7 @@ def _run_with_stats_log(
         sqlite_output = Path(sqlite_path)
         sqlite_output.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(sqlite_output)
-        _initialize_stats_sqlite(connection)
+        _initialize_stats_sqlite(connection, world=world)
 
     for tick_index in range(1, ticks + 1):
         world.step(1)
@@ -366,7 +366,17 @@ def _run_with_stats_log(
         connection.close()
 
 
-def _initialize_stats_sqlite(connection: sqlite3.Connection) -> None:
+def _initialize_stats_sqlite(connection: sqlite3.Connection, world: World) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS run_metadata (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            seed INTEGER NOT NULL,
+            turbo INTEGER NOT NULL,
+            config_json TEXT NOT NULL
+        )
+        """
+    )
     connection.execute(
         """
         CREATE TABLE IF NOT EXISTS stats_log (
@@ -406,6 +416,17 @@ def _initialize_stats_sqlite(connection: sqlite3.Connection) -> None:
             trophic_balance_score REAL NOT NULL
         )
         """
+    )
+    connection.execute(
+        """
+        INSERT OR REPLACE INTO run_metadata (id, seed, turbo, config_json)
+        VALUES (1, ?, ?, ?)
+        """,
+        (
+            world.seed,
+            1 if world.turbo else 0,
+            json.dumps(world.config.to_dict(), sort_keys=True),
+        ),
     )
     connection.commit()
 

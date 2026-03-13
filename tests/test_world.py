@@ -1997,6 +1997,13 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
     )
 
     with sqlite3.connect(log_path) as connection:
+        metadata = connection.execute(
+            """
+            SELECT seed, turbo, config_json
+            FROM run_metadata
+            WHERE id = 1
+            """
+        ).fetchone()
         rows = connection.execute(
             """
             SELECT tick, peak_population, crowding_multiplier, peak_crowding_multiplier,
@@ -2007,6 +2014,10 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
             """
         ).fetchall()
 
+    assert metadata is not None
+    assert metadata[0] == 11
+    assert metadata[1] == 0
+    assert "\"max_population\": 500" in metadata[2]
     assert len(rows) == 3
     assert rows[0][0] == 1
     assert rows[0][1] >= 3

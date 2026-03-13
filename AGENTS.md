@@ -214,6 +214,7 @@ Current implementation baseline:
 - checkpoint-backed CLI event export for direct observation of run history
 - periodic JSONL stats logging during headless runs
 - periodic SQLite stats logging during headless runs
+- SQLite stats logs now also store run metadata for seed/turbo/effective-config recovery
 - creature-level population safeguards: crowding pressure and optional immigration floor
 - dedicated nursery config profile and nursery CLI workflow for generous bootstrapping runs
 - soft node repulsion for first-pass contact avoidance in dense physics states
