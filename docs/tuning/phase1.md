@@ -22,6 +22,49 @@ Useful sweep configs:
 - `config/sweeps/phase1_default_economy.yaml`
 - `config/sweeps/phase1_balance.yaml`
 
+The raw JSONL and `.summary.json` outputs now include turnover-oriented ecology fields in addition to end-state counts:
+
+- `species_turnover`
+- `observed_species_count`
+- `peak_species_count`
+- `mean_extinct_species_lifespan`
+- `trophic_balance_score`
+
+Once a run produces a checkpoint with promising survivors, use the headless seed-bank loop to promote candidates without manual inspection:
+
+```bash
+uv run animalcula extract-genomes checkpoints/demo.json --top 10 --out /tmp/animalcula_seed_bank.json
+uv run animalcula evaluate-genomes /tmp/animalcula_seed_bank.json \
+  --config config/default.yaml \
+  --ticks 300 \
+  --seeds 41,42,43 \
+  --workers 4 \
+  --turbo \
+  --out /tmp/animalcula_seed_bank.report.json \
+  --save-top /tmp/animalcula_seed_bank.promoted.json \
+  --top 3
+```
+
+For longer bootstrap loops, chain survivor promotion across multiple rounds and inspect the emitted manifest plus per-round reports:
+
+```bash
+uv run animalcula promote-genomes /tmp/animalcula_seed_bank.json \
+  --config config/default.yaml \
+  --ticks 300 \
+  --seeds 41,42,43 \
+  --workers 4 \
+  --turbo \
+  --rounds 3 \
+  --top 3 \
+  --out-dir /tmp/animalcula_promotion_rounds
+```
+
+The resulting `promotion.json` manifest now highlights:
+
+- genome-hash carryover from one promoted round to the next
+- whether the top-ranked genome stayed stable across rounds
+- diversity drift between each round's input and promoted seed banks
+
 ## Current Findings
 
 As of March 12, 2026, after correcting the starter predator archetype to match the spec more closely:
@@ -47,10 +90,27 @@ As of March 12, 2026, after correcting the starter predator archetype to match t
   - autotrophs `2`
   - herbivores `1`
   - predators `7-10`
+- As of March 13, 2026, the shipped default/turbo/nursery profiles now use low nonzero structural, node-role, and motor-topology mutation rates.
+  On the same conservative basin, a `2,500`-tick turbo run at seed `41` reached:
+  - speciation events `1`
+  - observed species `4`
+  - peak species `4`
+- As of March 13, 2026, predation is now gripper-specialized instead of being passively available to every mouth-only descendant with a bite channel.
+  The first specialization pass made predator counts realistic, but also exposed that true predators were rarely converting encounters into kills.
+- As of March 13, 2026, grippers can now capture nearby prey nodes and bite damage can be applied to actively gripped victims, while the seeded predator now starts on the grazer nutrient basin to bootstrap real contact.
+  On the same conservative basin:
+  - a `1,000`-tick turbo run at seed `41` ended with population `5`, deaths `1`, and `predation_kills=1`
+  - `5,000`-tick turbo runs at seeds `41` and `42` ended with `predation_kills=10` and `0` respectively
+  - seed `41` also reached deaths `11`, species turnover `3`, observed species `5`, and predators `1` / herbivores `13` / autotrophs `2`
+  - seed `42` remained viable but softer, ending near predators `1`, herbivores `11`, autotrophs `2`, and observed species `4`
+- As of March 13, 2026, CTRNN genomes can also mutate a bounded hidden-neuron prefix independently of morphology-required outputs.
+  This does not yet solve predator inconsistency by itself, but it removes a clear architecture ceiling: reproduction can now widen or narrow controller capacity over generations without breaking the existing motor/grip/bite wiring.
+- As of March 13, 2026, the shipped headless profiles also enable deterministic nutrient-source shifting every `1000` ticks.
+  This is the first environmental-variation slice from the spec. In the current conservative basin check, a `1,000`-tick turbo run at seed `41` still held the same baseline (`population=5`, `deaths=1`, `predation_kills=1`), so the feature is in without destabilizing the existing short-horizon ecology.
 
 ## Interpretation
 
-This is good enough to call the simulation viable in a headless prototype sense.
+This is good enough to call the simulation viable in a headless prototype sense, but predator consistency is still the main biological tuning target.
 
 It is not yet good enough to call the ecology balanced:
 
@@ -59,9 +119,9 @@ It is not yet good enough to call the ecology balanced:
 - speciation events remain `0`
 - the herbivore lineage persists but does not diversify
 
-That means the next tuning/design work should target trophic balance and diversification, not just raw survival:
+That means the next tuning/design work should target predator payoff and broader trophic balance, not just raw survival:
 
-- tighten predator specialization and payoff
+- raise predator payoff carefully now that specialization is enforced
 - improve grazer competitiveness
-- increase the chance of divergent morphology/brain evolution
+- validate the new exploratory mutation defaults across more long-horizon multi-seed runs
 - keep validating with multi-seed runs at `1000+` ticks

@@ -10,7 +10,7 @@ from typing import Any
 
 import yaml
 
-from animalcula.analysis.metrics import interestingness_score
+from animalcula.analysis.metrics import interestingness_score, trophic_balance_score
 from animalcula.config import Config
 from animalcula.sim.world import World
 
@@ -88,13 +88,18 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "speciation_sum": 0,
                 "predation_sum": 0,
                 "extinction_sum": 0,
+                "turnover_sum": 0,
+                "observed_species_sum": 0,
+                "peak_species_count_max": 0,
                 "autotroph_sum": 0,
                 "herbivore_sum": 0,
                 "predator_sum": 0,
+                "trophic_balance_sum": 0.0,
                 "ended_extinct_runs": 0,
                 "had_speciation_runs": 0,
                 "had_predation_runs": 0,
                 "longest_species_lifespan_max": 0,
+                "mean_extinct_species_lifespan_sum": 0.0,
             }
         bucket = grouped[key]
         bucket["runs"] += 1
@@ -107,9 +112,13 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["speciation_sum"] += record["speciation_events"]
         bucket["predation_sum"] += record["predation_kills"]
         bucket["extinction_sum"] += record["species_extinctions"]
+        bucket["turnover_sum"] += record["species_turnover"]
+        bucket["observed_species_sum"] += record["observed_species_count"]
+        bucket["peak_species_count_max"] = max(bucket["peak_species_count_max"], record["peak_species_count"])
         bucket["autotroph_sum"] += record["autotroph_count"]
         bucket["herbivore_sum"] += record["herbivore_count"]
         bucket["predator_sum"] += record["predator_count"]
+        bucket["trophic_balance_sum"] += record["trophic_balance_score"]
         bucket["ended_extinct_runs"] += 1 if record["ended_extinct"] else 0
         bucket["had_speciation_runs"] += 1 if record["had_speciation"] else 0
         bucket["had_predation_runs"] += 1 if record["had_predation"] else 0
@@ -117,6 +126,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             bucket["longest_species_lifespan_max"],
             record["longest_species_lifespan"],
         )
+        bucket["mean_extinct_species_lifespan_sum"] += record["mean_extinct_species_lifespan"]
 
     summaries = [
         {
@@ -131,13 +141,21 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_speciation_events": round(bucket["speciation_sum"] / bucket["runs"], 3),
             "avg_predation_kills": round(bucket["predation_sum"] / bucket["runs"], 3),
             "avg_species_extinctions": round(bucket["extinction_sum"] / bucket["runs"], 3),
+            "avg_species_turnover": round(bucket["turnover_sum"] / bucket["runs"], 3),
+            "avg_observed_species_count": round(bucket["observed_species_sum"] / bucket["runs"], 3),
             "avg_autotroph_count": round(bucket["autotroph_sum"] / bucket["runs"], 3),
             "avg_herbivore_count": round(bucket["herbivore_sum"] / bucket["runs"], 3),
             "avg_predator_count": round(bucket["predator_sum"] / bucket["runs"], 3),
+            "avg_trophic_balance_score": round(bucket["trophic_balance_sum"] / bucket["runs"], 3),
             "ended_extinct_runs": bucket["ended_extinct_runs"],
             "had_speciation_runs": bucket["had_speciation_runs"],
             "had_predation_runs": bucket["had_predation_runs"],
             "longest_species_lifespan_max": bucket["longest_species_lifespan_max"],
+            "peak_species_count_max": bucket["peak_species_count_max"],
+            "avg_mean_extinct_species_lifespan": round(
+                bucket["mean_extinct_species_lifespan_sum"] / bucket["runs"],
+                3,
+            ),
         }
         for bucket in grouped.values()
     ]
@@ -186,18 +204,27 @@ def _run_sweep_combination(
         "reproductions": stats.reproductions,
         "speciation_events": stats.speciation_events,
         "species_extinctions": stats.species_extinctions,
+        "species_turnover": stats.species_turnover,
         "predation_kills": stats.predation_kills,
         "ended_extinct": stats.population == 0,
         "had_speciation": stats.speciation_events > 0,
         "had_predation": stats.predation_kills > 0,
         "lineage_count": stats.lineage_count,
         "species_count": stats.species_count,
+        "observed_species_count": stats.observed_species_count,
+        "peak_species_count": stats.peak_species_count,
         "diversity_index": stats.diversity_index,
         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
         "longest_species_lifespan": stats.longest_species_lifespan,
+        "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,
         "autotroph_count": stats.autotroph_count,
         "herbivore_count": stats.herbivore_count,
         "predator_count": stats.predator_count,
+        "trophic_balance_score": trophic_balance_score(
+            autotrophs=stats.autotroph_count,
+            herbivores=stats.herbivore_count,
+            predators=stats.predator_count,
+        ),
         "interestingness": interestingness_score(
             population=stats.population,
             total_energy=stats.total_energy,

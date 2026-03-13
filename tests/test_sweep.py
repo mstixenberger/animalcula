@@ -58,15 +58,20 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "diversity_index" in records[0]
     assert "speciation_events" in records[0]
     assert "species_extinctions" in records[0]
+    assert "species_turnover" in records[0]
     assert "longest_species_lifespan" in records[0]
+    assert "mean_extinct_species_lifespan" in records[0]
     assert "predation_kills" in records[0]
     assert "ended_extinct" in records[0]
     assert "had_speciation" in records[0]
     assert "had_predation" in records[0]
     assert "mean_nodes_per_creature" in records[0]
+    assert "observed_species_count" in records[0]
+    assert "peak_species_count" in records[0]
     assert "autotroph_count" in records[0]
     assert "herbivore_count" in records[0]
     assert "predator_count" in records[0]
+    assert "trophic_balance_score" in records[0]
     assert records[0]["interestingness"] > records[1]["interestingness"]
     assert "completed=2" in result.stdout
 
@@ -84,13 +89,18 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "speciation_events": 1,
             "predation_kills": 0,
             "species_extinctions": 0,
+            "species_turnover": 1,
             "autotroph_count": 1,
             "herbivore_count": 2,
             "predator_count": 2,
+            "trophic_balance_score": 0.9,
             "ended_extinct": False,
             "had_speciation": True,
             "had_predation": False,
+            "observed_species_count": 3,
+            "peak_species_count": 2,
             "longest_species_lifespan": 100,
+            "mean_extinct_species_lifespan": 0.0,
         },
         {
             "overrides": {"energy.reproduction_threshold": 20.0},
@@ -103,13 +113,18 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "speciation_events": 0,
             "predation_kills": 1,
             "species_extinctions": 1,
+            "species_turnover": 1,
             "autotroph_count": 1,
             "herbivore_count": 1,
             "predator_count": 1,
+            "trophic_balance_score": 1.0,
             "ended_extinct": False,
             "had_speciation": False,
             "had_predation": True,
+            "observed_species_count": 2,
+            "peak_species_count": 1,
             "longest_species_lifespan": 80,
+            "mean_extinct_species_lifespan": 80.0,
         },
     ]
 
@@ -120,9 +135,14 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["avg_population"] == 4.0
     assert summaries[0]["avg_diversity_index"] == 0.65
     assert summaries[0]["avg_reproductions"] == 3.0
+    assert summaries[0]["avg_species_turnover"] == 1.0
     assert summaries[0]["avg_autotroph_count"] == 1.0
     assert summaries[0]["avg_herbivore_count"] == 1.5
     assert summaries[0]["avg_predator_count"] == 1.5
+    assert summaries[0]["avg_trophic_balance_score"] == 0.95
+    assert summaries[0]["avg_observed_species_count"] == 2.5
+    assert summaries[0]["peak_species_count_max"] == 2
     assert summaries[0]["had_speciation_runs"] == 1
     assert summaries[0]["had_predation_runs"] == 1
     assert summaries[0]["longest_species_lifespan_max"] == 100
+    assert summaries[0]["avg_mean_extinct_species_lifespan"] == 40.0

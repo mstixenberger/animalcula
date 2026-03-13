@@ -13,7 +13,6 @@ def build_demo_archetypes(
     nutrient_source_cells: list[tuple[int, int]],
 ) -> tuple[list[NodeState], list[EdgeState], list[CreatureState]]:
     source_a = nutrient_grid.position_for_cell(*nutrient_source_cells[0])
-    source_b = nutrient_grid.position_for_cell(*nutrient_source_cells[1])
     bright_anchor = Vec2(world_width - 15.0, world_height * 0.5)
 
     nodes: list[NodeState] = []
@@ -68,10 +67,10 @@ def build_demo_archetypes(
         brain=_simple_motor_brain(light_gain=0.0, nutrient_gain=2.0),
     )
 
-    # Amoeba: triangular predator with a mouth and gripper.
+    # Amoeba: triangular predator seeded on the grazer basin so predation can actually bootstrap.
     amoeba_nodes = [
         NodeState(
-            position=source_b,
+            position=source_a,
             velocity=Vec2.zero(),
             accumulated_force=Vec2.zero(),
             drag_coeff=1.0,
@@ -79,7 +78,7 @@ def build_demo_archetypes(
             node_type=NodeType.MOUTH,
         ),
         NodeState(
-            position=Vec2(source_b.x + 4.0, source_b.y + 4.0),
+            position=Vec2(source_a.x + 4.0, source_a.y + 4.0),
             velocity=Vec2.zero(),
             accumulated_force=Vec2.zero(),
             drag_coeff=1.0,
@@ -87,7 +86,7 @@ def build_demo_archetypes(
             node_type=NodeType.GRIPPER,
         ),
         NodeState(
-            position=Vec2(source_b.x - 4.0, source_b.y + 4.0),
+            position=Vec2(source_a.x - 4.0, source_a.y + 4.0),
             velocity=Vec2.zero(),
             accumulated_force=Vec2.zero(),
             drag_coeff=1.0,

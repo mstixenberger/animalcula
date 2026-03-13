@@ -15,6 +15,8 @@ def test_loads_default_config() -> None:
     assert config.physics.grip_yield_force == 50.0
     assert config.environment.chemical_diffusion_rate == 0.2
     assert config.environment.chemical_decay_rate == 0.05
+    assert config.environment.nutrient_shift_interval == 1000
+    assert config.environment.nutrient_shift_count == 1
     assert config.environment.light_intensity_max == 1.0
     assert config.environment.light_direction == (1.0, 0.0)
     assert config.energy.basal_cost_per_node == 0.001
@@ -28,9 +30,11 @@ def test_loads_default_config() -> None:
     assert config.evolution.bias_mutation_sigma == 0.05
     assert config.evolution.tau_mutation_sigma == 0.02
     assert config.evolution.motor_strength_mutation_sigma == 0.2
-    assert config.evolution.motor_toggle_mutation_rate == 0.0
-    assert config.evolution.node_type_mutation_rate == 0.0
-    assert config.evolution.structural_mutation_rate == 0.0
+    assert config.evolution.motor_toggle_mutation_rate == 0.05
+    assert config.evolution.node_type_mutation_rate == 0.02
+    assert config.evolution.structural_mutation_rate == 0.05
+    assert config.evolution.hidden_neuron_mutation_rate == 0.05
+    assert config.evolution.max_hidden_neurons == 24
     assert config.brain.motor_force_scale == 1.0
     assert config.brain.default_input_size == 16
     assert config.creatures.min_population == 0
@@ -65,4 +69,33 @@ def test_loads_nursery_config_profile() -> None:
 
     assert config.energy.basal_cost_per_node < 0.001
     assert config.environment.nutrient_source_strength > 2.0
+    assert config.evolution.motor_toggle_mutation_rate > 0.0
+    assert config.evolution.node_type_mutation_rate > 0.0
+    assert config.evolution.structural_mutation_rate > 0.0
+    assert config.evolution.hidden_neuron_mutation_rate > 0.0
+    assert config.evolution.max_hidden_neurons >= 8
     assert config.creatures.min_population == 0
+
+
+def test_config_from_dict_backfills_hidden_neuron_defaults_for_old_payloads() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    payload = config.to_dict()
+    del payload["evolution"]["hidden_neuron_mutation_rate"]
+    del payload["evolution"]["max_hidden_neurons"]
+
+    loaded = Config.from_dict(payload)
+
+    assert loaded.evolution.hidden_neuron_mutation_rate == 0.0
+    assert loaded.evolution.max_hidden_neurons == 24
+
+
+def test_config_from_dict_backfills_nutrient_shift_defaults_for_old_payloads() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    payload = config.to_dict()
+    del payload["environment"]["nutrient_shift_interval"]
+    del payload["environment"]["nutrient_shift_count"]
+
+    loaded = Config.from_dict(payload)
+
+    assert loaded.environment.nutrient_shift_interval == 0
+    assert loaded.environment.nutrient_shift_count == 1

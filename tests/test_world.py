@@ -270,6 +270,98 @@ def test_world_can_latch_grippers_when_outputs_are_active() -> None:
     assert len(world.grip_latches) == 1
 
 
+def test_world_can_latch_active_gripper_to_overlapping_prey_body() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.grip_cost=0.0",
+        ]
+    )
+    grip_brain = BrainState(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
+            position=Vec2(101.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, brain=grip_brain),
+        CreatureState(node_indices=(1,), energy=1.0),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+
+    assert len(world.grip_latches) == 1
+    assert world.grip_latches[0].node_a_index == 0
+    assert world.grip_latches[0].node_b_index == 1
+
+
+def test_world_can_latch_active_gripper_to_nearby_prey_body() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.grip_cost=0.0",
+        ]
+    )
+    grip_brain = BrainState(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
+            position=Vec2(102.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0,), energy=1.0, brain=grip_brain),
+        CreatureState(node_indices=(1,), energy=1.0),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+
+    assert len(world.grip_latches) == 1
+
+
 def test_world_releases_grippers_when_outputs_drop_inactive() -> None:
     config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
         [
@@ -718,6 +810,126 @@ def test_world_can_predate_overlapping_creature_with_bite_output() -> None:
         ]
     )
     predator_brain = BrainState(
+        input_weights=(
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        ),
+        recurrent_weights=((0.0, 0.0), (0.0, 0.0)),
+        biases=(10.0, 10.0),
+        time_constants=(1.0, 1.0),
+        states=(0.0, 0.0),
+        output_size=2,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.MOUTH,
+        ),
+        NodeState(
+            position=Vec2(100.0, 100.5),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
+            position=Vec2(100.5, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0, 1), energy=1.0, brain=predator_brain),
+        CreatureState(node_indices=(2,), energy=1.0),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+
+    assert world.creatures[0].energy > 1.0
+    assert world.creatures[1].energy < 1.0
+
+
+def test_world_can_predate_gripped_creature_without_direct_mouth_overlap() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.scavenging_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.grip_cost=0.0",
+            "energy.predation_rate=0.5",
+            "energy.predation_transfer_efficiency=1.0",
+        ]
+    )
+    predator_brain = BrainState(
+        input_weights=(
+            (0.0,) * 16,
+            (0.0,) * 16,
+        ),
+        recurrent_weights=((0.0, 0.0), (0.0, 0.0)),
+        biases=(10.0, 10.0),
+        time_constants=(1.0, 1.0),
+        states=(0.0, 0.0),
+        output_size=2,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(100.0, 100.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.MOUTH,
+        ),
+        NodeState(
+            position=Vec2(100.0, 102.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
+            position=Vec2(100.0, 103.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0, 1), energy=1.0, brain=predator_brain),
+        CreatureState(node_indices=(2,), energy=1.0),
+    ]
+    world = World(config=config, nodes=nodes, creatures=creatures)
+
+    world.step()
+
+    assert world.grip_latches != []
+    assert world.creatures[0].energy > 1.0
+    assert world.creatures[1].energy < 1.0
+
+
+def test_world_does_not_predate_with_mouth_only_bite_output() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.scavenging_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "energy.predation_rate=0.5",
+            "energy.predation_transfer_efficiency=1.0",
+        ]
+    )
+    predator_brain = BrainState(
         input_weights=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),),
         recurrent_weights=((0.0,),),
         biases=(10.0,),
@@ -750,8 +962,32 @@ def test_world_can_predate_overlapping_creature_with_bite_output() -> None:
 
     world.step()
 
-    assert world.creatures[0].energy > 1.0
-    assert world.creatures[1].energy < 1.0
+    assert world.creatures[0].energy <= 1.0
+    assert world.creatures[1].energy == 1.0
+
+
+def test_world_classifies_mouth_only_biter_as_herbivore() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    brain = BrainState(
+        input_weights=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),),
+        recurrent_weights=((0.0,),),
+        biases=(0.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    node = NodeState(
+        position=Vec2(100.0, 100.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+        node_type=NodeType.MOUTH,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0, brain=brain)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    assert world._trophic_role(world.creatures[0]) == "herbivore"
 
 
 def test_world_turbo_mode_skips_expensive_field_updates_between_full_ticks() -> None:
@@ -769,6 +1005,45 @@ def test_world_turbo_mode_skips_expensive_field_updates_between_full_ticks() -> 
 
     assert world.detritus_grid.sample(Vec2(2.5, 2.5)) < 4.0
     assert world.nutrient_grid.sample(Vec2(2.5, 2.5)) > nutrient_before
+
+
+def test_world_shifts_nutrient_sources_when_interval_is_reached() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "environment.nutrient_source_count=3",
+            "environment.nutrient_shift_interval=2",
+            "environment.nutrient_shift_count=1",
+        ]
+    )
+    world = World(config=config, seed=7)
+    before = list(world._nutrient_source_cells)
+
+    world.step()
+    after_one = list(world._nutrient_source_cells)
+    world.step()
+    after_two = list(world._nutrient_source_cells)
+
+    assert after_one == before
+    assert after_two != before
+    assert len(after_two) == len(before)
+    assert len(set(after_two)) == len(after_two)
+
+
+def test_world_nutrient_source_shifts_are_deterministic_for_same_seed() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "environment.nutrient_source_count=4",
+            "environment.nutrient_shift_interval=2",
+            "environment.nutrient_shift_count=2",
+        ]
+    )
+    world_a = World(config=config, seed=7)
+    world_b = World(config=config, seed=7)
+
+    world_a.step(4)
+    world_b.step(4)
+
+    assert world_a._nutrient_source_cells == world_b._nutrient_source_cells
 
 
 def test_world_reseeds_when_population_drops_below_minimum() -> None:
@@ -922,6 +1197,59 @@ def test_world_reproduces_energy_rich_creatures() -> None:
     assert decoded_brain.input_weights == world.creatures[1].brain.input_weights
 
 
+def test_world_reproduction_can_grow_child_hidden_neuron_capacity() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "evolution.position_mutation_sigma=0.0",
+            "evolution.radius_mutation_sigma=0.0",
+            "evolution.weight_mutation_sigma=0.0",
+            "evolution.bias_mutation_sigma=0.0",
+            "evolution.tau_mutation_sigma=0.0",
+            "evolution.motor_strength_mutation_sigma=0.0",
+            "evolution.motor_toggle_mutation_rate=0.0",
+            "evolution.node_type_mutation_rate=0.0",
+            "evolution.structural_mutation_rate=0.0",
+            "evolution.hidden_neuron_mutation_rate=1.0",
+            "evolution.max_hidden_neurons=24",
+        ]
+    )
+    brain = BrainState(
+        input_weights=((1.0, 0.0, 0.0),),
+        recurrent_weights=((0.5,),),
+        biases=(0.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    nodes = [
+        NodeState(
+            position=Vec2(50.0, 50.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+        ),
+        NodeState(
+            position=Vec2(56.0, 50.0),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.PHOTORECEPTOR,
+        ),
+    ]
+    edges = [EdgeState(a=0, b=1, rest_length=6.0, stiffness=1.0, has_motor=True, motor_strength=2.0)]
+    creatures = [CreatureState(node_indices=(0, 1), energy=200.0, brain=brain)]
+    world = World(config=config, nodes=nodes, edges=edges, creatures=creatures, seed=7)
+
+    world.step()
+
+    assert len(world.creatures) == 2
+    assert world.creatures[1].brain is not None
+    assert len(world.creatures[1].brain.biases) == len(world.creatures[0].brain.biases) + 1
+    assert world.creatures[1].brain.output_size == world.creatures[0].brain.output_size
+
+
 def test_world_requires_reproduce_signal_when_brain_exposes_one() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     brain = BrainState(
@@ -1010,9 +1338,13 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
     assert stats.reproductions == 0
     assert stats.speciation_events == 0
     assert stats.species_extinctions == 0
+    assert stats.species_turnover == 0
     assert stats.longest_species_lifespan == 0
+    assert stats.mean_extinct_species_lifespan == 0.0
     assert stats.lineage_count == 3
     assert stats.species_count == 3
+    assert stats.observed_species_count == 3
+    assert stats.peak_species_count == 3
     assert stats.diversity_index > 0.0
     assert stats.mean_nodes_per_creature > 0.0
     assert stats.autotroph_count >= 1
@@ -1024,6 +1356,7 @@ def test_demo_seed_includes_spec_aligned_triangle_predator() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     world = World(config=config, seed=7)
     world.seed_demo_archetypes()
+    primary_nutrient_source = world.nutrient_grid.position_for_cell(*world._nutrient_source_cells[0])
 
     predator = next(
         creature
@@ -1043,6 +1376,7 @@ def test_demo_seed_includes_spec_aligned_triangle_predator() -> None:
     assert sum(1 for node in predator_nodes if node.node_type == NodeType.GRIPPER) == 1
     assert sum(1 for node in predator_nodes if node.node_type == NodeType.PHOTORECEPTOR) == 0
     assert len(internal_edges) == 3
+    assert next(node.position for node in predator_nodes if node.node_type == NodeType.MOUTH) == primary_nutrient_source
 
 
 def test_world_can_build_species_snapshots() -> None:
@@ -1092,7 +1426,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 predation_kills=0 species=0 lineages=0 diversity=0.000 complexity=0.00 longest_species_lifespan=0 autotrophs=0 herbivores=0 predators=0"
+        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 species=0 observed_species=0 peak_species=0 lineages=0 diversity=0.000 complexity=0.00 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0"
     )
 
 
@@ -1150,10 +1484,14 @@ def test_cli_run_command_can_seed_demo_world() -> None:
     assert "births=3" in result.stdout
     assert "speciations=0" in result.stdout
     assert "species_extinctions=0" in result.stdout
+    assert "species_turnover=0" in result.stdout
     assert "species=3" in result.stdout
+    assert "observed_species=3" in result.stdout
+    assert "peak_species=3" in result.stdout
     assert "lineages=3" in result.stdout
     assert "predation_kills=0" in result.stdout
     assert "complexity=" in result.stdout
+    assert "mean_extinct_species_lifespan=" in result.stdout
     assert "predators=" in result.stdout
 
 
@@ -1251,6 +1589,110 @@ def test_cli_extract_genomes_writes_top_creatures_from_checkpoint(tmp_path: Path
     assert len(payload) == 2
     assert payload[0]["genome"] is not None
     assert "saved=" in result.stdout
+
+
+def test_cli_evaluate_genomes_ranks_seed_bank_and_exports_promoted_set(tmp_path: Path) -> None:
+    source_world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    source_world.seed_demo_archetypes()
+    seed_bank_path = tmp_path / "seed-bank.json"
+    out_path = tmp_path / "seed-report.json"
+    promoted_path = tmp_path / "promoted.json"
+    source_world.export_top_creatures(path=seed_bank_path, n=1)
+
+    payload = json.loads(seed_bank_path.read_text(encoding="utf-8"))
+    low_energy = {**payload[0], "energy": 0.1}
+    high_energy = {**payload[0], "energy": 10.0}
+    seed_bank_path.write_text(json.dumps([low_energy, high_energy], indent=2), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "evaluate-genomes",
+            str(seed_bank_path),
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "1",
+            "--seeds",
+            "11,12",
+            "--workers",
+            "1",
+            "--top",
+            "1",
+            "--save-top",
+            str(promoted_path),
+            "--out",
+            str(out_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    report = json.loads(out_path.read_text(encoding="utf-8"))
+    assert report["candidate_count"] == 2
+    assert report["seeds"] == [11, 12]
+    assert len(report["rankings"]) == 2
+    assert report["rankings"][0]["source_energy"] == 10.0
+    assert "avg_species_turnover" in report["rankings"][0]
+    assert "promoted_energy" in report["rankings"][0]
+
+    promoted = json.loads(promoted_path.read_text(encoding="utf-8"))
+    assert len(promoted) == 1
+    assert promoted[0]["genome"] is not None
+    assert promoted[0]["energy"] > 0.0
+    assert "saved=" in result.stdout
+    assert "evaluated=2" in result.stdout
+    assert "promoted=" in result.stdout
+
+
+def test_cli_promote_genomes_runs_multiple_rounds_and_writes_manifest(tmp_path: Path) -> None:
+    source_world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    source_world.seed_demo_archetypes()
+    seed_bank_path = tmp_path / "seed-bank.json"
+    out_dir = tmp_path / "promotion"
+    source_world.export_top_creatures(path=seed_bank_path, n=2)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "promote-genomes",
+            str(seed_bank_path),
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "1",
+            "--seeds",
+            "11",
+            "--workers",
+            "1",
+            "--rounds",
+            "2",
+            "--top",
+            "1",
+            "--out-dir",
+            str(out_dir),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    manifest = json.loads((out_dir / "promotion.json").read_text(encoding="utf-8"))
+    assert manifest["rounds_requested"] == 2
+    assert manifest["rounds_completed"] == 2
+    assert len(manifest["rounds"]) == 2
+    assert "carryover_from_previous_round_count" in manifest["rounds"][1]
+    assert "diversity_drift" in manifest["rounds"][0]
+    assert "stable_top_rank_streak" in manifest
+    assert Path(manifest["final_genomes_path"]).exists()
+    assert "saved=" in result.stdout
+    assert "rounds=2" in result.stdout
+    assert "final=" in result.stdout
 
 
 def test_cli_run_command_can_save_checkpoint(tmp_path: Path) -> None:

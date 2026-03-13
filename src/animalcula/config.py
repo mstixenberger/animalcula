@@ -33,6 +33,8 @@ class EnvironmentConfig:
     nutrient_source_count: int
     nutrient_source_strength: float
     nutrient_decay_rate: float
+    nutrient_shift_interval: int
+    nutrient_shift_count: int
     chemical_diffusion_rate: float
     chemical_decay_rate: float
     detritus_decay_rate: float
@@ -65,6 +67,8 @@ class EvolutionConfig:
     motor_toggle_mutation_rate: float
     node_type_mutation_rate: float
     structural_mutation_rate: float
+    hidden_neuron_mutation_rate: float
+    max_hidden_neurons: int
 
 
 @dataclass(slots=True, frozen=True)
@@ -102,17 +106,27 @@ class Config:
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "Config":
+        evolution_raw = {
+            "hidden_neuron_mutation_rate": 0.0,
+            "max_hidden_neurons": 24,
+            **raw["evolution"],
+        }
+        environment_raw = {
+            "nutrient_shift_interval": 0,
+            "nutrient_shift_count": 1,
+            **raw["environment"],
+        }
         return cls(
             world=WorldConfig(**raw["world"]),
             physics=PhysicsConfig(**raw["physics"]),
             environment=EnvironmentConfig(
                 **{
-                    **raw["environment"],
-                    "light_direction": tuple(raw["environment"]["light_direction"]),
+                    **environment_raw,
+                    "light_direction": tuple(environment_raw["light_direction"]),
                 }
             ),
             energy=EnergyConfig(**raw["energy"]),
-            evolution=EvolutionConfig(**raw["evolution"]),
+            evolution=EvolutionConfig(**evolution_raw),
             brain=BrainConfig(**raw["brain"]),
             creatures=CreaturesConfig(**raw["creatures"]),
             simulation=SimulationConfig(**raw["simulation"]),

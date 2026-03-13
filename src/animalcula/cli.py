@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from animalcula.analysis.seedbank import evaluate_seed_bank, promote_seed_bank
 from animalcula.analysis.sweep import run_sweep
 from animalcula.config import Config
 from animalcula.sim.world import World
@@ -62,6 +63,28 @@ def build_parser() -> argparse.ArgumentParser:
     extract_parser.add_argument("checkpoint")
     extract_parser.add_argument("--top", type=int, default=10)
     extract_parser.add_argument("--out", required=True)
+
+    evaluate_parser = subparsers.add_parser("evaluate-genomes", help="Evaluate exported genomes across fresh runs")
+    evaluate_parser.add_argument("genomes")
+    evaluate_parser.add_argument("--config", default="config/default.yaml")
+    evaluate_parser.add_argument("--ticks", type=int, default=100)
+    evaluate_parser.add_argument("--seeds", default="41,42,43")
+    evaluate_parser.add_argument("--workers", type=int, default=1)
+    evaluate_parser.add_argument("--turbo", action="store_true")
+    evaluate_parser.add_argument("--out", required=True)
+    evaluate_parser.add_argument("--save-top", default=None)
+    evaluate_parser.add_argument("--top", type=int, default=5)
+
+    promote_parser = subparsers.add_parser("promote-genomes", help="Run multi-round seed-bank promotion")
+    promote_parser.add_argument("genomes")
+    promote_parser.add_argument("--config", default="config/default.yaml")
+    promote_parser.add_argument("--ticks", type=int, default=100)
+    promote_parser.add_argument("--seeds", default="41,42,43")
+    promote_parser.add_argument("--workers", type=int, default=1)
+    promote_parser.add_argument("--turbo", action="store_true")
+    promote_parser.add_argument("--rounds", type=int, default=3)
+    promote_parser.add_argument("--top", type=int, default=5)
+    promote_parser.add_argument("--out-dir", required=True)
 
     sweep_parser = subparsers.add_parser("sweep", help="Run a parameter sweep")
     sweep_parser.add_argument("--config", default="config/default.yaml")
@@ -152,6 +175,39 @@ def main() -> int:
         print(f"saved={args.out} top={args.top}")
         return 0
 
+    if args.command == "evaluate-genomes":
+        report = evaluate_seed_bank(
+            config_path=args.config,
+            genomes_path=args.genomes,
+            ticks=args.ticks,
+            seeds=[int(value) for value in args.seeds.split(",") if value],
+            turbo=args.turbo,
+            workers=args.workers,
+            out_path=args.out,
+            save_top_path=args.save_top,
+            top=args.top,
+        )
+        promoted = f" promoted={args.save_top}" if args.save_top is not None else ""
+        print(f"saved={args.out} evaluated={report['candidate_count']}{promoted}")
+        return 0
+
+    if args.command == "promote-genomes":
+        manifest = promote_seed_bank(
+            config_path=args.config,
+            genomes_path=args.genomes,
+            ticks=args.ticks,
+            seeds=[int(value) for value in args.seeds.split(",") if value],
+            turbo=args.turbo,
+            rounds=args.rounds,
+            top=args.top,
+            out_dir=args.out_dir,
+            workers=args.workers,
+        )
+        print(
+            f"saved={manifest['manifest_path']} rounds={manifest['rounds_completed']} final={manifest['final_genomes_path']}"
+        )
+        return 0
+
     if args.command == "sweep":
         completed = run_sweep(
             config_path=args.config,
@@ -196,12 +252,16 @@ def _format_stats(seed: int, stats: object) -> str:
             f"reproductions={stats.reproductions}",
             f"speciations={stats.speciation_events}",
             f"species_extinctions={stats.species_extinctions}",
+            f"species_turnover={stats.species_turnover}",
             f"predation_kills={stats.predation_kills}",
             f"species={stats.species_count}",
+            f"observed_species={stats.observed_species_count}",
+            f"peak_species={stats.peak_species_count}",
             f"lineages={stats.lineage_count}",
             f"diversity={stats.diversity_index:.3f}",
             f"complexity={stats.mean_nodes_per_creature:.2f}",
             f"longest_species_lifespan={stats.longest_species_lifespan}",
+            f"mean_extinct_species_lifespan={stats.mean_extinct_species_lifespan:.2f}",
             f"autotrophs={stats.autotroph_count}",
             f"herbivores={stats.herbivore_count}",
             f"predators={stats.predator_count}",
@@ -230,12 +290,16 @@ def _run_with_stats_log(world: World, ticks: int, log_path: str, log_every: int)
                         "reproductions": stats.reproductions,
                         "speciation_events": stats.speciation_events,
                         "species_extinctions": stats.species_extinctions,
+                        "species_turnover": stats.species_turnover,
                         "predation_kills": stats.predation_kills,
                         "lineage_count": stats.lineage_count,
                         "species_count": stats.species_count,
+                        "observed_species_count": stats.observed_species_count,
+                        "peak_species_count": stats.peak_species_count,
                         "diversity_index": stats.diversity_index,
                         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
                         "longest_species_lifespan": stats.longest_species_lifespan,
+                        "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,
                         "autotroph_count": stats.autotroph_count,
                         "herbivore_count": stats.herbivore_count,
                         "predator_count": stats.predator_count,

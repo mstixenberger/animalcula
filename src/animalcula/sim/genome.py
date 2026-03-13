@@ -114,6 +114,92 @@ def _resize_brain_for_outputs(
     )
 
 
+def _resize_brain_hidden_neurons(
+    brain: GenomeBrainGene,
+    target_hidden_neurons: int,
+) -> GenomeBrainGene:
+    current_total = len(brain.biases)
+    current_hidden = max(0, current_total - brain.output_size)
+    target_hidden = max(0, target_hidden_neurons)
+    target_total = target_hidden + brain.output_size
+    input_size = len(brain.input_weights[0]) if brain.input_weights else 0
+
+    current_rows = [list(row) for row in brain.input_weights]
+    current_recurrent = [list(row) for row in brain.recurrent_weights]
+    current_biases = list(brain.biases)
+    current_time_constants = list(brain.time_constants)
+    current_states = list(brain.states)
+
+    hidden_rows = current_rows[:current_hidden]
+    output_rows = current_rows[current_hidden:]
+    hidden_biases = current_biases[:current_hidden]
+    output_biases = current_biases[current_hidden:]
+    hidden_taus = current_time_constants[:current_hidden]
+    output_taus = current_time_constants[current_hidden:]
+    hidden_states = current_states[:current_hidden]
+    output_states = current_states[current_hidden:]
+
+    if target_hidden > current_hidden:
+        growth = target_hidden - current_hidden
+        hidden_rows.extend([[0.0] * input_size for _ in range(growth)])
+        hidden_biases.extend(0.0 for _ in range(growth))
+        hidden_taus.extend(1.0 for _ in range(growth))
+        hidden_states.extend(0.0 for _ in range(growth))
+    elif target_hidden < current_hidden:
+        shrink = current_hidden - target_hidden
+        del hidden_rows[:shrink]
+        del hidden_biases[:shrink]
+        del hidden_taus[:shrink]
+        del hidden_states[:shrink]
+
+    rows = hidden_rows + output_rows
+    biases = hidden_biases + output_biases
+    time_constants = hidden_taus + output_taus
+    states = hidden_states + output_states
+
+    if len(rows) < target_total:
+        rows.extend([[0.0] * input_size for _ in range(target_total - len(rows))])
+    if len(biases) < target_total:
+        biases.extend(0.0 for _ in range(target_total - len(biases)))
+    if len(time_constants) < target_total:
+        time_constants.extend(1.0 for _ in range(target_total - len(time_constants)))
+    if len(states) < target_total:
+        states.extend(0.0 for _ in range(target_total - len(states)))
+
+    current_hidden_rows = current_recurrent[:current_hidden]
+    current_output_rows = current_recurrent[current_hidden:]
+
+    def _resize_recurrent_row(row: list[float]) -> list[float]:
+        hidden_prefix = row[:current_hidden]
+        output_suffix = row[current_hidden:]
+        if target_hidden > current_hidden:
+            hidden_prefix = hidden_prefix + [0.0] * (target_hidden - current_hidden)
+        elif target_hidden < current_hidden:
+            hidden_prefix = hidden_prefix[current_hidden - target_hidden :]
+        resized = hidden_prefix + output_suffix
+        if len(resized) < target_total:
+            resized.extend(0.0 for _ in range(target_total - len(resized)))
+        return resized[:target_total]
+
+    resized_hidden_rows = [_resize_recurrent_row(row) for row in current_hidden_rows]
+    resized_output_rows = [_resize_recurrent_row(row) for row in current_output_rows]
+    if target_hidden > current_hidden:
+        resized_hidden_rows.extend([[0.0] * target_total for _ in range(target_hidden - current_hidden)])
+    elif target_hidden < current_hidden:
+        resized_hidden_rows = resized_hidden_rows[current_hidden - target_hidden :]
+
+    updated_recurrent = resized_hidden_rows + resized_output_rows
+
+    return GenomeBrainGene(
+        input_weights=tuple(tuple(row) for row in rows[:target_total]),
+        recurrent_weights=tuple(tuple(row) for row in updated_recurrent[:target_total]),
+        biases=tuple(biases[:target_total]),
+        time_constants=tuple(time_constants[:target_total]),
+        output_size=brain.output_size,
+        states=tuple(states[:target_total]),
+    )
+
+
 def genome_distance(left: CreatureGenome | None, right: CreatureGenome | None) -> float:
     if left is None and right is None:
         return 0.0
@@ -283,6 +369,8 @@ def mutate_genome(
     motor_toggle_mutation_rate: float = 0.0,
     node_type_mutation_rate: float = 0.0,
     structural_mutation_rate: float = 0.0,
+    hidden_neuron_mutation_rate: float = 0.0,
+    max_hidden_neurons: int = 24,
 ) -> CreatureGenome:
     mutated_nodes = [
         GenomeNodeGene(
@@ -375,6 +463,18 @@ def mutate_genome(
             output_size=genome.brain.output_size,
         )
         mutated_brain = _resize_brain_for_outputs(mutated_brain, target_output_size)
+        current_hidden = max(0, len(mutated_brain.biases) - mutated_brain.output_size)
+        if hidden_neuron_mutation_rate > 0.0 and rng.random() < hidden_neuron_mutation_rate:
+            if current_hidden <= 0:
+                target_hidden = 1
+            elif current_hidden >= max_hidden_neurons:
+                target_hidden = current_hidden - 1
+            else:
+                target_hidden = current_hidden + 1 if rng.random() < 0.5 else current_hidden - 1
+            mutated_brain = _resize_brain_hidden_neurons(
+                mutated_brain,
+                target_hidden_neurons=min(max_hidden_neurons, max(0, target_hidden)),
+            )
     return CreatureGenome(nodes=tuple(mutated_nodes), edges=tuple(mutated_edges), brain=mutated_brain)
 
 

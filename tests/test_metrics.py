@@ -1,4 +1,11 @@
-from animalcula.analysis.metrics import interestingness_score, shannon_diversity, trophic_percentages
+import math
+
+from animalcula.analysis.metrics import (
+    interestingness_score,
+    shannon_diversity,
+    trophic_balance_score,
+    trophic_percentages,
+)
 
 
 def test_interestingness_score_rewards_nonzero_population_and_energy() -> None:
@@ -33,3 +40,11 @@ def test_trophic_percentages_normalize_counts() -> None:
     assert trophic["autotrophs"] == 0.5
     assert trophic["herbivores"] == 0.25
     assert trophic["predators"] == 0.25
+
+
+def test_trophic_balance_score_rewards_more_even_role_mix() -> None:
+    imbalanced = trophic_balance_score(autotrophs=3, herbivores=0, predators=0)
+    balanced = trophic_balance_score(autotrophs=1, herbivores=1, predators=1)
+
+    assert balanced > imbalanced
+    assert math.isclose(balanced, 1.0)

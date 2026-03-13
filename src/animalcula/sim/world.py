@@ -89,12 +89,16 @@ class Stats:
     reproductions: int
     speciation_events: int
     species_extinctions: int
+    species_turnover: int
     predation_kills: int
     lineage_count: int
     species_count: int
+    observed_species_count: int
+    peak_species_count: int
     diversity_index: float
     mean_nodes_per_creature: float
     longest_species_lifespan: int
+    mean_extinct_species_lifespan: float
     autotroph_count: int
     herbivore_count: int
     predator_count: int
@@ -131,6 +135,7 @@ class World:
         self._species_first_seen_tick = {species_id: self.tick for species_id in self._known_species_ids}
         self._species_last_seen_tick = {species_id: self.tick for species_id in self._known_species_ids}
         self._extinct_species_ids: set[str] = set()
+        self._peak_species_count = len(self._known_species_ids)
         self.nutrient_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
@@ -177,8 +182,11 @@ class World:
         return sorted(self.creatures, key=lambda creature: creature.energy, reverse=True)[:n]
 
     def export_top_creatures(self, path: str | Path, n: int, metric: str = "energy") -> None:
-        payload = [self._serialize_creature(creature) for creature in self.get_top_creatures(n=n, metric=metric)]
+        payload = self.top_creature_payload(n=n, metric=metric)
         Path(path).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+    def top_creature_payload(self, n: int, metric: str = "energy") -> list[dict[str, object]]:
+        return [self._serialize_creature(creature) for creature in self.get_top_creatures(n=n, metric=metric)]
 
     def species_snapshots(self) -> list[dict[str, float | int | str]]:
         species_labels = self._species_labels()
@@ -240,7 +248,9 @@ class World:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(payload, list):
             raise TypeError("exported genome file must contain a list of creatures")
+        self.seed_from_exported_payload(payload)
 
+    def seed_from_exported_payload(self, payload: list[dict[str, object]]) -> None:
         imported: list[CreatureState] = []
         for item in payload:
             if not isinstance(item, dict):
@@ -374,12 +384,16 @@ class World:
             reproductions=reproductions,
             speciation_events=speciation_events,
             species_extinctions=species_extinctions,
+            species_turnover=speciation_events + species_extinctions,
             predation_kills=predation_kills,
             lineage_count=len(lineage_counts),
             species_count=len(species_counts),
+            observed_species_count=len(self._known_species_ids),
+            peak_species_count=self._peak_species_count,
             diversity_index=shannon_diversity(dict(lineage_counts)),
             mean_nodes_per_creature=(len(self.nodes) / len(self.creatures)) if self.creatures else 0.0,
             longest_species_lifespan=self._longest_species_lifespan(),
+            mean_extinct_species_lifespan=self._mean_extinct_species_lifespan(),
             autotroph_count=autotroph_count,
             herbivore_count=herbivore_count,
             predator_count=predator_count,
@@ -444,6 +458,7 @@ class World:
             "species_first_seen_tick": self._species_first_seen_tick,
             "species_last_seen_tick": self._species_last_seen_tick,
             "extinct_species_ids": sorted(self._extinct_species_ids),
+            "peak_species_count": self._peak_species_count,
             "grip_latches": [
                 {
                     "creature_a_id": latch.creature_a_id,
@@ -541,6 +556,7 @@ class World:
         world._species_first_seen_tick = dict(payload.get("species_first_seen_tick", {}))
         world._species_last_seen_tick = dict(payload.get("species_last_seen_tick", {}))
         world._extinct_species_ids = set(payload.get("extinct_species_ids", []))
+        world._peak_species_count = payload.get("peak_species_count", len(world._species_labels()))
         world.grip_latches = [
             GripLatch(
                 creature_a_id=latch["creature_a_id"],
@@ -602,6 +618,7 @@ class World:
             self.chemical_b_grid.decay(rate=self.config.environment.chemical_decay_rate)
             self._recycle_detritus()
             self.detritus_grid.decay(rate=self.config.environment.detritus_decay_rate)
+        self._shift_nutrient_sources_if_due()
         for col, row in self._nutrient_source_cells:
             self.nutrient_grid.set_value(
                 col=col,
@@ -951,6 +968,8 @@ class World:
                 motor_toggle_mutation_rate=self.config.evolution.motor_toggle_mutation_rate,
                 node_type_mutation_rate=self.config.evolution.node_type_mutation_rate,
                 structural_mutation_rate=self.config.evolution.structural_mutation_rate,
+                hidden_neuron_mutation_rate=self.config.evolution.hidden_neuron_mutation_rate,
+                max_hidden_neurons=self.config.evolution.max_hidden_neurons,
             )
             child_offset = Vec2(2.0 * (creature_index + 1), 2.0 * (creature_index + 1))
             child_anchor = self.nodes[creature.node_indices[0]].position + child_offset
@@ -1021,6 +1040,34 @@ class World:
             )
         return sorted(source_cells)
 
+    def _shift_nutrient_sources_if_due(self) -> None:
+        interval = self.config.environment.nutrient_shift_interval
+        if interval <= 0 or not self._nutrient_source_cells:
+            return
+        if (self.tick + 1) % interval != 0:
+            return
+
+        source_cells = set(self._nutrient_source_cells)
+        shift_count = min(self.config.environment.nutrient_shift_count, len(source_cells))
+        if shift_count <= 0:
+            return
+
+        cells = list(source_cells)
+        self._rng.shuffle(cells)
+        for old_cell in cells[:shift_count]:
+            source_cells.remove(old_cell)
+            source_cells.add(self._random_unoccupied_nutrient_cell(source_cells))
+        self._nutrient_source_cells = sorted(source_cells)
+
+    def _random_unoccupied_nutrient_cell(self, occupied: set[tuple[int, int]]) -> tuple[int, int]:
+        while True:
+            candidate = (
+                self._rng.randrange(self.nutrient_grid.cols),
+                self._rng.randrange(self.nutrient_grid.rows),
+            )
+            if candidate not in occupied:
+                return candidate
+
     def _initial_next_creature_id(self) -> int:
         existing_ids = [creature.id for creature in self.creatures if creature.id >= 0]
         return (max(existing_ids) + 1) if existing_ids else 1
@@ -1064,6 +1111,7 @@ class World:
     def _sync_species_presence(self) -> None:
         species_labels = self._species_labels()
         current_species_ids = set(species_labels.values())
+        self._peak_species_count = max(self._peak_species_count, len(current_species_ids))
         for species_id in current_species_ids:
             self._species_first_seen_tick.setdefault(species_id, self.tick)
             self._species_last_seen_tick[species_id] = self.tick
@@ -1073,6 +1121,7 @@ class World:
         species_labels = self._species_labels()
         current_species_ids = set(species_labels.values())
         new_species_ids = sorted(current_species_ids - self._known_species_ids)
+        self._peak_species_count = max(self._peak_species_count, len(current_species_ids))
         for species_id in new_species_ids:
             representative = next(
                 creature
@@ -1117,6 +1166,15 @@ class World:
             for species_id, first_seen in self._species_first_seen_tick.items()
         )
 
+    def _mean_extinct_species_lifespan(self) -> float:
+        if not self._extinct_species_ids:
+            return 0.0
+        lifespans = [
+            self._species_last_seen_tick.get(species_id, self.tick) - self._species_first_seen_tick.get(species_id, 0)
+            for species_id in self._extinct_species_ids
+        ]
+        return sum(lifespans) / len(lifespans)
+
     def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
         updated: list[CreatureState] = []
         for creature in creatures:
@@ -1147,6 +1205,8 @@ class World:
         energies = [creature.energy for creature in creatures]
         self._predation_kill_ids = set()
         for predator_index, predator in enumerate(creatures):
+            if not self._gripper_node_indices_for_creature(predator):
+                continue
             _, _, bite_outputs, _, _ = self._control_outputs_for_creature(predator)
             mouth_nodes = self._mouth_nodes_for_creature(predator)
             for mouth_node, bite_output in zip(mouth_nodes, bite_outputs, strict=False):
@@ -1155,7 +1215,10 @@ class World:
                 for victim_index, victim in enumerate(creatures):
                     if predator_index == victim_index or energies[victim_index] <= 0.0:
                         continue
-                    if not any(self._nodes_overlap(mouth_node, self.nodes[node_index]) for node_index in victim.node_indices):
+                    latched_victim = self._creatures_share_grip_latch(predator, victim)
+                    if not latched_victim and not any(
+                        self._nodes_overlap(mouth_node, self.nodes[node_index]) for node_index in victim.node_indices
+                    ):
                         continue
                     damage = min(
                         energies[victim_index],
@@ -1252,7 +1315,10 @@ class World:
         for gripper_node in gripper_nodes:
             if any(
                 other_creature.id != creature.id
-                and any(self._nodes_overlap(gripper_node, self.nodes[node_index]) for node_index in other_creature.node_indices)
+                and any(
+                    self._nodes_within_grip_range(gripper_node, self.nodes[node_index])
+                    for node_index in other_creature.node_indices
+                )
                 for other_creature in self.creatures
             ):
                 contacts += 1
@@ -1283,9 +1349,9 @@ class World:
                 continue
             if latch.node_a_index >= len(self.nodes) or latch.node_b_index >= len(self.nodes):
                 continue
-            if not self._grip_requested(creature_a, latch.node_a_index):
+            if not self._latch_endpoint_is_active(creature_a, latch.node_a_index):
                 continue
-            if not self._grip_requested(creature_b, latch.node_b_index):
+            if not self._latch_endpoint_is_active(creature_b, latch.node_b_index):
                 continue
             latch_force = spring_force(
                 self.nodes[latch.node_a_index].position,
@@ -1308,13 +1374,9 @@ class World:
                 if any(latch.node_a_index == node_index or latch.node_b_index == node_index for latch in refreshed):
                     continue
                 for other_creature in self.creatures:
-                    if other_creature.id == creature.id or not other_creature.last_brain_outputs:
+                    if other_creature.id == creature.id:
                         continue
-                    other_grip_outputs = self._control_outputs_for_creature(other_creature)[1]
-                    other_gripper_indices = self._gripper_node_indices_for_creature(other_creature)
-                    for other_local_index, other_node_index in enumerate(other_gripper_indices):
-                        if other_local_index >= len(other_grip_outputs) or other_grip_outputs[other_local_index] < 0.5:
-                            continue
+                    for other_node_index in other_creature.node_indices:
                         pair_key = tuple(sorted((node_index, other_node_index)))
                         if pair_key in active_pairs:
                             continue
@@ -1323,7 +1385,7 @@ class World:
                             for latch in refreshed
                         ):
                             continue
-                        if not self._nodes_overlap(self.nodes[node_index], self.nodes[other_node_index]):
+                        if not self._nodes_within_grip_range(self.nodes[node_index], self.nodes[other_node_index]):
                             continue
                         refreshed.append(
                             GripLatch(
@@ -1341,6 +1403,20 @@ class World:
 
         self.grip_latches = refreshed
 
+    def _latch_endpoint_is_active(self, creature: CreatureState, node_index: int) -> bool:
+        if node_index not in creature.node_indices:
+            return False
+        if self.nodes[node_index].node_type != NodeType.GRIPPER:
+            return True
+        return self._grip_requested(creature, node_index)
+
+    def _creatures_share_grip_latch(self, a: CreatureState, b: CreatureState) -> bool:
+        return any(
+            (latch.creature_a_id == a.id and latch.creature_b_id == b.id)
+            or (latch.creature_a_id == b.id and latch.creature_b_id == a.id)
+            for latch in self.grip_latches
+        )
+
     def _grip_requested(self, creature: CreatureState, node_index: int) -> bool:
         gripper_indices = self._gripper_node_indices_for_creature(creature)
         if node_index not in gripper_indices:
@@ -1352,8 +1428,13 @@ class World:
     def _nodes_overlap(self, a: NodeState, b: NodeState) -> bool:
         return (a.position - b.position).magnitude() < (a.radius + b.radius)
 
+    def _nodes_within_grip_range(self, gripper: NodeState, target: NodeState) -> bool:
+        capture_distance = (gripper.radius + target.radius) * 1.5
+        return (gripper.position - target.position).magnitude() < capture_distance
+
     def _trophic_role(self, creature: CreatureState) -> str:
         has_mouth = any(self.nodes[node_index].node_type == NodeType.MOUTH for node_index in creature.node_indices)
+        has_gripper = any(self.nodes[node_index].node_type == NodeType.GRIPPER for node_index in creature.node_indices)
         has_photoreceptor = any(
             self.nodes[node_index].node_type == NodeType.PHOTORECEPTOR for node_index in creature.node_indices
         )
@@ -1362,9 +1443,9 @@ class World:
         output_size = creature.brain.output_size if creature.brain is not None else 0
         has_bite_channel = output_size > motor_count and mouth_count > 0
 
-        if has_bite_channel:
+        if has_bite_channel and has_gripper:
             return "predator"
-        if has_mouth and not has_bite_channel:
+        if has_mouth:
             return "herbivore"
         if has_photoreceptor and not has_mouth:
             return "autotroph"

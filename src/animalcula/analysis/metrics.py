@@ -14,6 +14,8 @@ def interestingness_score(
     speciation_events: int = 0,
     species_extinctions: int = 0,
     predation_kills: int = 0,
+    species_turnover: int = 0,
+    observed_species_count: int = 0,
 ) -> float:
     if population <= 0:
         return 0.0
@@ -26,6 +28,8 @@ def interestingness_score(
         + (1.5 * speciation_events)
         + (0.5 * species_extinctions)
         + (2.0 * predation_kills)
+        + species_turnover
+        + (0.5 * observed_species_count)
     )
 
 
@@ -56,3 +60,17 @@ def trophic_percentages(autotrophs: int, herbivores: int, predators: int) -> dic
         "herbivores": herbivores / total,
         "predators": predators / total,
     }
+
+
+def trophic_balance_score(autotrophs: int, herbivores: int, predators: int) -> float:
+    percentages = trophic_percentages(autotrophs=autotrophs, herbivores=herbivores, predators=predators)
+    total = autotrophs + herbivores + predators
+    if total <= 0:
+        return 0.0
+
+    entropy = 0.0
+    for proportion in percentages.values():
+        if proportion <= 0.0:
+            continue
+        entropy -= proportion * math.log(proportion)
+    return entropy / math.log(3.0)

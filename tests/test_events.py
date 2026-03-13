@@ -83,12 +83,15 @@ def test_world_logs_predation_kill_events() -> None:
         ]
     )
     predator_brain = BrainState(
-        input_weights=((0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),),
-        recurrent_weights=((0.0,),),
-        biases=(10.0,),
-        time_constants=(1.0,),
-        states=(0.0,),
-        output_size=1,
+        input_weights=(
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        ),
+        recurrent_weights=((0.0, 0.0), (0.0, 0.0)),
+        biases=(10.0, 10.0),
+        time_constants=(1.0, 1.0),
+        states=(0.0, 0.0),
+        output_size=2,
     )
     nodes = [
         NodeState(
@@ -100,6 +103,14 @@ def test_world_logs_predation_kill_events() -> None:
             node_type=NodeType.MOUTH,
         ),
         NodeState(
+            position=Vec2(100.0, 100.5),
+            velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(),
+            drag_coeff=1.0,
+            radius=1.0,
+            node_type=NodeType.GRIPPER,
+        ),
+        NodeState(
             position=Vec2(100.5, 100.0),
             velocity=Vec2.zero(),
             accumulated_force=Vec2.zero(),
@@ -108,8 +119,8 @@ def test_world_logs_predation_kill_events() -> None:
         ),
     ]
     creatures = [
-        CreatureState(node_indices=(0,), energy=1.0, brain=predator_brain),
-        CreatureState(node_indices=(1,), energy=1.0),
+        CreatureState(node_indices=(0, 1), energy=1.0, brain=predator_brain),
+        CreatureState(node_indices=(2,), energy=1.0),
     ]
     world = World(config=config, nodes=nodes, creatures=creatures)
 
@@ -161,3 +172,24 @@ def test_world_logs_species_extinction_events() -> None:
 
     event_types = [event.event_type for event in world.events]
     assert "species_extinction" in event_types
+
+
+def test_world_stats_capture_species_turnover_after_extinction() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(["creatures.min_population=0"])
+    node = NodeState(
+        position=Vec2(10.0, 10.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    creature = CreatureState(node_indices=(0,), energy=0.0001)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    stats = world.stats()
+    assert stats.species_turnover == 1
+    assert stats.observed_species_count == 1
+    assert stats.peak_species_count == 1
+    assert stats.mean_extinct_species_lifespan == 0.0

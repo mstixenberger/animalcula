@@ -86,6 +86,16 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - A living tuning note in `docs/tuning/phase1.md` with current viability findings and validation commands
 - A spec-aligned seeded triangle predator archetype with a mouth, gripper, and three motorized edges
 - A minimal local `animalcula view` command backed by a Tk debug viewer and richer render snapshots
+- Species-turnover reporting in headless stats, CLI output, stats logs, sweep records, and phase-1 tuning summaries
+- `animalcula evaluate-genomes` for ranking exported seed banks across fresh multi-seed runs and exporting promoted seed artifacts
+- `animalcula promote-genomes` for chaining multi-round seed-bank evaluation and survivor promotion with a round-by-round manifest
+- Promotion manifests now include genome-hash carryover, top-rank continuity, and diversity-drift analytics across rounds
+- Default, turbo, and nursery profiles now enable low nonzero structural, node-role, and motor-topology mutation rates for real exploratory evolution
+- Predation and trophic-role classification now require gripper-bearing morphology, reducing accidental predator labeling from mouth-only descendants
+- Sweep and seed-bank analysis now expose a trophic-balance score for ranking ecologies by role mix, not only size/activity
+- Grippers can now capture nearby prey nodes and bite damage can apply to actively gripped victims, restoring a mechanical path for specialized predators to secure kills
+- CTRNN genomes can now mutate a bounded hidden-neuron prefix independently of control-output count, so controller capacity can grow or shrink across generations without breaking output wiring
+- Environment configs can now shift nutrient-source locations on a deterministic timestep cycle, adding the first spec-facing slice of ongoing environmental variation
 
 ### Changed
 
@@ -96,3 +106,12 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Active grip latches now contribute to the per-tick energy budget
 - The default starter trio now matches the spec more closely: passive alga, grazer, and triangular predator instead of a mislabeled light-feeding generalist
 - `World.snapshot()` now carries read-only render payloads so local visualization can stay decoupled from mutable sim internals
+- Sweep and tuning aggregates now summarize observed/peak species counts and extinct-species lifespan averages alongside concurrent species counts
+- Shared interestingness scoring now also admits turnover-aware ranking inputs for automated seed-bank evaluation
+- Seed-bank promotion now exports survivor artifacts from evaluation runs instead of merely re-emitting the original input candidates
+- The shipped headless profiles no longer keep structural exploration effectively disabled by default
+- Predator-heavy long-run summaries are now less inflated by control-layout artifacts because mouth-only biters fall back to herbivore reporting and behavior
+- Headless analysis output can now distinguish balanced role mixes from one-sided herbivore or predator booms
+- The seeded triangle predator now starts on the grazer nutrient basin so default demo worlds bootstrap real trophic contact instead of isolating the predator on a separate nutrient source
+- Old config/checkpoint payloads now backfill sane defaults for the new hidden-neuron evolution settings instead of failing to load
+- Old config/checkpoint payloads now also backfill sane defaults for nutrient-source shifting settings instead of failing to load

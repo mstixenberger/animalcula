@@ -1,3 +1,5 @@
+Do not stop after every task, resume with the next task what makes the most sense regarding to spec - only stop when the full implemention is complete
+
 # Animalcula Agent Context
 
 This file is a living document. It exists to give future coding agents and human contributors durable project context, working rules, and architectural intent. Update it whenever the implementation, workflow, testing discipline, or project priorities materially change.
@@ -247,6 +249,17 @@ Current implementation baseline:
 - the lifecycle/event stream now records explicit `speciation` events for newly observed clustered species
 - species turnover tracking now records `species_extinction` events and keeps first-seen/last-seen timing for lifespan metrics
 - the headless CLI now supports generic checkpoint-to-seed extraction via `extract-genomes`, not just nursery-specific export
+- headless stats, CLI output, stats logs, sweep records, and tuning summaries now expose observed/peak species counts, aggregate species turnover, and extinct-species lifespan averages
+- exported genome seed banks can now be evaluated across fresh multi-seed runs and promoted back into smaller ranked seed artifacts through the headless CLI
+- multi-round `promote-genomes` workflows now chain survivor-derived promoted artifacts across rounds and emit per-round reports plus a promotion manifest
+- promotion manifests now summarize genome-hash carryover, top-rank continuity, and diversity drift across rounds for headless lineage analysis
+- the shipped default, turbo, and nursery profiles now use low nonzero structural/node-role/motor-topology mutation rates so long-run headless runs can actually explore beyond the starter morphology basin
+- predation is now treated as a gripper-specialized niche in the simulation and trophic-role reporting, so mouth-only descendants default back to herbivore/scavenger behavior instead of inflating predator counts
+- grippers can now capture nearby prey nodes instead of requiring exact overlap, and bite damage can be applied to actively gripped victims to make specialized predators mechanically viable again
+- the seeded triangle predator now starts on the grazer nutrient basin so headless demo worlds bootstrap real predator-prey contact instead of isolating the predator on a separate food source
+- CTRNN genomes can now grow or shrink a bounded hidden-neuron prefix independently of required control outputs, so reproduction can increase controller capacity without breaking morphology-aligned output wiring
+- environment configs can now shift nutrient-source locations on a deterministic timestep cycle, covering the first spec-facing slice of environmental variation without breaking reproducibility
+- sweep and seed-bank analysis now expose a trophic-balance score so headless selection loops can reward viable mixed ecologies, not just high population
 - initial passing pytest suite
 
 ## Update Protocol
