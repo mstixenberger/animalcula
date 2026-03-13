@@ -33,6 +33,8 @@ def test_world_step_advances_tick_and_returns_snapshot() -> None:
     assert world.stats().population_variance == 0.0
     assert world.stats().population_capacity_fraction == 0.0
     assert world.stats().peak_population_capacity_fraction == 0.0
+    assert world.stats().crowding_multiplier == 1.0
+    assert world.stats().peak_crowding_multiplier == 1.0
     assert snapshot.phase_trace == [
         "environment",
         "sensing",
@@ -664,6 +666,8 @@ def test_world_applies_crowding_pressure_above_population_cap() -> None:
 
     assert world.creatures[0].energy < 0.999
     assert world.creatures[1].energy < 0.999
+    assert world.stats().crowding_multiplier == 2.0
+    assert world.stats().peak_crowding_multiplier == 2.0
 
 
 def test_world_brain_phase_updates_brain_state_and_moves_creature() -> None:
@@ -1504,7 +1508,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 drag_multiplier=1.00 nutrient_strength_multiplier=1.00 population=0 peak_population=0 population_variance=0.000 population_capacity_fraction=0.000 peak_population_capacity_fraction=0.000 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 environment_perturbations=0 species=0 observed_species=0 peak_species=0 peak_species_fraction=0.000 lineages=0 runaway_dominance=false diversity=0.000 complexity=0.00 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0 trophic_balance=0.000"
+        == "tick=3 seed=11 drag_multiplier=1.00 nutrient_strength_multiplier=1.00 population=0 peak_population=0 population_variance=0.000 population_capacity_fraction=0.000 peak_population_capacity_fraction=0.000 crowding_multiplier=1.000 peak_crowding_multiplier=1.000 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 environment_perturbations=0 species=0 observed_species=0 peak_species=0 peak_species_fraction=0.000 lineages=0 runaway_dominance=false diversity=0.000 complexity=0.00 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0 trophic_balance=0.000"
     )
 
 
@@ -1956,6 +1960,8 @@ def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:
     assert "\"population_variance\":" in lines[0]
     assert "\"population_capacity_fraction\":" in lines[0]
     assert "\"peak_population_capacity_fraction\":" in lines[0]
+    assert "\"crowding_multiplier\":" in lines[0]
+    assert "\"peak_crowding_multiplier\":" in lines[0]
     assert "\"drag_multiplier\": 1.0" in lines[0]
     assert "\"nutrient_source_strength_multiplier\": 1.0" in lines[0]
     assert "\"peak_species_fraction\":" in lines[0]
@@ -1993,7 +1999,8 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
     with sqlite3.connect(log_path) as connection:
         rows = connection.execute(
             """
-            SELECT tick, peak_population, drag_multiplier, nutrient_source_strength_multiplier,
+            SELECT tick, peak_population, crowding_multiplier, peak_crowding_multiplier,
+                   drag_multiplier, nutrient_source_strength_multiplier,
                    environment_perturbations, trophic_balance_score
             FROM stats_log
             ORDER BY tick
@@ -2003,11 +2010,13 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
     assert len(rows) == 3
     assert rows[0][0] == 1
     assert rows[0][1] >= 3
-    assert rows[0][2] == 1.0
-    assert rows[0][3] == 1.0
-    assert rows[0][4] == 0
+    assert rows[0][2] >= 1.0
+    assert rows[0][3] >= 1.0
+    assert rows[0][4] == 1.0
+    assert rows[0][5] == 1.0
+    assert rows[0][6] == 0
     assert rows[-1][0] == 3
-    assert rows[0][5] >= 0.0
+    assert rows[0][7] >= 0.0
 
 
 def test_cli_nursery_command_runs_and_saves_checkpoint(tmp_path: Path) -> None:

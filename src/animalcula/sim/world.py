@@ -86,6 +86,8 @@ class Stats:
     population_variance: float
     population_capacity_fraction: float
     peak_population_capacity_fraction: float
+    crowding_multiplier: float
+    peak_crowding_multiplier: float
     node_count: int
     edge_count: int
     total_energy: float
@@ -403,6 +405,8 @@ class World:
             population_variance=self.population_variance(),
             population_capacity_fraction=self.population_capacity_fraction(),
             peak_population_capacity_fraction=self.peak_population_capacity_fraction(),
+            crowding_multiplier=self.crowding_multiplier(),
+            peak_crowding_multiplier=self.peak_crowding_multiplier(),
             node_count=len(self.nodes),
             edge_count=len(self.edges),
             total_energy=sum(creature.energy for creature in self.creatures),
@@ -1347,6 +1351,15 @@ class World:
     def peak_population_capacity_fraction(self) -> float:
         capacity = max(self.config.creatures.max_population, 1)
         return self._peak_population / capacity
+
+    def crowding_multiplier(self) -> float:
+        capacity = max(self.config.creatures.max_population, 1)
+        population = len(self.creatures) if self.creatures else len(self.nodes)
+        return max(1.0, population / capacity)
+
+    def peak_crowding_multiplier(self) -> float:
+        capacity = max(self.config.creatures.max_population, 1)
+        return max(1.0, self._peak_population / capacity)
 
     def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
         updated: list[CreatureState] = []

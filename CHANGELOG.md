@@ -102,6 +102,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Environment configs can now also reseed nutrient-source layouts on deterministic long-horizon epochs while cycling source-strength multipliers
 - Runaway monoculture can now trigger deterministic nutrient-source perturbations, recorded as explicit environment events
 - `animalcula run` can now log periodic stats directly into SQLite as well as JSONL
+- Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now expose current and peak crowding multipliers from the existing over-cap metabolic stress mechanic
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints
