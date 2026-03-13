@@ -107,6 +107,8 @@ As of March 12, 2026, after correcting the starter predator archetype to match t
   This does not yet solve predator inconsistency by itself, but it removes a clear architecture ceiling: reproduction can now widen or narrow controller capacity over generations without breaking the existing motor/grip/bite wiring.
 - As of March 13, 2026, the shipped headless profiles also enable deterministic nutrient-source shifting every `1000` ticks.
   This is the first environmental-variation slice from the spec. In the current conservative basin check, a `1,000`-tick turbo run at seed `41` still held the same baseline (`population=5`, `deaths=1`, `predation_kills=1`), so the feature is in without destabilizing the existing short-horizon ecology.
+- As of March 13, 2026, the shipped headless profiles also enable deterministic medium-cycle light seasons: direction rotates and intensity swings between configured minimum and maximum values every `10,000` ticks across a four-step cycle.
+  This completes the next spec-facing environmental variation slice without changing the short-horizon baseline, but it raises the priority on longer `10,000+` multi-seed checks because phototroph and photoreceptor lineages will now see real seasonal pressure.
 
 ## Interpretation
 

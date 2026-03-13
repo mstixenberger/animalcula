@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from dataclasses import replace
 import json
+import math
 from pathlib import Path
 import random
 from collections import Counter
@@ -625,10 +626,29 @@ class World:
                 row=row,
                 value=self.config.environment.nutrient_source_strength,
             )
+        light_direction, light_intensity = self.current_light_state()
         self.light_grid.fill_light_gradient(
-            direction=self.config.environment.light_direction,
-            intensity=self.config.environment.light_intensity_max,
+            direction=light_direction,
+            intensity=light_intensity,
         )
+
+    def current_light_state(self) -> tuple[tuple[float, float], float]:
+        base_direction = self.config.environment.light_direction
+        max_intensity = self.config.environment.light_intensity_max
+        min_intensity = max(0.0, min(self.config.environment.light_intensity_min, max_intensity))
+        interval = self.config.environment.light_season_interval
+        steps = max(1, self.config.environment.light_season_steps)
+
+        if interval <= 0 or steps <= 1:
+            return base_direction, max_intensity
+
+        season_index = ((self.tick + 1) // interval) % steps
+        phase = season_index / steps
+        angle = 2.0 * math.pi * phase
+        direction_x = (base_direction[0] * math.cos(angle)) - (base_direction[1] * math.sin(angle))
+        direction_y = (base_direction[0] * math.sin(angle)) + (base_direction[1] * math.cos(angle))
+        intensity = min_intensity + ((max_intensity - min_intensity) * (0.5 + (0.5 * math.cos(angle))))
+        return (direction_x, direction_y), intensity
 
     def _sense_environment(self) -> None:
         updated_creatures: list[CreatureState] = []

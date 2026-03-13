@@ -259,6 +259,7 @@ Current implementation baseline:
 - the seeded triangle predator now starts on the grazer nutrient basin so headless demo worlds bootstrap real predator-prey contact instead of isolating the predator on a separate food source
 - CTRNN genomes can now grow or shrink a bounded hidden-neuron prefix independently of required control outputs, so reproduction can increase controller capacity without breaking morphology-aligned output wiring
 - environment configs can now shift nutrient-source locations on a deterministic timestep cycle, covering the first spec-facing slice of environmental variation without breaking reproducibility
+- light gradients can now rotate and dim/brighten on a deterministic medium-horizon seasonal cycle, so environmental variation now covers both nutrient and light regimes
 - sweep and seed-bank analysis now expose a trophic-balance score so headless selection loops can reward viable mixed ecologies, not just high population
 - initial passing pytest suite
 

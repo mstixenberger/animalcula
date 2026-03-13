@@ -23,7 +23,10 @@ environment:
   detritus_decay_rate: 0.005
   detritus_recycling_rate: 0.08
   light_intensity_max: 1.25
+  light_intensity_min: 0.625
   light_direction: [1.0, 0.0]
+  light_season_interval: 10000
+  light_season_steps: 4
 
 energy:
   basal_cost_per_node: 0.0005

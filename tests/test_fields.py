@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from animalcula import Config, World
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.types import Vec2
@@ -45,6 +47,35 @@ def test_world_light_grid_forms_a_directional_gradient() -> None:
     right = world.light_grid.sample(Vec2(995.0, 500.0))
 
     assert right > left
+
+
+def test_world_light_seasons_rotate_direction_and_intensity() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "environment.light_direction=[1.0, 0.0]",
+            "environment.light_intensity_max=1.0",
+            "environment.light_intensity_min=0.2",
+            "environment.light_season_interval=2",
+            "environment.light_season_steps=4",
+        ]
+    )
+    world = World(config=config)
+
+    direction, intensity = world.current_light_state()
+    assert direction == pytest.approx((1.0, 0.0))
+    assert intensity == pytest.approx(1.0)
+
+    world.step(2)
+    direction, intensity = world.current_light_state()
+    assert direction == pytest.approx((0.0, 1.0), abs=1e-6)
+    assert intensity == pytest.approx(0.6)
+    assert world.light_grid.sample(Vec2(500.0, 995.0)) > world.light_grid.sample(Vec2(500.0, 5.0))
+
+    world.step(2)
+    direction, intensity = world.current_light_state()
+    assert direction == pytest.approx((-1.0, 0.0), abs=1e-6)
+    assert intensity == pytest.approx(0.2)
+    assert world.light_grid.sample(Vec2(5.0, 500.0)) > world.light_grid.sample(Vec2(995.0, 500.0))
 
 
 def test_world_initializes_positive_nutrient_sources() -> None:

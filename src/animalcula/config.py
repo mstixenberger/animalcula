@@ -40,7 +40,10 @@ class EnvironmentConfig:
     detritus_decay_rate: float
     detritus_recycling_rate: float
     light_intensity_max: float
+    light_intensity_min: float
     light_direction: tuple[float, float]
+    light_season_interval: int
+    light_season_steps: int
 
 
 @dataclass(slots=True, frozen=True)
@@ -116,6 +119,9 @@ class Config:
             "nutrient_shift_count": 1,
             **raw["environment"],
         }
+        environment_raw.setdefault("light_intensity_min", environment_raw["light_intensity_max"])
+        environment_raw.setdefault("light_season_interval", 0)
+        environment_raw.setdefault("light_season_steps", 1)
         return cls(
             world=WorldConfig(**raw["world"]),
             physics=PhysicsConfig(**raw["physics"]),

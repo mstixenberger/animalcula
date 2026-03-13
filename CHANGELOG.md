@@ -96,6 +96,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Grippers can now capture nearby prey nodes and bite damage can apply to actively gripped victims, restoring a mechanical path for specialized predators to secure kills
 - CTRNN genomes can now mutate a bounded hidden-neuron prefix independently of control-output count, so controller capacity can grow or shrink across generations without breaking output wiring
 - Environment configs can now shift nutrient-source locations on a deterministic timestep cycle, adding the first spec-facing slice of ongoing environmental variation
+- Environment configs can now also rotate and dim/brighten the light gradient on a deterministic seasonal cycle
 
 ### Changed
 
@@ -115,3 +116,4 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - The seeded triangle predator now starts on the grazer nutrient basin so default demo worlds bootstrap real trophic contact instead of isolating the predator on a separate nutrient source
 - Old config/checkpoint payloads now backfill sane defaults for the new hidden-neuron evolution settings instead of failing to load
 - Old config/checkpoint payloads now also backfill sane defaults for nutrient-source shifting settings instead of failing to load
+- Old config/checkpoint payloads now backfill sane defaults for seasonal light-cycle settings instead of failing to load

@@ -18,7 +18,10 @@ def test_loads_default_config() -> None:
     assert config.environment.nutrient_shift_interval == 1000
     assert config.environment.nutrient_shift_count == 1
     assert config.environment.light_intensity_max == 1.0
+    assert config.environment.light_intensity_min == 0.5
     assert config.environment.light_direction == (1.0, 0.0)
+    assert config.environment.light_season_interval == 10000
+    assert config.environment.light_season_steps == 4
     assert config.energy.basal_cost_per_node == 0.001
     assert config.energy.feed_rate == 0.01
     assert config.energy.grip_cost == 0.002
@@ -99,3 +102,17 @@ def test_config_from_dict_backfills_nutrient_shift_defaults_for_old_payloads() -
 
     assert loaded.environment.nutrient_shift_interval == 0
     assert loaded.environment.nutrient_shift_count == 1
+
+
+def test_config_from_dict_backfills_light_season_defaults_for_old_payloads() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    payload = config.to_dict()
+    del payload["environment"]["light_intensity_min"]
+    del payload["environment"]["light_season_interval"]
+    del payload["environment"]["light_season_steps"]
+
+    loaded = Config.from_dict(payload)
+
+    assert loaded.environment.light_intensity_min == config.environment.light_intensity_max
+    assert loaded.environment.light_season_interval == 0
+    assert loaded.environment.light_season_steps == 1

@@ -82,7 +82,7 @@ class Grid2D:
             y = ((row + 0.5) * self.resolution) / self.height
             for col in range(self.cols):
                 x = ((col + 0.5) * self.resolution) / self.width
-                projection = (x * normalized[0]) + (y * normalized[1])
+                projection = 0.5 + ((x - 0.5) * normalized[0]) + ((y - 0.5) * normalized[1])
                 value = max(0.0, min(projection, 1.0)) * intensity
                 self.set_value(col=col, row=row, value=value)
 
