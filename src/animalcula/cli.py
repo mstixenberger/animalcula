@@ -45,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     view_parser.add_argument("--seed-from", default=None)
     view_parser.add_argument("--set", action="append", default=[])
     view_parser.add_argument("--turbo", action="store_true")
+    view_parser.add_argument("--warmup-ticks", type=int, default=120)
     view_parser.add_argument("--steps-per-frame", type=int, default=4)
     view_parser.add_argument("--frame-delay-ms", type=int, default=33)
     view_parser.add_argument("--canvas-width", type=int, default=900)
@@ -148,6 +149,8 @@ def main() -> int:
 
     if args.command == "view":
         world = _load_or_create_world(args)
+        if args.resume is None and args.warmup_ticks > 0:
+            world.step(args.warmup_ticks)
         html_viewer = launch_viewer(
             world,
             steps_per_frame=max(1, args.steps_per_frame),

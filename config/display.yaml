@@ -1,0 +1,70 @@
+world:
+  width: 1000.0
+  height: 1000.0
+  grid_resolution: 5.0
+  boundary: toroidal
+
+physics:
+  dt: 0.01
+  default_drag: 1.0
+  contact_repulsion: 2.0
+  grip_spring_stiffness: 200.0
+  grip_yield_force: 50.0
+
+environment:
+  nutrient_diffusion_rate: 0.15
+  nutrient_source_count: 8
+  nutrient_source_strength: 4.0
+  nutrient_decay_rate: 0.0005
+  nutrient_shift_interval: 1000
+  nutrient_shift_count: 1
+  nutrient_epoch_interval: 100000
+  nutrient_epoch_strength_multipliers: [1.0, 0.85, 1.25]
+  dominance_perturbation_interval: 20000
+  dominance_perturbation_shift_count: 2
+  chemical_diffusion_rate: 0.2
+  chemical_decay_rate: 0.05
+  detritus_decay_rate: 0.005
+  detritus_recycling_rate: 0.08
+  light_intensity_max: 1.25
+  light_intensity_min: 0.625
+  light_direction: [1.0, 0.0]
+  light_season_interval: 10000
+  light_season_steps: 4
+  drag_shift_interval: 100000
+  drag_shift_multipliers: [1.0, 1.2, 0.9]
+
+energy:
+  basal_cost_per_node: 0.0005
+  feed_rate: 0.08
+  scavenging_rate: 0.01
+  photosynthesis_rate: 0.03
+  motor_cost_per_unit: 0.0005
+  grip_cost: 0.001
+  predation_rate: 0.08
+  predation_transfer_efficiency: 0.6
+  reproduction_threshold: 20.0
+
+evolution:
+  position_mutation_sigma: 0.5
+  radius_mutation_sigma: 0.05
+  weight_mutation_sigma: 0.1
+  bias_mutation_sigma: 0.05
+  tau_mutation_sigma: 0.02
+  motor_strength_mutation_sigma: 0.2
+  motor_toggle_mutation_rate: 0.05
+  node_type_mutation_rate: 0.02
+  structural_mutation_rate: 0.05
+  hidden_neuron_mutation_rate: 0.05
+  max_hidden_neurons: 24
+
+brain:
+  default_input_size: 16
+  motor_force_scale: 1.0
+
+creatures:
+  min_population: 0
+  max_population: 800
+
+simulation:
+  initial_seed: 42

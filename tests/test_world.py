@@ -1685,6 +1685,7 @@ def test_cli_view_help_describes_minimal_debug_viewer() -> None:
     assert "minimal local debug viewer" in result.stdout
     assert "--viewer-backend" in result.stdout
     assert "--html-out" in result.stdout
+    assert "--warmup-ticks" in result.stdout
     assert "--steps-per-frame" in result.stdout
 
 

@@ -86,6 +86,17 @@ def test_loads_nursery_config_profile() -> None:
     assert config.creatures.min_population == 0
 
 
+def test_loads_display_config_profile() -> None:
+    config = Config.from_yaml(Path("config/display.yaml"))
+
+    assert config.environment.nutrient_source_strength >= 4.0
+    assert config.energy.feed_rate >= 0.08
+    assert config.energy.photosynthesis_rate >= 0.03
+    assert config.energy.predation_rate >= 0.08
+    assert config.energy.reproduction_threshold <= 20.0
+    assert config.creatures.max_population >= 800
+
+
 def test_config_from_dict_backfills_hidden_neuron_defaults_for_old_payloads() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     payload = config.to_dict()

@@ -84,6 +84,7 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
     payload = html_path.read_text(encoding="utf-8")
     assert "Animalcula Debug Viewer" in payload
     assert "speed=" in payload
+    assert "\"tick\": 120" in payload
     assert '"light": [[' in payload
     assert "chemical-a" in payload
     assert 'canvas.addEventListener("click"' in payload
