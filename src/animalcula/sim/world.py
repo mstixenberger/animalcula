@@ -110,6 +110,8 @@ class Stats:
     diversity_index: float
     mean_nodes_per_creature: float
     mean_speed_recent: float
+    mean_age_ticks: float
+    max_age_ticks: int
     active_grip_latch_count: int
     peak_grip_latch_count: int
     mean_gripper_contact_signal: float
@@ -447,6 +449,12 @@ class World:
                 if self.creatures
                 else 0.0
             ),
+            mean_age_ticks=(
+                sum(creature.age_ticks for creature in self.creatures) / len(self.creatures)
+                if self.creatures
+                else 0.0
+            ),
+            max_age_ticks=max((creature.age_ticks for creature in self.creatures), default=0),
             active_grip_latch_count=len(self.grip_latches),
             peak_grip_latch_count=self._peak_grip_latch_count,
             mean_gripper_contact_signal=(

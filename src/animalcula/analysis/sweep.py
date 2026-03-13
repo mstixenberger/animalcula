@@ -98,6 +98,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "species_sum": 0,
                 "diversity_sum": 0.0,
                 "mean_speed_sum": 0.0,
+                "mean_age_sum": 0.0,
+                "max_age_max": 0,
                 "active_grip_latch_sum": 0,
                 "peak_grip_latch_max": 0,
                 "gripper_contact_signal_sum": 0.0,
@@ -150,6 +152,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["species_sum"] += record["species_count"]
         bucket["diversity_sum"] += record["diversity_index"]
         bucket["mean_speed_sum"] += record["mean_speed_recent"]
+        bucket["mean_age_sum"] += record["mean_age_ticks"]
+        bucket["max_age_max"] = max(bucket["max_age_max"], record["max_age_ticks"])
         bucket["active_grip_latch_sum"] += record["active_grip_latch_count"]
         bucket["peak_grip_latch_max"] = max(bucket["peak_grip_latch_max"], record["peak_grip_latch_count"])
         bucket["gripper_contact_signal_sum"] += record["mean_gripper_contact_signal"]
@@ -204,6 +208,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
             "avg_mean_speed_recent": round(bucket["mean_speed_sum"] / bucket["runs"], 3),
+            "avg_mean_age_ticks": round(bucket["mean_age_sum"] / bucket["runs"], 3),
+            "max_age_ticks_max": bucket["max_age_max"],
             "avg_active_grip_latch_count": round(bucket["active_grip_latch_sum"] / bucket["runs"], 3),
             "peak_grip_latch_count_max": bucket["peak_grip_latch_max"],
             "avg_mean_gripper_contact_signal": round(bucket["gripper_contact_signal_sum"] / bucket["runs"], 3),
@@ -306,6 +312,8 @@ def _run_sweep_combination(
         "peak_species_fraction": stats.peak_species_fraction,
         "diversity_index": stats.diversity_index,
         "mean_speed_recent": stats.mean_speed_recent,
+        "mean_age_ticks": stats.mean_age_ticks,
+        "max_age_ticks": stats.max_age_ticks,
         "active_grip_latch_count": stats.active_grip_latch_count,
         "peak_grip_latch_count": stats.peak_grip_latch_count,
         "mean_gripper_contact_signal": stats.mean_gripper_contact_signal,

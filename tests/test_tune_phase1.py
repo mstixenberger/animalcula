@@ -61,6 +61,8 @@ def test_tune_phase1_writes_raw_and_summary_outputs(tmp_path: Path) -> None:
     assert "avg_chemical_a_total" in summaries[0]
     assert "avg_chemical_b_total" in summaries[0]
     assert "avg_mean_speed_recent" in summaries[0]
+    assert "avg_mean_age_ticks" in summaries[0]
+    assert "max_age_ticks_max" in summaries[0]
     assert "avg_active_grip_latch_count" in summaries[0]
     assert "peak_grip_latch_count_max" in summaries[0]
     assert "avg_mean_gripper_contact_signal" in summaries[0]
