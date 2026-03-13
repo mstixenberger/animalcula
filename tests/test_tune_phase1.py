@@ -60,6 +60,8 @@ def test_tune_phase1_writes_raw_and_summary_outputs(tmp_path: Path) -> None:
     assert "max_creature_energy_max" in summaries[0]
     assert "avg_mean_mouths_per_creature" in summaries[0]
     assert "avg_mean_grippers_per_creature" in summaries[0]
+    assert "avg_mean_sensors_per_creature" in summaries[0]
+    assert "avg_mean_photoreceptors_per_creature" in summaries[0]
     assert "avg_nutrient_total" in summaries[0]
     assert "avg_detritus_total" in summaries[0]
     assert "avg_chemical_a_total" in summaries[0]

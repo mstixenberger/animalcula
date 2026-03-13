@@ -76,6 +76,8 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "max_creature_energy" in records[0]
     assert "mean_mouths_per_creature" in records[0]
     assert "mean_grippers_per_creature" in records[0]
+    assert "mean_sensors_per_creature" in records[0]
+    assert "mean_photoreceptors_per_creature" in records[0]
     assert "mean_age_ticks" in records[0]
     assert "max_age_ticks" in records[0]
     assert "lineage_count" in records[0]
@@ -128,6 +130,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "max_creature_energy": 4.0,
             "mean_mouths_per_creature": 1.0,
             "mean_grippers_per_creature": 0.5,
+            "mean_sensors_per_creature": 0.2,
+            "mean_photoreceptors_per_creature": 0.4,
             "mean_age_ticks": 12.0,
             "max_age_ticks": 20,
             "species_count": 2,
@@ -180,6 +184,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "max_creature_energy": 3.0,
             "mean_mouths_per_creature": 0.5,
             "mean_grippers_per_creature": 1.0,
+            "mean_sensors_per_creature": 0.6,
+            "mean_photoreceptors_per_creature": 0.8,
             "mean_age_ticks": 8.0,
             "max_age_ticks": 15,
             "species_count": 1,
@@ -228,6 +234,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["max_creature_energy_max"] == 4.0
     assert summaries[0]["avg_mean_mouths_per_creature"] == 0.75
     assert summaries[0]["avg_mean_grippers_per_creature"] == 0.75
+    assert summaries[0]["avg_mean_sensors_per_creature"] == 0.4
+    assert summaries[0]["avg_mean_photoreceptors_per_creature"] == 0.6
     assert summaries[0]["avg_nutrient_total"] == 3.0
     assert summaries[0]["avg_detritus_total"] == 0.4
     assert summaries[0]["avg_chemical_a_total"] == 0.6

@@ -113,6 +113,8 @@ class Stats:
     mean_nodes_per_creature: float
     mean_mouths_per_creature: float
     mean_grippers_per_creature: float
+    mean_sensors_per_creature: float
+    mean_photoreceptors_per_creature: float
     mean_speed_recent: float
     mean_age_ticks: float
     max_age_ticks: int
@@ -462,6 +464,16 @@ class World:
             ),
             mean_grippers_per_creature=(
                 sum(snapshot["num_grippers"] for snapshot in phenotype_snapshots) / len(phenotype_snapshots)
+                if phenotype_snapshots
+                else 0.0
+            ),
+            mean_sensors_per_creature=(
+                sum(snapshot["num_sensors"] for snapshot in phenotype_snapshots) / len(phenotype_snapshots)
+                if phenotype_snapshots
+                else 0.0
+            ),
+            mean_photoreceptors_per_creature=(
+                sum(snapshot["num_photoreceptors"] for snapshot in phenotype_snapshots) / len(phenotype_snapshots)
                 if phenotype_snapshots
                 else 0.0
             ),
