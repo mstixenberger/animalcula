@@ -146,3 +146,107 @@ def test_launch_viewer_can_skip_auto_open_for_html_output(
     assert html_path is not None
     assert html_path.exists()
     assert opened == []
+
+
+def test_launch_viewer_uses_tk_safe_hex_colors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    world.seed_demo_archetypes()
+
+    class _Canvas:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def pack(self, **_kwargs: object) -> None:
+            return None
+
+        def bind(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def delete(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def create_rectangle(self, *_args: object, **kwargs: object) -> int:
+            _assert_tk_colors(kwargs)
+            return 1
+
+        def create_oval(self, *_args: object, **kwargs: object) -> int:
+            _assert_tk_colors(kwargs)
+            return 1
+
+        def create_line(self, *_args: object, **kwargs: object) -> int:
+            _assert_tk_colors(kwargs)
+            return 1
+
+        def create_polygon(self, *_args: object, **kwargs: object) -> int:
+            _assert_tk_colors(kwargs)
+            return 1
+
+        def create_text(self, *_args: object, **kwargs: object) -> int:
+            _assert_tk_colors(kwargs)
+            return 1
+
+        def bbox(self, _item: object) -> tuple[int, int, int, int]:
+            return (0, 0, 40, 12)
+
+        def tag_raise(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+    class _Root:
+        def title(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def configure(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def bind(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def after(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def mainloop(self) -> None:
+            return None
+
+    class _StringVar:
+        def __init__(self, value: str = "") -> None:
+            self.value = value
+
+        def set(self, value: str) -> None:
+            self.value = value
+
+    class _Label:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def pack(self, **_kwargs: object) -> None:
+            return None
+
+    class _FakeTkModule:
+        Canvas = _Canvas
+        Label = _Label
+        StringVar = _StringVar
+
+        @staticmethod
+        def Tk() -> _Root:
+            return _Root()
+
+    def _assert_tk_colors(kwargs: dict[str, object]) -> None:
+        for key in ("fill", "outline"):
+            value = kwargs.get(key)
+            if isinstance(value, str):
+                assert not value.startswith("rgb(")
+
+    monkeypatch.setattr(debug_viewer, "_load_tk", lambda: _FakeTkModule)
+
+    html_path = debug_viewer.launch_viewer(
+        world,
+        backend="tk",
+        steps_per_frame=1,
+        frame_delay_ms=1,
+        canvas_width=400,
+        canvas_height=400,
+    )
+
+    assert html_path is None

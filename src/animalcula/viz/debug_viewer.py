@@ -35,10 +35,24 @@ def _rgb_to_css(color_rgb: tuple[int, int, int] | list[int]) -> str:
     return f"rgb({red}, {green}, {blue})"
 
 
-def _parse_css_rgb(css: str) -> tuple[int, int, int] | None:
-    if not css.startswith("rgb(") or not css.endswith(")"):
+def _rgb_to_hex(color_rgb: tuple[int, int, int] | list[int]) -> str:
+    red, green, blue = (max(0, min(255, int(channel))) for channel in color_rgb)
+    return f"#{red:02x}{green:02x}{blue:02x}"
+
+
+def _parse_color_rgb(color: str) -> tuple[int, int, int] | None:
+    if color.startswith("#") and len(color) == 7:
+        try:
+            return (
+                int(color[1:3], 16),
+                int(color[3:5], 16),
+                int(color[5:7], 16),
+            )
+        except ValueError:
+            return None
+    if not color.startswith("rgb(") or not color.endswith(")"):
         return None
-    payload = [part.strip() for part in css[4:-1].split(",")]
+    payload = [part.strip() for part in color[4:-1].split(",")]
     if len(payload) != 3:
         return None
     try:
@@ -48,7 +62,7 @@ def _parse_css_rgb(css: str) -> tuple[int, int, int] | None:
 
 
 def _blend_css_color(css: str, *, alpha: float, background_rgb: tuple[int, int, int] = (22, 26, 31)) -> str:
-    parsed = _parse_css_rgb(css)
+    parsed = _parse_color_rgb(css)
     if parsed is None:
         return css
     red = round((parsed[0] * alpha) + (background_rgb[0] * (1.0 - alpha)))
@@ -1601,7 +1615,7 @@ def _launch_tk_viewer(
             for creature in snapshot.creatures
         }
         creature_colors = {
-            creature.creature_id: _rgb_to_css(creature.color_rgb)
+            creature.creature_id: _rgb_to_hex(creature.color_rgb)
             for creature in snapshot.creatures
         }
         creature_visuals = {
@@ -1758,7 +1772,7 @@ def _launch_tk_viewer(
                 sy - 14,
                 sx + 14,
                 sy + 14,
-                outline=_rgb_to_css(selected.color_rgb),
+                outline=_rgb_to_hex(selected.color_rgb),
                 width=3,
             )
             species_label = (selected.species_id or "species").replace("species-", "s")
@@ -1783,7 +1797,7 @@ def _launch_tk_viewer(
                     x1 + pad,
                     y1 + pad,
                     fill="#101317",
-                    outline=_rgb_to_css(selected.color_rgb),
+                    outline=_rgb_to_hex(selected.color_rgb),
                     width=1,
                 )
                 canvas.tag_raise(text_id)

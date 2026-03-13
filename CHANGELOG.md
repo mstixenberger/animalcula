@@ -140,6 +140,10 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints
+
+### Fixed
+
+- The Tk live viewer now uses Tk-safe hex colors for lineage/selection rendering instead of CSS `rgb(...)` strings, fixing a startup crash on Tk-capable Python builds
 - Headless runs now expose current and peak carrying-capacity fractions, and shared interestingness scoring now rewards the spec’s target midrange population band
 - Direct CLI run/report output and periodic stats logs now also expose trophic-balance scoring
 - Shared interestingness scoring now also rewards trophic balance directly instead of leaving it as a passive analysis column
