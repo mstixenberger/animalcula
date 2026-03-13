@@ -111,6 +111,8 @@ class Stats:
     peak_species_count: int
     diversity_index: float
     mean_nodes_per_creature: float
+    mean_mouths_per_creature: float
+    mean_grippers_per_creature: float
     mean_speed_recent: float
     mean_age_ticks: float
     max_age_ticks: int
@@ -407,6 +409,7 @@ class World:
         herbivore_count = 0
         predator_count = 0
         grip_capable_creatures = [creature for creature in self.creatures if self._gripper_node_indices_for_creature(creature)]
+        phenotype_snapshots = self.phenotype_snapshots()
         for creature in self.creatures:
             trophic_role = self._trophic_role(creature)
             if trophic_role == "autotroph":
@@ -452,6 +455,16 @@ class World:
             peak_species_count=self._peak_species_count,
             diversity_index=shannon_diversity(dict(lineage_counts)),
             mean_nodes_per_creature=(len(self.nodes) / len(self.creatures)) if self.creatures else 0.0,
+            mean_mouths_per_creature=(
+                sum(snapshot["num_mouths"] for snapshot in phenotype_snapshots) / len(phenotype_snapshots)
+                if phenotype_snapshots
+                else 0.0
+            ),
+            mean_grippers_per_creature=(
+                sum(snapshot["num_grippers"] for snapshot in phenotype_snapshots) / len(phenotype_snapshots)
+                if phenotype_snapshots
+                else 0.0
+            ),
             mean_speed_recent=(
                 sum(creature.mean_speed_recent for creature in self.creatures) / len(self.creatures)
                 if self.creatures

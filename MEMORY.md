@@ -6,7 +6,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 - Branch state: working directly on `main` with frequent stable checkpoints
 - Product focus: spec-aligned headless simulation, logging, and tuning loop
-- Test status at last update: full `uv run pytest` passing after the energy observability slice
+- Test status at last update: full `uv run pytest` passing after the mouth/gripper observability slice
 - Recent completed slices:
   - direct trophic-balance weighting in shared interestingness scoring
   - deterministic nutrient epoch reseeding with source-strength multipliers
@@ -23,6 +23,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - mean gripper contact and active-signal visibility in headless stats/logs/sweeps/seed-bank summaries
 - mean and max creature-age visibility in headless stats/logs/sweeps/seed-bank summaries
 - mean and max creature-energy visibility in headless stats/logs/sweeps/seed-bank summaries
+- mean mouth and gripper counts in headless stats/logs/sweeps/seed-bank summaries
 
 ## Current Priority
 

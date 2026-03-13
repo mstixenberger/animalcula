@@ -99,6 +99,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "light_direction_degrees_sum": 0.0,
                 "species_sum": 0,
                 "diversity_sum": 0.0,
+                "mouths_sum": 0.0,
+                "grippers_sum": 0.0,
                 "mean_speed_sum": 0.0,
                 "mean_age_sum": 0.0,
                 "max_age_max": 0,
@@ -155,6 +157,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["light_direction_degrees_sum"] += record["light_direction_degrees"]
         bucket["species_sum"] += record["species_count"]
         bucket["diversity_sum"] += record["diversity_index"]
+        bucket["mouths_sum"] += record["mean_mouths_per_creature"]
+        bucket["grippers_sum"] += record["mean_grippers_per_creature"]
         bucket["mean_speed_sum"] += record["mean_speed_recent"]
         bucket["mean_age_sum"] += record["mean_age_ticks"]
         bucket["max_age_max"] = max(bucket["max_age_max"], record["max_age_ticks"])
@@ -213,6 +217,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_light_direction_degrees": round(bucket["light_direction_degrees_sum"] / bucket["runs"], 3),
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
+            "avg_mean_mouths_per_creature": round(bucket["mouths_sum"] / bucket["runs"], 3),
+            "avg_mean_grippers_per_creature": round(bucket["grippers_sum"] / bucket["runs"], 3),
             "avg_mean_speed_recent": round(bucket["mean_speed_sum"] / bucket["runs"], 3),
             "avg_mean_age_ticks": round(bucket["mean_age_sum"] / bucket["runs"], 3),
             "max_age_ticks_max": bucket["max_age_max"],
@@ -319,6 +325,8 @@ def _run_sweep_combination(
         "peak_species_count": stats.peak_species_count,
         "peak_species_fraction": stats.peak_species_fraction,
         "diversity_index": stats.diversity_index,
+        "mean_mouths_per_creature": stats.mean_mouths_per_creature,
+        "mean_grippers_per_creature": stats.mean_grippers_per_creature,
         "mean_speed_recent": stats.mean_speed_recent,
         "mean_age_ticks": stats.mean_age_ticks,
         "max_age_ticks": stats.max_age_ticks,
