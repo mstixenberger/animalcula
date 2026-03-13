@@ -86,6 +86,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "peak_population_capacity_fraction_max": 0.0,
                 "energy_sum": 0.0,
                 "drag_multiplier_sum": 0.0,
+                "nutrient_source_strength_multiplier_sum": 0.0,
                 "species_sum": 0,
                 "diversity_sum": 0.0,
                 "reproductions_sum": 0,
@@ -120,6 +121,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         )
         bucket["energy_sum"] += record["total_energy"]
         bucket["drag_multiplier_sum"] += record["drag_multiplier"]
+        bucket["nutrient_source_strength_multiplier_sum"] += record["nutrient_source_strength_multiplier"]
         bucket["species_sum"] += record["species_count"]
         bucket["diversity_sum"] += record["diversity_index"]
         bucket["reproductions_sum"] += record["reproductions"]
@@ -156,6 +158,10 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "peak_population_capacity_fraction_max": round(bucket["peak_population_capacity_fraction_max"], 3),
             "avg_total_energy": round(bucket["energy_sum"] / bucket["runs"], 3),
             "avg_drag_multiplier": round(bucket["drag_multiplier_sum"] / bucket["runs"], 3),
+            "avg_nutrient_source_strength_multiplier": round(
+                bucket["nutrient_source_strength_multiplier_sum"] / bucket["runs"],
+                3,
+            ),
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
             "avg_reproductions": round(bucket["reproductions_sum"] / bucket["runs"], 3),
@@ -228,6 +234,7 @@ def _run_sweep_combination(
         "nodes": stats.node_count,
         "total_energy": stats.total_energy,
         "drag_multiplier": stats.drag_multiplier,
+        "nutrient_source_strength_multiplier": stats.nutrient_source_strength_multiplier,
         "births": stats.births,
         "deaths": stats.deaths,
         "reproductions": stats.reproductions,

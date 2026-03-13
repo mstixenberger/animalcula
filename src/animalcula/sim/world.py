@@ -108,6 +108,7 @@ class Stats:
     herbivore_count: int
     predator_count: int
     drag_multiplier: float
+    nutrient_source_strength_multiplier: float
     peak_species_fraction: float
     runaway_dominance_detected: bool
 
@@ -422,6 +423,7 @@ class World:
             herbivore_count=herbivore_count,
             predator_count=predator_count,
             drag_multiplier=self.current_drag_multiplier(),
+            nutrient_source_strength_multiplier=self.current_nutrient_source_strength_multiplier(),
             peak_species_fraction=self._peak_species_fraction,
             runaway_dominance_detected=self._runaway_dominance_detected,
         )
@@ -662,12 +664,16 @@ class World:
             self.chemical_b_grid.decay(rate=self.config.environment.chemical_decay_rate)
             self._recycle_detritus()
             self.detritus_grid.decay(rate=self.config.environment.detritus_decay_rate)
-        self._shift_nutrient_sources_if_due()
+        if not self._reseed_nutrient_sources_if_due():
+            self._shift_nutrient_sources_if_due()
+        nutrient_source_strength = (
+            self.config.environment.nutrient_source_strength * self.current_nutrient_source_strength_multiplier()
+        )
         for col, row in self._nutrient_source_cells:
             self.nutrient_grid.set_value(
                 col=col,
                 row=row,
-                value=self.config.environment.nutrient_source_strength,
+                value=nutrient_source_strength,
             )
         light_direction, light_intensity = self.current_light_state()
         self.light_grid.fill_light_gradient(
@@ -700,6 +706,14 @@ class World:
             return float(multipliers[0]) if multipliers else 1.0
         regime_index = ((self.tick + 1) // interval) % len(multipliers)
         return max(0.001, float(multipliers[regime_index]))
+
+    def current_nutrient_source_strength_multiplier(self) -> float:
+        interval = self.config.environment.nutrient_epoch_interval
+        multipliers = self.config.environment.nutrient_epoch_strength_multipliers
+        if interval <= 0 or len(multipliers) <= 1:
+            return float(multipliers[0]) if multipliers else 1.0
+        regime_index = ((self.tick + 1) // interval) % len(multipliers)
+        return max(0.0, float(multipliers[regime_index]))
 
     def _sense_environment(self) -> None:
         updated_creatures: list[CreatureState] = []
@@ -1134,6 +1148,15 @@ class World:
             source_cells.remove(old_cell)
             source_cells.add(self._random_unoccupied_nutrient_cell(source_cells))
         self._nutrient_source_cells = sorted(source_cells)
+
+    def _reseed_nutrient_sources_if_due(self) -> bool:
+        interval = self.config.environment.nutrient_epoch_interval
+        if interval <= 0 or self.config.environment.nutrient_source_count <= 0:
+            return False
+        if (self.tick + 1) % interval != 0:
+            return False
+        self._nutrient_source_cells = self._initialize_nutrient_sources()
+        return True
 
     def _random_unoccupied_nutrient_cell(self, occupied: set[tuple[int, int]]) -> tuple[int, int]:
         while True:

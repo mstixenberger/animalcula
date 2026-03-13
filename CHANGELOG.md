@@ -99,6 +99,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Environment configs can now shift nutrient-source locations on a deterministic timestep cycle, adding the first spec-facing slice of ongoing environmental variation
 - Environment configs can now also rotate and dim/brighten the light gradient on a deterministic seasonal cycle
 - Environment configs can now also cycle long-horizon drag regimes across configured multipliers
+- Environment configs can now also reseed nutrient-source layouts on deterministic long-horizon epochs while cycling source-strength multipliers
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints
@@ -133,3 +134,4 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Sweep and seed-bank ranking now also consider carrying-capacity fit instead of treating cap-saturation as automatically desirable
 - Single-run CLI inspection now uses the same trophic-balance vocabulary as sweeps and seed-bank reports
 - Sweep and seed-bank ranking now also favor balanced trophic mixes, not just population, turnover, and anti-monoculture signals
+- Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now also expose the active nutrient-source strength multiplier so epoch-scale nutrient shocks remain visible during tuning

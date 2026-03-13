@@ -108,6 +108,7 @@ def _evaluate_seed_candidate(
         "peak_population_capacity_fraction": stats.peak_population_capacity_fraction,
         "total_energy": stats.total_energy,
         "drag_multiplier": stats.drag_multiplier,
+        "nutrient_source_strength_multiplier": stats.nutrient_source_strength_multiplier,
         "births": stats.births,
         "deaths": stats.deaths,
         "reproductions": stats.reproductions,
@@ -182,6 +183,7 @@ def _aggregate_seed_runs(
                 "peak_population_capacity_fraction_max": 0.0,
                 "energy_sum": 0.0,
                 "drag_multiplier_sum": 0.0,
+                "nutrient_source_strength_multiplier_sum": 0.0,
                 "births_sum": 0,
                 "deaths_sum": 0,
                 "reproductions_sum": 0,
@@ -224,6 +226,7 @@ def _aggregate_seed_runs(
         )
         bucket["energy_sum"] += record["total_energy"]
         bucket["drag_multiplier_sum"] += record["drag_multiplier"]
+        bucket["nutrient_source_strength_multiplier_sum"] += record["nutrient_source_strength_multiplier"]
         bucket["births_sum"] += record["births"]
         bucket["deaths_sum"] += record["deaths"]
         bucket["reproductions_sum"] += record["reproductions"]
@@ -287,6 +290,10 @@ def _aggregate_seed_runs(
             "peak_population_capacity_fraction_max": round(bucket["peak_population_capacity_fraction_max"], 3),
             "avg_total_energy": round(bucket["energy_sum"] / bucket["runs"], 3),
             "avg_drag_multiplier": round(bucket["drag_multiplier_sum"] / bucket["runs"], 3),
+            "avg_nutrient_source_strength_multiplier": round(
+                bucket["nutrient_source_strength_multiplier_sum"] / bucket["runs"],
+                3,
+            ),
             "avg_births": round(bucket["births_sum"] / bucket["runs"], 3),
             "avg_deaths": round(bucket["deaths_sum"] / bucket["runs"], 3),
             "avg_reproductions": round(bucket["reproductions_sum"] / bucket["runs"], 3),

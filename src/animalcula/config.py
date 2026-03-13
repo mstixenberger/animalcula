@@ -35,6 +35,8 @@ class EnvironmentConfig:
     nutrient_decay_rate: float
     nutrient_shift_interval: int
     nutrient_shift_count: int
+    nutrient_epoch_interval: int
+    nutrient_epoch_strength_multipliers: tuple[float, ...]
     chemical_diffusion_rate: float
     chemical_decay_rate: float
     detritus_decay_rate: float
@@ -119,6 +121,8 @@ class Config:
         environment_raw = {
             "nutrient_shift_interval": 0,
             "nutrient_shift_count": 1,
+            "nutrient_epoch_interval": 0,
+            "nutrient_epoch_strength_multipliers": [1.0],
             **raw["environment"],
         }
         environment_raw.setdefault("light_intensity_min", environment_raw["light_intensity_max"])
@@ -133,6 +137,9 @@ class Config:
                 **{
                     **environment_raw,
                     "light_direction": tuple(environment_raw["light_direction"]),
+                    "nutrient_epoch_strength_multipliers": tuple(
+                        environment_raw["nutrient_epoch_strength_multipliers"]
+                    ),
                     "drag_shift_multipliers": tuple(environment_raw["drag_shift_multipliers"]),
                 }
             ),

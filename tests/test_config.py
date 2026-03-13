@@ -17,6 +17,8 @@ def test_loads_default_config() -> None:
     assert config.environment.chemical_decay_rate == 0.05
     assert config.environment.nutrient_shift_interval == 1000
     assert config.environment.nutrient_shift_count == 1
+    assert config.environment.nutrient_epoch_interval == 100000
+    assert config.environment.nutrient_epoch_strength_multipliers == (1.0, 0.6, 1.4)
     assert config.environment.light_intensity_max == 1.0
     assert config.environment.light_intensity_min == 0.5
     assert config.environment.light_direction == (1.0, 0.0)
@@ -104,6 +106,18 @@ def test_config_from_dict_backfills_nutrient_shift_defaults_for_old_payloads() -
 
     assert loaded.environment.nutrient_shift_interval == 0
     assert loaded.environment.nutrient_shift_count == 1
+
+
+def test_config_from_dict_backfills_nutrient_epoch_defaults_for_old_payloads() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    payload = config.to_dict()
+    del payload["environment"]["nutrient_epoch_interval"]
+    del payload["environment"]["nutrient_epoch_strength_multipliers"]
+
+    loaded = Config.from_dict(payload)
+
+    assert loaded.environment.nutrient_epoch_interval == 0
+    assert loaded.environment.nutrient_epoch_strength_multipliers == (1.0,)
 
 
 def test_config_from_dict_backfills_light_season_defaults_for_old_payloads() -> None:
