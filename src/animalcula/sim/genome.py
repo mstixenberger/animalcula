@@ -8,7 +8,15 @@ import json
 import random
 from typing import Any
 
-from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
+from animalcula.sim.types import (
+    DEFAULT_LINEAGE_COLOR_RGB,
+    BrainState,
+    CreatureState,
+    EdgeState,
+    NodeState,
+    NodeType,
+    Vec2,
+)
 
 
 @dataclass(slots=True, frozen=True)
@@ -43,6 +51,7 @@ class CreatureGenome:
     nodes: tuple[GenomeNodeGene, ...]
     edges: tuple[GenomeEdgeGene, ...]
     brain: GenomeBrainGene | None = None
+    color_rgb: tuple[int, int, int] = DEFAULT_LINEAGE_COLOR_RGB
 
 
 CreatureGenome.NodeGene = GenomeNodeGene  # type: ignore[attr-defined]
@@ -69,6 +78,21 @@ def required_control_outputs(genome: CreatureGenome) -> int:
 def _mutated_node_type(current: NodeType, rng: random.Random) -> NodeType:
     choices = [node_type for node_type in MUTABLE_NODE_TYPES if node_type != current]
     return rng.choice(choices)
+
+
+def _clamp_rgb_channel(value: float) -> int:
+    return max(0, min(255, int(round(value))))
+
+
+def _mutate_color_rgb(
+    color_rgb: tuple[int, int, int],
+    *,
+    rng: random.Random,
+    sigma: float,
+) -> tuple[int, int, int]:
+    if sigma <= 0.0:
+        return color_rgb
+    return tuple(_clamp_rgb_channel(channel + rng.gauss(0.0, sigma)) for channel in color_rgb)
 
 
 def _resize_brain_for_outputs(
@@ -273,7 +297,7 @@ def encode_creature_genome(
     creature: CreatureState,
 ) -> CreatureGenome:
     if not creature.node_indices:
-        return CreatureGenome(nodes=(), edges=(), brain=None)
+        return CreatureGenome(nodes=(), edges=(), brain=None, color_rgb=creature.color_rgb)
 
     anchor = nodes[creature.node_indices[0]].position
     local_index = {node_index: local for local, node_index in enumerate(creature.node_indices)}
@@ -307,7 +331,12 @@ def encode_creature_genome(
             states=tuple(0.0 for _ in creature.brain.states),
             output_size=creature.brain.output_size,
         )
-    return CreatureGenome(nodes=genome_nodes, edges=genome_edges, brain=genome_brain)
+    return CreatureGenome(
+        nodes=genome_nodes,
+        edges=genome_edges,
+        brain=genome_brain,
+        color_rgb=creature.color_rgb,
+    )
 
 
 def decode_genome(
@@ -371,6 +400,7 @@ def mutate_genome(
     structural_mutation_rate: float = 0.0,
     hidden_neuron_mutation_rate: float = 0.0,
     max_hidden_neurons: int = 24,
+    color_sigma: float = 6.0,
 ) -> CreatureGenome:
     mutated_nodes = [
         GenomeNodeGene(
@@ -441,6 +471,7 @@ def mutate_genome(
         nodes=tuple(mutated_nodes),
         edges=tuple(mutated_edges),
         brain=None,
+        color_rgb=genome.color_rgb,
     )
     mutated_brain = None
     if genome.brain is not None:
@@ -475,13 +506,19 @@ def mutate_genome(
                 mutated_brain,
                 target_hidden_neurons=min(max_hidden_neurons, max(0, target_hidden)),
             )
-    return CreatureGenome(nodes=tuple(mutated_nodes), edges=tuple(mutated_edges), brain=mutated_brain)
+    return CreatureGenome(
+        nodes=tuple(mutated_nodes),
+        edges=tuple(mutated_edges),
+        brain=mutated_brain,
+        color_rgb=_mutate_color_rgb(genome.color_rgb, rng=rng, sigma=color_sigma),
+    )
 
 
 def genome_to_dict(genome: CreatureGenome | None) -> dict[str, Any] | None:
     if genome is None:
         return None
     return {
+        "color_rgb": list(genome.color_rgb),
         "nodes": [
             {
                 "position": [node.position.x, node.position.y],
@@ -517,6 +554,7 @@ def genome_to_dict(genome: CreatureGenome | None) -> dict[str, Any] | None:
 def genome_from_dict(payload: dict[str, Any] | None) -> CreatureGenome | None:
     if payload is None:
         return None
+    color_rgb = tuple(payload.get("color_rgb", DEFAULT_LINEAGE_COLOR_RGB))
     return CreatureGenome(
         nodes=tuple(
             GenomeNodeGene(
@@ -547,6 +585,7 @@ def genome_from_dict(payload: dict[str, Any] | None) -> CreatureGenome | None:
             states=tuple(payload["brain"].get("states", [])),
             output_size=payload["brain"]["output_size"],
         ),
+        color_rgb=tuple(_clamp_rgb_channel(channel) for channel in color_rgb),
     )
 
 

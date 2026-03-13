@@ -41,8 +41,8 @@ def test_world_checkpoint_roundtrip_preserves_state(tmp_path: Path) -> None:
         ),
     ]
     creatures = [
-        CreatureState(node_indices=(0,), energy=1.0, brain=grip_brain),
-        CreatureState(node_indices=(1,), energy=1.0, brain=grip_brain),
+        CreatureState(node_indices=(0,), energy=1.0, brain=grip_brain, color_rgb=(12, 34, 56)),
+        CreatureState(node_indices=(1,), energy=1.0, brain=grip_brain, color_rgb=(210, 180, 40)),
     ]
     world = World(config=config, seed=7, nodes=nodes, creatures=creatures)
     world._runaway_dominance_tick_threshold = 1

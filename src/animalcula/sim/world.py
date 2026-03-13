@@ -76,6 +76,7 @@ class CreatureSnapshot:
     trophic_role: str
     center_x: float
     center_y: float
+    color_rgb: tuple[int, int, int]
 
 
 @dataclass(slots=True, frozen=True)
@@ -277,6 +278,7 @@ class World:
                     "tick": self.tick,
                     "creature_id": creature.id,
                     "species_id": species_labels.get(creature.id, coarse_species_signature(creature.genome)),
+                    "color_rgb": list(creature.color_rgb),
                     "num_nodes": len(creature.node_indices),
                     "num_edges": edge_count,
                     "num_motor_edges": motor_edges,
@@ -336,6 +338,7 @@ class World:
                     energy=float(item.get("energy", 1.0)),
                     brain=brain,
                     genome=genome,
+                    color_rgb=genome.color_rgb,
                     age_ticks=0,
                 )
             )
@@ -385,6 +388,7 @@ class World:
                 trophic_role=self._trophic_role(creature),
                 center_x=self._creature_centroid(creature).x if self._creature_centroid(creature) is not None else 0.0,
                 center_y=self._creature_centroid(creature).y if self._creature_centroid(creature) is not None else 0.0,
+                color_rgb=creature.color_rgb,
             )
             for creature in self.creatures
         )
@@ -668,6 +672,7 @@ class World:
                     parent_id=creature.get("parent_id"),
                     age_ticks=creature.get("age_ticks", 0),
                     genome=genome_from_dict(creature.get("genome")),
+                    color_rgb=tuple(creature.get("color_rgb", [160, 175, 190])),
                 )
                 for creature in payload["creatures"]
             ],
@@ -1207,6 +1212,7 @@ class World:
                     energy=split_energy,
                     brain=child_brain,
                     genome=child_genome,
+                    color_rgb=child_genome.color_rgb,
                     id=child_id,
                     parent_id=creature.id,
                 )
@@ -1331,7 +1337,7 @@ class World:
                 edges=self.edges,
                 creature=creature,
             )
-            ensured.append(replace(creature, genome=genome))
+            ensured.append(replace(creature, genome=genome, color_rgb=genome.color_rgb))
         return ensured
 
     def _species_labels(self) -> dict[int, str]:
@@ -1794,6 +1800,7 @@ class World:
             "id": creature.id,
             "parent_id": creature.parent_id,
             "age_ticks": creature.age_ticks,
+            "color_rgb": list(creature.color_rgb),
             "mean_speed_recent": creature.mean_speed_recent,
             "genome": genome_to_dict(creature.genome),
             "brain": None

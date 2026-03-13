@@ -34,6 +34,7 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     assert "Generated from <code>animalcula view</code> HTML fallback" in payload
     assert 'id="speed"' in payload
     assert 'id="predatorStat"' in payload
+    assert '"color_rgb": [' in payload
     assert "\"tick\": 0" in payload
 
 

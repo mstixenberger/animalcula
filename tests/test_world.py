@@ -236,6 +236,7 @@ def test_world_snapshot_contains_renderable_creature_graph() -> None:
     assert len(snapshot.edges) == len(world.edges)
     assert len(snapshot.creatures) == len(world.creatures)
     assert all(node.creature_id is not None for node in snapshot.nodes)
+    assert all(len(creature.color_rgb) == 3 for creature in snapshot.creatures)
     assert {creature.trophic_role for creature in snapshot.creatures} >= {"autotroph", "herbivore", "predator"}
 
 

@@ -293,6 +293,8 @@ Current implementation baseline:
 - shared interestingness scoring now also rewards trophic balance directly, so automated ranking favors actual mixed food webs rather than treating role balance as a passive side metric
 - sweep and seed-bank analysis now expose a trophic-balance score so headless selection loops can reward viable mixed ecologies, not just high population
 - initial passing pytest suite
+- genomes now carry inherited RGB color genes for cosmetic lineage tracking without changing species clustering behavior
+- checkpoint payloads, phenotype snapshots, and both debug viewer backends now preserve and render lineage colors so evolving families are visually trackable
 
 ## Update Protocol
 

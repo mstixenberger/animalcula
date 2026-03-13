@@ -37,7 +37,7 @@ def build_demo_archetypes(
             radius=1.0,
         ),
     ]
-    _append_creature(nodes, edges, creatures, alga_nodes, [(0, 1)], energy=1.0)
+    _append_creature(nodes, edges, creatures, alga_nodes, [(0, 1)], energy=1.0, color_rgb=(214, 180, 70))
 
     # Grazer: mouth anchored on a nutrient source.
     grazer_nodes = [
@@ -65,6 +65,7 @@ def build_demo_archetypes(
         [(0, 1)],
         energy=1.0,
         brain=_simple_motor_brain(light_gain=0.0, nutrient_gain=2.0),
+        color_rgb=(54, 162, 147),
     )
 
     # Amoeba: triangular predator seeded on the grazer basin so predation can actually bootstrap.
@@ -101,6 +102,7 @@ def build_demo_archetypes(
         [(0, 1), (1, 2), (2, 0)],
         energy=1.0,
         brain=_predator_brain(light_gain=1.0, nutrient_gain=1.0),
+        color_rgb=(198, 73, 92),
     )
 
     return nodes, edges, creatures
@@ -114,6 +116,7 @@ def _append_creature(
     local_edges: list[tuple[int, int]],
     energy: float,
     brain: BrainState | None = None,
+    color_rgb: tuple[int, int, int] = (160, 175, 190),
 ) -> None:
     node_offset = len(world_nodes)
     world_nodes.extend(creature_nodes)
@@ -133,6 +136,7 @@ def _append_creature(
             node_indices=tuple(range(node_offset, node_offset + len(creature_nodes))),
             energy=energy,
             brain=brain,
+            color_rgb=color_rgb,
         )
     )
 

@@ -19,6 +19,9 @@ class NodeType(str, Enum):
     PHOTORECEPTOR = "photoreceptor"
 
 
+DEFAULT_LINEAGE_COLOR_RGB: tuple[int, int, int] = (160, 175, 190)
+
+
 @dataclass(slots=True, frozen=True)
 class Vec2:
     x: float
@@ -86,6 +89,7 @@ class CreatureState:
     energy: float
     brain: BrainState | None = None
     genome: "CreatureGenome | None" = None
+    color_rgb: tuple[int, int, int] = DEFAULT_LINEAGE_COLOR_RGB
     mean_speed_recent: float = 0.0
     last_sensed_inputs: tuple[float, ...] = ()
     last_brain_outputs: tuple[float, ...] = ()

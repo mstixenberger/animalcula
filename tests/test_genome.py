@@ -8,6 +8,8 @@ from animalcula.sim.genome import (
     decode_genome,
     encode_creature_genome,
     genome_distance,
+    genome_from_dict,
+    genome_to_dict,
     mutate_genome,
 )
 from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
@@ -51,6 +53,7 @@ def test_encode_creature_genome_preserves_local_structure() -> None:
     assert genome.nodes[1].position == Vec2(6.0, 0.0)
     assert genome.brain is not None
     assert genome.brain.states == (0.0,)
+    assert genome.color_rgb == creature.color_rgb
 
 
 def test_decode_genome_rebuilds_nodes_edges_and_brain() -> None:
@@ -116,6 +119,20 @@ def test_mutate_genome_changes_shape_or_brain_but_keeps_bounds_valid() -> None:
     assert mutated.nodes[0].radius > 0.0
     assert mutated.brain is not None
     assert all(value > 0.0 for value in mutated.brain.time_constants)
+    assert all(0 <= channel <= 255 for channel in mutated.color_rgb)
+
+
+def test_genome_dict_roundtrip_preserves_lineage_color() -> None:
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(),
+        brain=None,
+        color_rgb=(45, 120, 200),
+    )
+
+    restored = genome_from_dict(genome_to_dict(genome))
+
+    assert restored == genome
 
 
 def test_mutate_genome_can_add_a_structural_body_node() -> None:

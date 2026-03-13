@@ -6,7 +6,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 - Branch state: working directly on `main` with frequent stable checkpoints
 - Product focus: spec-aligned headless simulation, logging, and tuning loop
-- Test status at last update: full `uv run pytest` passing after the HTML-viewer enhancement slice
+- Test status at last update: focused lineage-color tests passing after wiring genome/checkpoint/viewer support
 - Recent completed slices:
   - direct trophic-balance weighting in shared interestingness scoring
   - deterministic nutrient epoch reseeding with source-strength multipliers
@@ -29,6 +29,8 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - mean motor-edge count in headless stats/logs/sweeps/seed-bank summaries
 - `animalcula view` now has an HTML fallback path for machines without Tkinter
 - the HTML fallback viewer now has playback-speed control plus per-frame trophic summary cards
+- genomes now carry inherited RGB lineage colors that persist through checkpoints and exported genome payloads
+- both debug viewer backends now render lineage colors instead of relying only on trophic-role outlines
 
 ## Current Priority
 
@@ -45,6 +47,5 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 ## Likely Next Slices
 
-- Expand long-run observability where runtime mechanics already exist but are not yet surfaced
-- Continue surfacing runtime mechanics that matter for trophic interaction quality, not just aggregate population health
-- Continue closing small headless-spec gaps before attempting larger UI or Rust work
+- Close the next spec-facing runtime or viewer gap with clear user-visible payoff
+- Prefer slices that make evolving lineages/ecologies easier to inspect without committing to the full browser frontend yet

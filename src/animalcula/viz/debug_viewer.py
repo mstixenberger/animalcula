@@ -24,6 +24,11 @@ ROLE_COLORS = {
     "predator": "#c1121f",
 }
 
+
+def _rgb_to_css(color_rgb: tuple[int, int, int] | list[int]) -> str:
+    red, green, blue = (max(0, min(255, int(channel))) for channel in color_rgb)
+    return f"rgb({red}, {green}, {blue})"
+
 HTML_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
@@ -184,6 +189,7 @@ HTML_TEMPLATE = """<!doctype html>
     function draw(snapshot) {{
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const creatureRoles = new Map(snapshot.creatures.map((creature) => [creature.creature_id, creature.trophic_role]));
+      const creatureColors = new Map(snapshot.creatures.map((creature) => [creature.creature_id, rgbToCss(creature.color_rgb)]));
 
       for (const edge of snapshot.edges) {{
         const [ax, ay] = toCanvas(edge.ax, edge.ay, snapshot);
@@ -198,7 +204,7 @@ HTML_TEMPLATE = """<!doctype html>
 
       for (const node of snapshot.nodes) {{
         const [cx, cy] = toCanvas(node.x, node.y, snapshot);
-        const outline = roleColors[creatureRoles.get(node.creature_id)] || "#cbd5e1";
+        const lineageColor = creatureColors.get(node.creature_id) || "#cbd5e1";
         const fill = nodeColors[node.node_type] || "#94a3b8";
         const radius = Math.max(2.0, node.radius * 2.0);
         ctx.beginPath();
@@ -206,7 +212,7 @@ HTML_TEMPLATE = """<!doctype html>
         ctx.fillStyle = fill;
         ctx.fill();
         ctx.lineWidth = 2;
-        ctx.strokeStyle = outline;
+        ctx.strokeStyle = lineageColor;
         ctx.stroke();
       }}
 
@@ -235,6 +241,13 @@ HTML_TEMPLATE = """<!doctype html>
     function advanceFrame() {{
       frame = (frame + 1) % snapshots.length;
       renderCurrent();
+    }}
+
+    function rgbToCss(rgb) {{
+      if (!Array.isArray(rgb) || rgb.length !== 3) {{
+        return "#cbd5e1";
+      }}
+      return "rgb(" + rgb.map((value) => Math.max(0, Math.min(255, Math.round(value)))).join(", ") + ")";
     }}
 
     toggle.addEventListener("click", () => {{
@@ -425,6 +438,10 @@ def _launch_tk_viewer(
             creature.creature_id: creature.trophic_role
             for creature in snapshot.creatures
         }
+        creature_colors = {
+            creature.creature_id: _rgb_to_css(creature.color_rgb)
+            for creature in snapshot.creatures
+        }
         for edge in snapshot.edges:
             ax, ay = _to_canvas(
                 edge.ax,
@@ -458,7 +475,7 @@ def _launch_tk_viewer(
                 canvas_height=canvas_height,
             )
             role = creature_roles.get(node.creature_id)
-            outline = ROLE_COLORS.get(role, "#cbd5e1")
+            outline = creature_colors.get(node.creature_id, "#cbd5e1")
             fill = NODE_COLORS.get(node.node_type, "#94a3b8")
             radius = max(2.0, node.radius * 2.0)
             canvas.create_oval(
@@ -470,6 +487,16 @@ def _launch_tk_viewer(
                 outline=outline,
                 width=2,
             )
+            if role is not None:
+                role_radius = max(1.0, radius * 0.35)
+                canvas.create_oval(
+                    cx - role_radius,
+                    cy - role_radius,
+                    cx + role_radius,
+                    cy + role_radius,
+                    fill=ROLE_COLORS.get(role, "#cbd5e1"),
+                    outline="",
+                )
 
         overlay.set(
             "\n".join(
