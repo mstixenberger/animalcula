@@ -112,6 +112,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now expose current seasonal light intensity and direction so light-regime shifts remain visible during headless tuning
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now expose mean gripper contact and active signals so predator engagement quality is visible during headless tuning
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now expose mean and max creature ages so lifecycle durability is visible during headless tuning
+- Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now expose mean and max creature energy so individual survivor quality is visible during headless tuning
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

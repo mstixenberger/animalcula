@@ -109,6 +109,8 @@ def _evaluate_seed_candidate(
         "crowding_multiplier": stats.crowding_multiplier,
         "peak_crowding_multiplier": stats.peak_crowding_multiplier,
         "total_energy": stats.total_energy,
+        "mean_creature_energy": stats.mean_creature_energy,
+        "max_creature_energy": stats.max_creature_energy,
         "nutrient_total": stats.nutrient_total,
         "detritus_total": stats.detritus_total,
         "chemical_a_total": stats.chemical_a_total,
@@ -200,6 +202,8 @@ def _aggregate_seed_runs(
                 "crowding_multiplier_sum": 0.0,
                 "peak_crowding_multiplier_max": 0.0,
                 "energy_sum": 0.0,
+                "mean_creature_energy_sum": 0.0,
+                "max_creature_energy_max": 0.0,
                 "nutrient_total_sum": 0.0,
                 "detritus_total_sum": 0.0,
                 "chemical_a_total_sum": 0.0,
@@ -262,6 +266,8 @@ def _aggregate_seed_runs(
             record["peak_crowding_multiplier"],
         )
         bucket["energy_sum"] += record["total_energy"]
+        bucket["mean_creature_energy_sum"] += record["mean_creature_energy"]
+        bucket["max_creature_energy_max"] = max(bucket["max_creature_energy_max"], record["max_creature_energy"])
         bucket["nutrient_total_sum"] += record["nutrient_total"]
         bucket["detritus_total_sum"] += record["detritus_total"]
         bucket["chemical_a_total_sum"] += record["chemical_a_total"]
@@ -342,6 +348,8 @@ def _aggregate_seed_runs(
             "avg_crowding_multiplier": round(bucket["crowding_multiplier_sum"] / bucket["runs"], 3),
             "peak_crowding_multiplier_max": round(bucket["peak_crowding_multiplier_max"], 3),
             "avg_total_energy": round(bucket["energy_sum"] / bucket["runs"], 3),
+            "avg_mean_creature_energy": round(bucket["mean_creature_energy_sum"] / bucket["runs"], 3),
+            "max_creature_energy_max": round(bucket["max_creature_energy_max"], 3),
             "avg_nutrient_total": round(bucket["nutrient_total_sum"] / bucket["runs"], 3),
             "avg_detritus_total": round(bucket["detritus_total_sum"] / bucket["runs"], 3),
             "avg_chemical_a_total": round(bucket["chemical_a_total_sum"] / bucket["runs"], 3),

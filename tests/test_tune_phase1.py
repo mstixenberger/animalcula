@@ -56,6 +56,8 @@ def test_tune_phase1_writes_raw_and_summary_outputs(tmp_path: Path) -> None:
     assert "peak_population_capacity_fraction_max" in summaries[0]
     assert "avg_crowding_multiplier" in summaries[0]
     assert "peak_crowding_multiplier_max" in summaries[0]
+    assert "avg_mean_creature_energy" in summaries[0]
+    assert "max_creature_energy_max" in summaries[0]
     assert "avg_nutrient_total" in summaries[0]
     assert "avg_detritus_total" in summaries[0]
     assert "avg_chemical_a_total" in summaries[0]

@@ -72,6 +72,8 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "nutrient_source_strength_multiplier" in records[0]
     assert "light_intensity" in records[0]
     assert "light_direction_degrees" in records[0]
+    assert "mean_creature_energy" in records[0]
+    assert "max_creature_energy" in records[0]
     assert "mean_age_ticks" in records[0]
     assert "max_age_ticks" in records[0]
     assert "lineage_count" in records[0]
@@ -120,6 +122,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "nutrient_source_strength_multiplier": 1.0,
             "light_intensity": 1.0,
             "light_direction_degrees": 0.0,
+            "mean_creature_energy": 2.0,
+            "max_creature_energy": 4.0,
             "mean_age_ticks": 12.0,
             "max_age_ticks": 20,
             "species_count": 2,
@@ -168,6 +172,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "nutrient_source_strength_multiplier": 0.75,
             "light_intensity": 0.6,
             "light_direction_degrees": 90.0,
+            "mean_creature_energy": 1.5,
+            "max_creature_energy": 3.0,
             "mean_age_ticks": 8.0,
             "max_age_ticks": 15,
             "species_count": 1,
@@ -212,6 +218,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["avg_crowding_multiplier"] == 1.1
     assert summaries[0]["peak_crowding_multiplier_max"] == 1.4
     assert summaries[0]["avg_diversity_index"] == 0.65
+    assert summaries[0]["avg_mean_creature_energy"] == 1.75
+    assert summaries[0]["max_creature_energy_max"] == 4.0
     assert summaries[0]["avg_nutrient_total"] == 3.0
     assert summaries[0]["avg_detritus_total"] == 0.4
     assert summaries[0]["avg_chemical_a_total"] == 0.6
