@@ -183,9 +183,11 @@ HTML_TEMPLATE = """<!doctype html>
         <button id="step">Step</button>
         <input id="scrub" type="range" min="0" max="0" value="0">
         <label class="meta" for="speed">speed</label>
-        <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1">
+        <input id="speed" type="range" min="0.25" max="32" step="0.25" value="1">
         <label class="meta" for="followToggle">follow</label>
         <input id="followToggle" type="checkbox" checked>
+        <label class="meta" for="ambientToggle">ambient</label>
+        <input id="ambientToggle" type="checkbox">
         <label class="meta" for="zoom">zoom</label>
         <input id="zoom" type="range" min="1" max="12" step="0.5" value="4">
         <label class="meta" for="fieldMode">field</label>
@@ -232,6 +234,7 @@ HTML_TEMPLATE = """<!doctype html>
     const scrub = document.getElementById("scrub");
     const speed = document.getElementById("speed");
     const followToggle = document.getElementById("followToggle");
+    const ambientToggle = document.getElementById("ambientToggle");
     const zoom = document.getElementById("zoom");
     const fieldMode = document.getElementById("fieldMode");
     const status = document.getElementById("status");
@@ -252,15 +255,18 @@ HTML_TEMPLATE = """<!doctype html>
     let running = true;
     let playbackRate = 1;
     let followSelected = true;
+    let ambientMode = false;
     let zoomLevel = 4;
     let activeFieldMode = "nutrient";
     let selectedCreatureId = null;
     let lastTimestamp = 0;
     let frameAccumulator = 0;
+    let ambientFrameCounter = 0;
 
     scrub.max = String(Math.max(0, snapshots.length - 1));
     fieldMode.value = activeFieldMode;
     followToggle.checked = followSelected;
+    ambientToggle.checked = ambientMode;
     zoom.value = String(zoomLevel);
 
     function cameraCenter(snapshot) {{
@@ -330,6 +336,7 @@ HTML_TEMPLATE = """<!doctype html>
         " total_energy=" + snapshot.total_energy.toFixed(2) +
         " speed=" + playbackRate.toFixed(2) + "x" +
         " follow=" + (followSelected ? "on" : "off") +
+        " ambient=" + (ambientMode ? "on" : "off") +
         " zoom=" + zoomLevel.toFixed(1) + "x" +
         " field=" + activeFieldMode;
       const roleCounts = snapshot.creatures.reduce((counts, creature) => {{
@@ -470,6 +477,20 @@ HTML_TEMPLATE = """<!doctype html>
 
     followToggle.addEventListener("input", (event) => {{
       followSelected = Boolean(event.target.checked);
+      if (!followSelected) {{
+        ambientMode = false;
+        ambientToggle.checked = false;
+      }}
+      renderCurrent();
+    }});
+
+    ambientToggle.addEventListener("input", (event) => {{
+      ambientMode = Boolean(event.target.checked);
+      if (ambientMode) {{
+        followSelected = true;
+        followToggle.checked = true;
+        ambientFrameCounter = 0;
+      }}
       renderCurrent();
     }});
 
@@ -502,9 +523,10 @@ HTML_TEMPLATE = """<!doctype html>
       }}
       if (best && bestDistance <= 28) {{
         selectedCreatureId = best.creature_id;
-        if (followSelected) {{
-          followToggle.checked = true;
-        }}
+        ambientMode = false;
+        ambientToggle.checked = false;
+        followSelected = true;
+        followToggle.checked = true;
         renderCurrent();
       }}
     }});
@@ -520,6 +542,20 @@ HTML_TEMPLATE = """<!doctype html>
         event.preventDefault();
         followSelected = !followSelected;
         followToggle.checked = followSelected;
+        if (!followSelected) {{
+          ambientMode = false;
+          ambientToggle.checked = false;
+        }}
+        renderCurrent();
+      }} else if (event.key.toLowerCase() === "a") {{
+        event.preventDefault();
+        ambientMode = !ambientMode;
+        ambientToggle.checked = ambientMode;
+        if (ambientMode) {{
+          followSelected = true;
+          followToggle.checked = true;
+          ambientFrameCounter = 0;
+        }}
         renderCurrent();
       }} else if (event.key.toLowerCase() === "g") {{
         event.preventDefault();
@@ -542,9 +578,31 @@ HTML_TEMPLATE = """<!doctype html>
       }} else if (event.key === "Home") {{
         event.preventDefault();
         followSelected = false;
+        ambientMode = false;
         zoomLevel = 1;
         followToggle.checked = false;
+        ambientToggle.checked = false;
         zoom.value = String(zoomLevel);
+        renderCurrent();
+      }} else if (event.key === "1") {{
+        event.preventDefault();
+        playbackRate = 1;
+        speed.value = "1";
+        renderCurrent();
+      }} else if (event.key === "2") {{
+        event.preventDefault();
+        playbackRate = 4;
+        speed.value = "4";
+        renderCurrent();
+      }} else if (event.key === "3") {{
+        event.preventDefault();
+        playbackRate = 16;
+        speed.value = "16";
+        renderCurrent();
+      }} else if (event.key === "4") {{
+        event.preventDefault();
+        playbackRate = 32;
+        speed.value = "32";
         renderCurrent();
       }}
     }});
@@ -555,6 +613,20 @@ HTML_TEMPLATE = """<!doctype html>
       activeFieldMode = modes[(index + 1 + modes.length) % modes.length];
       fieldMode.value = activeFieldMode;
       renderCurrent();
+    }}
+
+    function advanceAmbientSelection(snapshot) {{
+      if (!ambientMode || snapshot.creatures.length <= 1) {{
+        return;
+      }}
+      ambientFrameCounter += 1;
+      if (ambientFrameCounter < 120) {{
+        return;
+      }}
+      ambientFrameCounter = 0;
+      const ids = snapshot.creatures.map((creature) => creature.creature_id);
+      const currentIndex = ids.indexOf(selectedCreatureId);
+      selectedCreatureId = ids[(currentIndex + 1 + ids.length) % ids.length];
     }}
 
     function animationLoop(timestamp) {{
@@ -570,6 +642,7 @@ HTML_TEMPLATE = """<!doctype html>
           frameAccumulator -= Math.max(16, {frame_delay_ms});
         }}
       }}
+      advanceAmbientSelection(snapshots[frame]);
       window.requestAnimationFrame(animationLoop);
     }}
 
@@ -743,7 +816,10 @@ def _launch_tk_viewer(
     field_mode_index = 1
     selected_creature_id: int | None = None
     follow_selected = True
+    ambient_mode = False
     zoom_level = 4.0
+    ambient_frame_counter = 0
+    step_stride = max(1, steps_per_frame)
 
     def _toggle_running(_: object | None = None) -> None:
         nonlocal running
@@ -758,8 +834,17 @@ def _launch_tk_viewer(
         field_mode_index = (field_mode_index + 1) % len(FIELD_MODE_SEQUENCE)
 
     def _toggle_follow(_: object | None = None) -> None:
-        nonlocal follow_selected
+        nonlocal ambient_mode, follow_selected
         follow_selected = not follow_selected
+        if not follow_selected:
+            ambient_mode = False
+
+    def _toggle_ambient(_: object | None = None) -> None:
+        nonlocal ambient_frame_counter, ambient_mode, follow_selected
+        ambient_mode = not ambient_mode
+        if ambient_mode:
+            follow_selected = True
+            ambient_frame_counter = 0
 
     def _zoom_in(_: object | None = None) -> None:
         nonlocal zoom_level
@@ -770,9 +855,34 @@ def _launch_tk_viewer(
         zoom_level = max(1.0, zoom_level - 0.5)
 
     def _reset_camera(_: object | None = None) -> None:
-        nonlocal follow_selected, zoom_level
+        nonlocal ambient_mode, follow_selected, zoom_level
         follow_selected = False
+        ambient_mode = False
         zoom_level = 1.0
+
+    def _slow_down(_: object | None = None) -> None:
+        nonlocal step_stride
+        step_stride = max(1, step_stride // 2)
+
+    def _speed_up(_: object | None = None) -> None:
+        nonlocal step_stride
+        step_stride = min(256, step_stride * 2)
+
+    def _set_stride_1(_: object | None = None) -> None:
+        nonlocal step_stride
+        step_stride = 1
+
+    def _set_stride_4(_: object | None = None) -> None:
+        nonlocal step_stride
+        step_stride = 4
+
+    def _set_stride_16(_: object | None = None) -> None:
+        nonlocal step_stride
+        step_stride = 16
+
+    def _set_stride_64(_: object | None = None) -> None:
+        nonlocal step_stride
+        step_stride = 64
 
     def _select_creature(event: object) -> None:
         nonlocal selected_creature_id
@@ -807,21 +917,31 @@ def _launch_tk_viewer(
                 best_creature = creature
         if best_creature is not None and best_distance <= 28.0:
             selected_creature_id = best_creature.creature_id
+            ambient_mode = False
+            follow_selected = True
 
     root.bind("<space>", _toggle_running)
     root.bind("<Right>", _single_step)
     root.bind("f", _toggle_follow)
     root.bind("F", _toggle_follow)
+    root.bind("a", _toggle_ambient)
+    root.bind("A", _toggle_ambient)
     root.bind("g", _cycle_field_mode)
     root.bind("G", _cycle_field_mode)
     root.bind("+", _zoom_in)
     root.bind("=", _zoom_in)
     root.bind("-", _zoom_out)
     root.bind("<Home>", _reset_camera)
+    root.bind("[", _slow_down)
+    root.bind("]", _speed_up)
+    root.bind("1", _set_stride_1)
+    root.bind("2", _set_stride_4)
+    root.bind("3", _set_stride_16)
+    root.bind("4", _set_stride_64)
     canvas.bind("<Button-1>", _select_creature)
 
     def _draw(snapshot: Snapshot) -> None:
-        nonlocal selected_creature_id
+        nonlocal ambient_frame_counter, selected_creature_id
         canvas.delete("all")
         field_samples = _sample_fields(world)
         cell_width = canvas_width / max(int(field_samples["cols"]), 1)
@@ -833,6 +953,17 @@ def _launch_tk_viewer(
             (creature for creature in snapshot.creatures if creature.creature_id == selected_creature_id),
             None,
         )
+        if ambient_mode and len(snapshot.creatures) > 1:
+            ambient_frame_counter += 1
+            if ambient_frame_counter >= 120:
+                ambient_frame_counter = 0
+                creature_ids = [creature.creature_id for creature in snapshot.creatures]
+                current_index = creature_ids.index(selected_creature_id) if selected_creature_id in creature_ids else -1
+                selected_creature_id = creature_ids[(current_index + 1 + len(creature_ids)) % len(creature_ids)]
+                selected = next(
+                    (creature for creature in snapshot.creatures if creature.creature_id == selected_creature_id),
+                    None,
+                )
 
         def _project(x: float, y: float) -> tuple[float, float]:
             focus_x = selected.center_x if (follow_selected and selected is not None) else (snapshot.world_width / 2)
@@ -937,10 +1068,10 @@ def _launch_tk_viewer(
                         else "selected=none"
                     ),
                     (
-                        f"follow={'on' if follow_selected else 'off'} zoom={zoom_level:.1f}x "
-                        f"field={field_mode}"
+                        f"follow={'on' if follow_selected else 'off'} ambient={'on' if ambient_mode else 'off'} zoom={zoom_level:.1f}x "
+                        f"field={field_mode} stride={step_stride}"
                     ),
-                    f"space=play/pause right=step click=inspect f=follow g=field +/-=zoom home=overview steps_per_frame={steps_per_frame} frame_delay_ms={frame_delay_ms}",
+                    f"space=play/pause right=step click=inspect f=follow a=ambient g=field +/-=zoom [/] or 1-4=speed home=overview frame_delay_ms={frame_delay_ms}",
                 ]
             )
         )
@@ -948,7 +1079,7 @@ def _launch_tk_viewer(
     def _frame() -> None:
         nonlocal pending_single_step
         if running or pending_single_step:
-            world.step(steps_per_frame)
+            world.step(step_stride)
             pending_single_step = False
         _draw(world.snapshot())
         root.after(frame_delay_ms, _frame)
