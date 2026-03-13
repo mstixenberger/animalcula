@@ -277,6 +277,31 @@ HTML_TEMPLATE = """<!doctype html>
       return [snapshot.world_width / 2, snapshot.world_height / 2];
     }}
 
+    function creatureFocusScore(creature) {{
+      const speed = Number(creature.mean_speed_recent || 0);
+      const energy = Number(creature.energy || 0);
+      const age = Number(creature.age_ticks || 0);
+      return (speed * 4.0) + Math.min(energy, 20) + (Math.min(age, 600) / 120);
+    }}
+
+    function rankedCreatureIds(snapshot) {{
+      return snapshot.creatures
+        .slice()
+        .sort((left, right) => {{
+          const scoreDelta = creatureFocusScore(right) - creatureFocusScore(left);
+          if (Math.abs(scoreDelta) > 1e-9) {{
+            return scoreDelta;
+          }}
+          return left.creature_id - right.creature_id;
+        }})
+        .map((creature) => creature.creature_id);
+    }}
+
+    function preferredCreatureId(snapshot) {{
+      const rankedIds = rankedCreatureIds(snapshot);
+      return rankedIds.length ? rankedIds[0] : null;
+    }}
+
     function toCanvas(x, y, snapshot) {{
       const [focusX, focusY] = cameraCenter(snapshot);
       const scaleX = (canvas.width / Math.max(snapshot.world_width, 1.0)) * zoomLevel;
@@ -449,7 +474,7 @@ HTML_TEMPLATE = """<!doctype html>
         return;
       }}
       if (!snapshot.creatures.some((creature) => creature.creature_id === selectedCreatureId)) {{
-        selectedCreatureId = snapshot.creatures[0].creature_id;
+        selectedCreatureId = preferredCreatureId(snapshot);
       }}
     }}
 
@@ -654,7 +679,7 @@ HTML_TEMPLATE = """<!doctype html>
         return;
       }}
       ambientFrameCounter = 0;
-      const ids = snapshot.creatures.map((creature) => creature.creature_id);
+      const ids = rankedCreatureIds(snapshot).slice(0, Math.min(6, snapshot.creatures.length));
       const currentIndex = ids.indexOf(selectedCreatureId);
       selectedCreatureId = ids[(currentIndex + 1 + ids.length) % ids.length];
     }}
@@ -970,6 +995,20 @@ def _launch_tk_viewer(
     root.bind("4", _set_stride_64)
     canvas.bind("<Button-1>", _select_creature)
 
+    def _creature_focus_score(creature: object) -> tuple[float, int]:
+        speed = float(getattr(creature, "mean_speed_recent", 0.0))
+        energy = float(getattr(creature, "energy", 0.0))
+        age = int(getattr(creature, "age_ticks", 0))
+        return ((speed * 4.0) + min(energy, 20.0) + (min(age, 600) / 120.0), -int(getattr(creature, "creature_id", 0)))
+
+    def _ranked_creature_ids(snapshot: Snapshot) -> list[int]:
+        ranked = sorted(snapshot.creatures, key=_creature_focus_score, reverse=True)
+        return [creature.creature_id for creature in ranked]
+
+    def _preferred_creature_id(snapshot: Snapshot) -> int | None:
+        ranked_ids = _ranked_creature_ids(snapshot)
+        return ranked_ids[0] if ranked_ids else None
+
     def _draw(snapshot: Snapshot) -> None:
         nonlocal ambient_frame_counter, selected_creature_id
         canvas.delete("all")
@@ -978,7 +1017,7 @@ def _launch_tk_viewer(
         cell_height = canvas_height / max(int(field_samples["rows"]), 1)
         field_mode = FIELD_MODE_SEQUENCE[field_mode_index]
         if snapshot.creatures and not any(creature.creature_id == selected_creature_id for creature in snapshot.creatures):
-            selected_creature_id = snapshot.creatures[0].creature_id
+            selected_creature_id = _preferred_creature_id(snapshot)
         selected = next(
             (creature for creature in snapshot.creatures if creature.creature_id == selected_creature_id),
             None,
@@ -987,7 +1026,7 @@ def _launch_tk_viewer(
             ambient_frame_counter += 1
             if ambient_frame_counter >= 120:
                 ambient_frame_counter = 0
-                creature_ids = [creature.creature_id for creature in snapshot.creatures]
+                creature_ids = _ranked_creature_ids(snapshot)[: min(6, len(snapshot.creatures))]
                 current_index = creature_ids.index(selected_creature_id) if selected_creature_id in creature_ids else -1
                 selected_creature_id = creature_ids[(current_index + 1 + len(creature_ids)) % len(creature_ids)]
                 selected = next(

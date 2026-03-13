@@ -128,6 +128,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Both debug viewer backends now support an ambient auto-cycling camera mode plus stronger fast-forward controls for display and tuning workflows
 - The shipped demo seed set now uses a spec-aligned four-node worm grazer plus larger tripod/triangle archetypes, and both debug viewers now draw clearer mouth/gripper/sensor/photoreceptor glyphs
 - `animalcula view` now pre-warms fresh worlds before opening by default, and the repo now ships `config/display.yaml` for more active inspection/display runs
+- Ambient viewer follow mode now prefers high-activity creatures instead of cycling blindly by ID, making the display camera more likely to land on visible motion
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

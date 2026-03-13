@@ -304,6 +304,7 @@ Current implementation baseline:
 - both debug viewer backends now also support ambient auto-cycling camera behavior and stronger fast-forward controls, which matters for long-running display use as well as tuning
 - the shipped demo archetypes are now materially more legible for viewing: a four-node worm grazer replaces the old two-node grazer, seeded bodies use larger tripod/triangle silhouettes, and both debug viewer backends draw specialized mouth/gripper/sensor/photoreceptor glyphs
 - `animalcula view` now pre-warms fresh worlds by default before opening, and the repo ships `config/display.yaml` for a more active display/inspection profile without ad hoc CLI overrides
+- ambient viewer selection is now activity-aware instead of purely ID-ordered, so the display camera tends to stay on critters that are moving or otherwise visually alive
 
 ## Update Protocol
 
