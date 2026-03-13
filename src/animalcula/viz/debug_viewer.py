@@ -25,10 +25,46 @@ ROLE_COLORS = {
     "predator": "#c1121f",
 }
 
+FIELD_MODE_SEQUENCE = ("combined", "nutrient", "light", "chemical_a", "chemical_b", "detritus")
+
 
 def _rgb_to_css(color_rgb: tuple[int, int, int] | list[int]) -> str:
     red, green, blue = (max(0, min(255, int(channel))) for channel in color_rgb)
     return f"rgb({red}, {green}, {blue})"
+
+
+def _field_rgb(
+    mode: str,
+    nutrient: float,
+    light: float,
+    chemical_a: float,
+    chemical_b: float,
+    detritus: float,
+) -> tuple[int, int, int]:
+    if mode == "nutrient":
+        return (18, max(26, min(255, int(30 + (nutrient * 140)))), 28)
+    if mode == "light":
+        return (
+            max(28, min(255, int(40 + (light * 180)))),
+            max(24, min(255, int(36 + (light * 110)))),
+            28,
+        )
+    if mode == "chemical_a":
+        return (28, 70, max(40, min(255, int(50 + (chemical_a * 180)))))
+    if mode == "chemical_b":
+        return (
+            max(48, min(255, int(60 + (chemical_b * 120)))),
+            36,
+            max(60, min(255, int(72 + (chemical_b * 180)))),
+        )
+    if mode == "detritus":
+        detritus_intensity = max(0, min(255, int(55 + (detritus * 140))))
+        return (detritus_intensity, max(34, detritus_intensity - 18), 28)
+    return (
+        max(12, min(255, int(18 + (light * 72) + (chemical_b * 28)))),
+        max(20, min(255, int(24 + (nutrient * 110) + (light * 36) + (chemical_a * 42)))),
+        max(24, min(255, int(30 + (light * 40) + (chemical_a * 110) + (chemical_b * 90) + (detritus * 30)))),
+    )
 
 HTML_TEMPLATE = """<!doctype html>
 <html lang="en">
@@ -142,6 +178,15 @@ HTML_TEMPLATE = """<!doctype html>
         <input id="scrub" type="range" min="0" max="0" value="0">
         <label class="meta" for="speed">speed</label>
         <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1">
+        <label class="meta" for="fieldMode">field</label>
+        <select id="fieldMode">
+          <option value="combined">combined</option>
+          <option value="nutrient">nutrient</option>
+          <option value="light">light</option>
+          <option value="chemical_a">chemical-a</option>
+          <option value="chemical_b">chemical-b</option>
+          <option value="detritus">detritus</option>
+        </select>
       </div>
       <div class="meta" id="status"></div>
       <div class="stats">
@@ -166,6 +211,7 @@ HTML_TEMPLATE = """<!doctype html>
     const step = document.getElementById("step");
     const scrub = document.getElementById("scrub");
     const speed = document.getElementById("speed");
+    const fieldMode = document.getElementById("fieldMode");
     const status = document.getElementById("status");
     const populationStat = document.getElementById("populationStat");
     const energyStat = document.getElementById("energyStat");
@@ -175,6 +221,7 @@ HTML_TEMPLATE = """<!doctype html>
     let frame = 0;
     let running = true;
     let playbackRate = 1;
+    let activeFieldMode = "combined";
     let lastTimestamp = 0;
     let frameAccumulator = 0;
 
@@ -223,7 +270,8 @@ HTML_TEMPLATE = """<!doctype html>
         " tick=" + snapshot.tick +
         " population=" + snapshot.population +
         " total_energy=" + snapshot.total_energy.toFixed(2) +
-        " speed=" + playbackRate.toFixed(2) + "x";
+        " speed=" + playbackRate.toFixed(2) + "x" +
+        " field=" + activeFieldMode;
       const roleCounts = snapshot.creatures.reduce((counts, creature) => {{
         counts[creature.trophic_role] = (counts[creature.trophic_role] || 0) + 1;
         return counts;
@@ -256,18 +304,45 @@ HTML_TEMPLATE = """<!doctype html>
         for (let col = 0; col < fields.cols; col += 1) {{
           const nutrient = fields.nutrient[row][col] || 0;
           const light = fields.light[row][col] || 0;
-          const nutrientAlpha = Math.min(0.26, nutrient * 0.22);
-          const lightAlpha = Math.min(0.18, light * 0.12);
-          if (nutrientAlpha > 0) {{
-            ctx.fillStyle = "rgba(76, 175, 80, " + nutrientAlpha.toFixed(3) + ")";
-            ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth + 1, cellHeight + 1);
-          }}
-          if (lightAlpha > 0) {{
-            ctx.fillStyle = "rgba(244, 162, 97, " + lightAlpha.toFixed(3) + ")";
-            ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth + 1, cellHeight + 1);
+          const chemicalA = fields.chemical_a[row][col] || 0;
+          const chemicalB = fields.chemical_b[row][col] || 0;
+          const detritus = fields.detritus[row][col] || 0;
+          const layers = activeFieldMode === "combined"
+            ? [
+                ["rgba(76, 175, 80, ", Math.min(0.26, nutrient * 0.22)],
+                ["rgba(244, 162, 97, ", Math.min(0.18, light * 0.12)],
+                ["rgba(74, 144, 226, ", Math.min(0.16, chemicalA * 0.18)],
+                ["rgba(181, 93, 255, ", Math.min(0.16, chemicalB * 0.18)],
+                ["rgba(143, 98, 65, ", Math.min(0.15, detritus * 0.16)],
+              ]
+            : [fieldLayer(activeFieldMode, nutrient, light, chemicalA, chemicalB, detritus)];
+          for (const [prefix, alpha] of layers) {{
+            if (alpha > 0) {{
+              ctx.fillStyle = prefix + alpha.toFixed(3) + ")";
+              ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth + 1, cellHeight + 1);
+            }}
           }}
         }}
       }}
+    }}
+
+    function fieldLayer(mode, nutrient, light, chemicalA, chemicalB, detritus) {{
+      if (mode === "nutrient") {{
+        return ["rgba(76, 175, 80, ", Math.min(0.34, nutrient * 0.28)];
+      }}
+      if (mode === "light") {{
+        return ["rgba(244, 162, 97, ", Math.min(0.26, light * 0.18)];
+      }}
+      if (mode === "chemical_a") {{
+        return ["rgba(74, 144, 226, ", Math.min(0.28, chemicalA * 0.24)];
+      }}
+      if (mode === "chemical_b") {{
+        return ["rgba(181, 93, 255, ", Math.min(0.28, chemicalB * 0.24)];
+      }}
+      if (mode === "detritus") {{
+        return ["rgba(143, 98, 65, ", Math.min(0.24, detritus * 0.24)];
+      }}
+      return ["rgba(0, 0, 0, ", 0];
     }}
 
     function rgbToCss(rgb) {{
@@ -300,6 +375,11 @@ HTML_TEMPLATE = """<!doctype html>
       renderCurrent();
     }});
 
+    fieldMode.addEventListener("input", (event) => {{
+      activeFieldMode = event.target.value;
+      renderCurrent();
+    }});
+
     window.addEventListener("keydown", (event) => {{
       if (event.code === "Space") {{
         event.preventDefault();
@@ -307,8 +387,24 @@ HTML_TEMPLATE = """<!doctype html>
       }} else if (event.code === "ArrowRight") {{
         event.preventDefault();
         step.click();
+      }} else if (event.key.toLowerCase() === "f") {{
+        event.preventDefault();
+        cycleFieldMode();
+      }} else if (event.key.toLowerCase() === "c") {{
+        event.preventDefault();
+        activeFieldMode = activeFieldMode === "chemical_a" ? "chemical_b" : "chemical_a";
+        fieldMode.value = activeFieldMode;
+        renderCurrent();
       }}
     }});
+
+    function cycleFieldMode() {{
+      const modes = ["combined", "nutrient", "light", "chemical_a", "chemical_b", "detritus"];
+      const index = modes.indexOf(activeFieldMode);
+      activeFieldMode = modes[(index + 1 + modes.length) % modes.length];
+      fieldMode.value = activeFieldMode;
+      renderCurrent();
+    }}
 
     function animationLoop(timestamp) {{
       if (!lastTimestamp) {{
@@ -362,26 +458,41 @@ def _default_html_path(world: World) -> Path:
 def _sample_fields(world: World, *, cols: int = 12, rows: int = 12) -> dict[str, object]:
     nutrient: list[list[float]] = []
     light: list[list[float]] = []
+    chemical_a: list[list[float]] = []
+    chemical_b: list[list[float]] = []
+    detritus: list[list[float]] = []
     width = max(world.config.world.width, 1.0)
     height = max(world.config.world.height, 1.0)
 
     for row in range(rows):
         nutrient_row: list[float] = []
         light_row: list[float] = []
+        chemical_a_row: list[float] = []
+        chemical_b_row: list[float] = []
+        detritus_row: list[float] = []
         sample_y = ((row + 0.5) / rows) * height
         for col in range(cols):
             sample_x = ((col + 0.5) / cols) * width
             position = Vec2(sample_x, sample_y)
             nutrient_row.append(world.nutrient_grid.sample(position))
             light_row.append(world.light_grid.sample(position))
+            chemical_a_row.append(world.chemical_a_grid.sample(position))
+            chemical_b_row.append(world.chemical_b_grid.sample(position))
+            detritus_row.append(world.detritus_grid.sample(position))
         nutrient.append(nutrient_row)
         light.append(light_row)
+        chemical_a.append(chemical_a_row)
+        chemical_b.append(chemical_b_row)
+        detritus.append(detritus_row)
 
     return {
         "cols": cols,
         "rows": rows,
         "nutrient": nutrient,
         "light": light,
+        "chemical_a": chemical_a,
+        "chemical_b": chemical_b,
+        "detritus": detritus,
     }
 
 
@@ -478,6 +589,7 @@ def _launch_tk_viewer(
 
     running = True
     pending_single_step = False
+    field_mode_index = 0
 
     def _toggle_running(_: object | None = None) -> None:
         nonlocal running
@@ -487,22 +599,38 @@ def _launch_tk_viewer(
         nonlocal pending_single_step
         pending_single_step = True
 
+    def _cycle_field_mode(_: object | None = None) -> None:
+        nonlocal field_mode_index
+        field_mode_index = (field_mode_index + 1) % len(FIELD_MODE_SEQUENCE)
+
     root.bind("<space>", _toggle_running)
     root.bind("<Right>", _single_step)
+    root.bind("f", _cycle_field_mode)
+    root.bind("F", _cycle_field_mode)
 
     def _draw(snapshot: Snapshot) -> None:
         canvas.delete("all")
         field_samples = _sample_fields(world)
         cell_width = canvas_width / max(int(field_samples["cols"]), 1)
         cell_height = canvas_height / max(int(field_samples["rows"]), 1)
+        field_mode = FIELD_MODE_SEQUENCE[field_mode_index]
 
-        for row_index, (nutrient_row, light_row) in enumerate(
-            zip(field_samples["nutrient"], field_samples["light"], strict=True)
+        for row_index, rows in enumerate(
+            zip(
+                field_samples["nutrient"],
+                field_samples["light"],
+                field_samples["chemical_a"],
+                field_samples["chemical_b"],
+                field_samples["detritus"],
+                strict=True,
+            )
         ):
-            for col_index, (nutrient, light) in enumerate(zip(nutrient_row, light_row, strict=True)):
-                red = max(12, min(255, int(18 + (light * 72))))
-                green = max(20, min(255, int(24 + (nutrient * 110) + (light * 36))))
-                blue = max(24, min(255, int(30 + (light * 40))))
+            nutrient_row, light_row, chemical_a_row, chemical_b_row, detritus_row = rows
+            for col_index, values in enumerate(
+                zip(nutrient_row, light_row, chemical_a_row, chemical_b_row, detritus_row, strict=True)
+            ):
+                nutrient, light, chemical_a, chemical_b, detritus = values
+                red, green, blue = _field_rgb(field_mode, nutrient, light, chemical_a, chemical_b, detritus)
                 canvas.create_rectangle(
                     col_index * cell_width,
                     row_index * cell_height,
@@ -580,7 +708,7 @@ def _launch_tk_viewer(
             "\n".join(
                 [
                     f"tick={snapshot.tick} population={snapshot.population} total_energy={snapshot.total_energy:.2f}",
-                    f"space=play/pause right=step steps_per_frame={steps_per_frame} frame_delay_ms={frame_delay_ms}",
+                    f"space=play/pause right=step f=field-mode({field_mode}) steps_per_frame={steps_per_frame} frame_delay_ms={frame_delay_ms}",
                 ]
             )
         )

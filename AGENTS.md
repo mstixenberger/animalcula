@@ -297,6 +297,7 @@ Current implementation baseline:
 - checkpoint payloads, phenotype snapshots, and both debug viewer backends now preserve and render lineage colors so evolving families are visually trackable
 - saved lifecycle events now preserve lineage colors too, and the CLI can export checkpoint phylogeny graphs as JSON or Newick from the recorded parent pointers
 - both debug viewer backends now also render coarse nutrient and light field overlays so the current environment is visible during local inspection
+- both debug viewer backends now support cycling/selecting nutrient, light, chemical A/B, and detritus overlays for fuller spec-aligned field inspection
 
 ## Update Protocol
 
