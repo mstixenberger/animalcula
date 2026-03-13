@@ -34,6 +34,28 @@ def _rgb_to_css(color_rgb: tuple[int, int, int] | list[int]) -> str:
     return f"rgb({red}, {green}, {blue})"
 
 
+def _parse_css_rgb(css: str) -> tuple[int, int, int] | None:
+    if not css.startswith("rgb(") or not css.endswith(")"):
+        return None
+    payload = [part.strip() for part in css[4:-1].split(",")]
+    if len(payload) != 3:
+        return None
+    try:
+        return tuple(max(0, min(255, int(float(part)))) for part in payload)  # type: ignore[return-value]
+    except ValueError:
+        return None
+
+
+def _blend_css_color(css: str, *, alpha: float, background_rgb: tuple[int, int, int] = (22, 26, 31)) -> str:
+    parsed = _parse_css_rgb(css)
+    if parsed is None:
+        return css
+    red = round((parsed[0] * alpha) + (background_rgb[0] * (1.0 - alpha)))
+    green = round((parsed[1] * alpha) + (background_rgb[1] * (1.0 - alpha)))
+    blue = round((parsed[2] * alpha) + (background_rgb[2] * (1.0 - alpha)))
+    return f"#{red:02x}{green:02x}{blue:02x}"
+
+
 def _field_rgb(
     mode: str,
     nutrient: float,
@@ -324,8 +346,9 @@ HTML_TEMPLATE = """<!doctype html>
       syncSelectedCreature(snapshot);
       const creatureRoles = new Map(snapshot.creatures.map((creature) => [creature.creature_id, creature.trophic_role]));
       const creatureColors = new Map(snapshot.creatures.map((creature) => [creature.creature_id, rgbToCss(creature.color_rgb)]));
+      const creatureVisuals = new Map(snapshot.creatures.map((creature) => [creature.creature_id, creature]));
       drawFields(snapshot);
-      drawCreatureSilhouettes(snapshot, creatureColors);
+      drawCreatureSilhouettes(snapshot, creatureColors, creatureVisuals);
 
       for (const edge of snapshot.edges) {{
         const [ax, ay] = toCanvas(edge.ax, edge.ay, snapshot);
@@ -341,6 +364,7 @@ HTML_TEMPLATE = """<!doctype html>
       for (const node of snapshot.nodes) {{
         const [cx, cy] = toCanvas(node.x, node.y, snapshot);
         const lineageColor = creatureColors.get(node.creature_id) || "#cbd5e1";
+        const visual = creatureVisuals.get(node.creature_id);
         const fill = nodeColors[node.node_type] || "#94a3b8";
         const radius = Math.max(2.0, node.radius * 2.0);
         ctx.beginPath();
@@ -350,7 +374,7 @@ HTML_TEMPLATE = """<!doctype html>
         ctx.lineWidth = 2;
         ctx.strokeStyle = lineageColor;
         ctx.stroke();
-        drawNodeGlyph(node, cx, cy, radius);
+        drawNodeGlyph(node, cx, cy, radius, visual ? visual.glyph_scale : 1.0);
       }}
 
       const selected = snapshot.creatures.find((creature) => creature.creature_id === selectedCreatureId);
@@ -391,7 +415,7 @@ HTML_TEMPLATE = """<!doctype html>
       draw(snapshots[frame]);
     }}
 
-    function drawCreatureSilhouettes(snapshot, creatureColors) {{
+    function drawCreatureSilhouettes(snapshot, creatureColors, creatureVisuals) {{
       const creatureNodes = new Map();
       for (const node of snapshot.nodes) {{
         if (node.creature_id === null || node.creature_id === undefined) {{
@@ -403,14 +427,17 @@ HTML_TEMPLATE = """<!doctype html>
         creatureNodes.get(node.creature_id).push(node);
       }}
       for (const [creatureId, nodes] of creatureNodes.entries()) {{
+        const visual = creatureVisuals.get(creatureId) || {{ silhouette_scale: 1.0, band_count: 2, band_offset: 0.0 }};
+        const silhouetteScale = Number(visual.silhouette_scale || 1.0);
         const fill = hexToRgba(creatureColors.get(creatureId) || "#cbd5e1", 0.18);
         if (nodes.length === 1) {{
           const [cx, cy] = toCanvas(nodes[0].x, nodes[0].y, snapshot);
-          const radius = Math.max(6.0, nodes[0].radius * 4.0);
+          const radius = Math.max(6.0, nodes[0].radius * 4.0 * silhouetteScale);
           ctx.beginPath();
           ctx.arc(cx, cy, radius, 0, Math.PI * 2);
           ctx.fillStyle = fill;
           ctx.fill();
+          drawCreatureBands(snapshot, nodes, visual, creatureColors.get(creatureId) || "#cbd5e1");
           continue;
         }}
         if (nodes.length === 2) {{
@@ -420,10 +447,11 @@ HTML_TEMPLATE = """<!doctype html>
           ctx.moveTo(ax, ay);
           ctx.lineTo(bx, by);
           ctx.strokeStyle = fill;
-          ctx.lineWidth = Math.max(8.0, (nodes[0].radius + nodes[1].radius) * 3.5);
+          ctx.lineWidth = Math.max(8.0, (nodes[0].radius + nodes[1].radius) * 3.5 * silhouetteScale);
           ctx.lineCap = "round";
           ctx.stroke();
           ctx.lineCap = "butt";
+          drawCreatureBands(snapshot, nodes, visual, creatureColors.get(creatureId) || "#cbd5e1");
           continue;
         }}
         const centroidX = nodes.reduce((sum, node) => sum + node.x, 0) / nodes.length;
@@ -435,7 +463,7 @@ HTML_TEMPLATE = """<!doctype html>
             const dx = node.x - centroidX;
             const dy = node.y - centroidY;
             const magnitude = Math.hypot(dx, dy) || 1.0;
-            const inflate = node.radius * 1.6;
+            const inflate = node.radius * 1.6 * silhouetteScale;
             return [
               node.x + ((dx / magnitude) * inflate),
               node.y + ((dy / magnitude) * inflate),
@@ -454,33 +482,72 @@ HTML_TEMPLATE = """<!doctype html>
         ctx.closePath();
         ctx.fillStyle = fill;
         ctx.fill();
+        drawCreatureBands(snapshot, nodes, visual, creatureColors.get(creatureId) || "#cbd5e1");
       }}
     }}
 
-    function drawNodeGlyph(node, cx, cy, radius) {{
+    function drawCreatureBands(snapshot, nodes, visual, colorCss) {{
+      const bandCount = Math.max(1, Math.min(4, Number(visual.band_count || 1)));
+      if (bandCount <= 1) {{
+        return;
+      }}
+      const projected = nodes.map((node) => toCanvas(node.x, node.y, snapshot));
+      const xs = projected.map((point) => point[0]);
+      const ys = projected.map((point) => point[1]);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+      const width = maxX - minX;
+      const height = maxY - minY;
+      const verticalBands = width >= height;
+      ctx.save();
+      ctx.strokeStyle = hexToRgba(colorCss, 0.28);
+      ctx.lineWidth = 1.5;
+      for (let index = 0; index < bandCount; index += 1) {{
+        const offset = ((index + Number(visual.band_offset || 0.0)) % bandCount) / bandCount;
+        if (verticalBands) {{
+          const x = minX + (width * offset);
+          ctx.beginPath();
+          ctx.moveTo(x, minY - 2);
+          ctx.lineTo(x, maxY + 2);
+          ctx.stroke();
+        }} else {{
+          const y = minY + (height * offset);
+          ctx.beginPath();
+          ctx.moveTo(minX - 2, y);
+          ctx.lineTo(maxX + 2, y);
+          ctx.stroke();
+        }}
+      }}
+      ctx.restore();
+    }}
+
+    function drawNodeGlyph(node, cx, cy, radius, glyphScale) {{
+      const scaledRadius = radius * Math.max(0.85, glyphScale || 1.0);
       ctx.save();
       ctx.strokeStyle = "rgba(16, 19, 23, 0.88)";
       ctx.fillStyle = "rgba(16, 19, 23, 0.82)";
-      ctx.lineWidth = Math.max(1, radius * 0.28);
+      ctx.lineWidth = Math.max(1, scaledRadius * 0.28);
       if (node.node_type === "mouth") {{
         ctx.beginPath();
-        ctx.moveTo(cx - (radius * 0.8), cy + (radius * 0.12));
-        ctx.lineTo(cx + (radius * 0.8), cy + (radius * 0.12));
+        ctx.moveTo(cx - (scaledRadius * 0.8), cy + (scaledRadius * 0.12));
+        ctx.lineTo(cx + (scaledRadius * 0.8), cy + (scaledRadius * 0.12));
         ctx.stroke();
       }} else if (node.node_type === "gripper") {{
         ctx.beginPath();
-        ctx.moveTo(cx - (radius * 0.15), cy - (radius * 0.15));
-        ctx.lineTo(cx + (radius * 0.95), cy - (radius * 0.95));
-        ctx.moveTo(cx - (radius * 0.15), cy + (radius * 0.15));
-        ctx.lineTo(cx + (radius * 0.95), cy + (radius * 0.95));
+        ctx.moveTo(cx - (scaledRadius * 0.15), cy - (scaledRadius * 0.15));
+        ctx.lineTo(cx + (scaledRadius * 0.95), cy - (scaledRadius * 0.95));
+        ctx.moveTo(cx - (scaledRadius * 0.15), cy + (scaledRadius * 0.15));
+        ctx.lineTo(cx + (scaledRadius * 0.95), cy + (scaledRadius * 0.95));
         ctx.stroke();
       }} else if (node.node_type === "sensor") {{
         ctx.beginPath();
-        ctx.arc(cx, cy, Math.max(1.2, radius * 0.28), 0, Math.PI * 2);
+        ctx.arc(cx, cy, Math.max(1.2, scaledRadius * 0.28), 0, Math.PI * 2);
         ctx.fill();
       }} else if (node.node_type === "photoreceptor") {{
         ctx.beginPath();
-        ctx.arc(cx, cy, Math.max(1.4, radius * 0.52), 0, Math.PI * 2);
+        ctx.arc(cx, cy, Math.max(1.4, scaledRadius * 0.52), 0, Math.PI * 2);
         ctx.stroke();
       }}
       ctx.restore();
@@ -870,6 +937,36 @@ def _sample_fields(world: World, *, cols: int = 12, rows: int = 12) -> dict[str,
     }
 
 
+def _draw_creature_bands(
+    canvas: object,
+    nodes: list[object],
+    visual: object | None,
+    project: object,
+    color_css: str,
+) -> None:
+    band_count = max(1, min(4, int(getattr(visual, "band_count", 1) or 1)))
+    if band_count <= 1:
+        return
+    projected = [project(node.x, node.y) for node in nodes]
+    xs = [point[0] for point in projected]
+    ys = [point[1] for point in projected]
+    min_x = min(xs)
+    max_x = max(xs)
+    min_y = min(ys)
+    max_y = max(ys)
+    band_offset = float(getattr(visual, "band_offset", 0.0) or 0.0)
+    vertical_bands = (max_x - min_x) >= (max_y - min_y)
+    line_color = _blend_css_color(color_css, alpha=0.28)
+    for index in range(band_count):
+        offset = ((index + band_offset) % band_count) / band_count
+        if vertical_bands:
+            x = min_x + ((max_x - min_x) * offset)
+            canvas.create_line(x, min_y - 2, x, max_y + 2, fill=line_color, width=1.5)
+        else:
+            y = min_y + ((max_y - min_y) * offset)
+            canvas.create_line(min_x - 2, y, max_x + 2, y, fill=line_color, width=1.5)
+
+
 def _snapshot_payload(world: World) -> dict[str, object]:
     payload = asdict(world.snapshot())
     payload["fields"] = _sample_fields(world)
@@ -1105,9 +1202,7 @@ def _launch_tk_viewer(
         return ranked_ids[0] if ranked_ids else None
 
     def _silhouette_color(css: str) -> str:
-        if css.startswith("rgb(") and css.endswith(")"):
-            return css.replace("rgb(", "rgba(").replace(")", ", 0.18)")
-        return "#334155"
+        return _blend_css_color(css, alpha=0.18)
 
     def _draw(snapshot: Snapshot) -> None:
         nonlocal ambient_frame_counter, selected_creature_id
@@ -1177,16 +1272,22 @@ def _launch_tk_viewer(
             creature.creature_id: _rgb_to_css(creature.color_rgb)
             for creature in snapshot.creatures
         }
+        creature_visuals = {
+            creature.creature_id: creature
+            for creature in snapshot.creatures
+        }
         creature_nodes: dict[int, list[object]] = {}
         for node in snapshot.nodes:
             if node.creature_id is None:
                 continue
             creature_nodes.setdefault(node.creature_id, []).append(node)
         for creature_id, nodes in creature_nodes.items():
+            visual = creature_visuals.get(creature_id)
+            silhouette_scale = visual.silhouette_scale if visual is not None else 1.0
             fill = _silhouette_color(creature_colors.get(creature_id, "#cbd5e1"))
             if len(nodes) == 1:
                 cx, cy = _project(nodes[0].x, nodes[0].y)
-                radius = max(6.0, nodes[0].radius * 4.0)
+                radius = max(6.0, nodes[0].radius * 4.0 * silhouette_scale)
                 canvas.create_oval(
                     cx - radius,
                     cy - radius,
@@ -1195,6 +1296,7 @@ def _launch_tk_viewer(
                     fill=fill,
                     outline="",
                 )
+                _draw_creature_bands(canvas, nodes, visual, _project, creature_colors.get(creature_id, "#cbd5e1"))
                 continue
             if len(nodes) == 2:
                 ax, ay = _project(nodes[0].x, nodes[0].y)
@@ -1205,9 +1307,10 @@ def _launch_tk_viewer(
                     bx,
                     by,
                     fill=fill,
-                    width=max(8.0, (nodes[0].radius + nodes[1].radius) * 3.5),
+                    width=max(8.0, (nodes[0].radius + nodes[1].radius) * 3.5 * silhouette_scale),
                     capstyle="round",
                 )
+                _draw_creature_bands(canvas, nodes, visual, _project, creature_colors.get(creature_id, "#cbd5e1"))
                 continue
             centroid_x = sum(node.x for node in nodes) / len(nodes)
             centroid_y = sum(node.y for node in nodes) / len(nodes)
@@ -1220,7 +1323,7 @@ def _launch_tk_viewer(
                 dx = node.x - centroid_x
                 dy = node.y - centroid_y
                 magnitude = math.hypot(dx, dy) or 1.0
-                inflate = node.radius * 1.6
+                inflate = node.radius * 1.6 * silhouette_scale
                 px, py = _project(
                     node.x + ((dx / magnitude) * inflate),
                     node.y + ((dy / magnitude) * inflate),
@@ -1228,6 +1331,7 @@ def _launch_tk_viewer(
                 polygon_points.extend((px, py))
             if polygon_points:
                 canvas.create_polygon(*polygon_points, fill=fill, outline="")
+                _draw_creature_bands(canvas, nodes, visual, _project, creature_colors.get(creature_id, "#cbd5e1"))
         for edge in snapshot.edges:
             ax, ay = _project(edge.ax, edge.ay)
             bx, by = _project(edge.bx, edge.by)
@@ -1244,8 +1348,11 @@ def _launch_tk_viewer(
             cx, cy = _project(node.x, node.y)
             role = creature_roles.get(node.creature_id)
             outline = creature_colors.get(node.creature_id, "#cbd5e1")
+            visual = creature_visuals.get(node.creature_id)
+            glyph_scale = visual.glyph_scale if visual is not None else 1.0
             fill = NODE_COLORS.get(node.node_type, "#94a3b8")
             radius = max(2.0, node.radius * 2.0)
+            scaled_radius = radius * max(0.85, glyph_scale)
             canvas.create_oval(
                 cx - radius,
                 cy - radius,
@@ -1257,32 +1364,32 @@ def _launch_tk_viewer(
             )
             if node.node_type == "mouth":
                 canvas.create_line(
-                    cx - (radius * 0.8),
-                    cy + (radius * 0.12),
-                    cx + (radius * 0.8),
-                    cy + (radius * 0.12),
+                    cx - (scaled_radius * 0.8),
+                    cy + (scaled_radius * 0.12),
+                    cx + (scaled_radius * 0.8),
+                    cy + (scaled_radius * 0.12),
                     fill="#101317",
-                    width=max(1.0, radius * 0.3),
+                    width=max(1.0, scaled_radius * 0.3),
                 )
             elif node.node_type == "gripper":
                 canvas.create_line(
-                    cx - (radius * 0.15),
-                    cy - (radius * 0.15),
-                    cx + (radius * 0.95),
-                    cy - (radius * 0.95),
+                    cx - (scaled_radius * 0.15),
+                    cy - (scaled_radius * 0.15),
+                    cx + (scaled_radius * 0.95),
+                    cy - (scaled_radius * 0.95),
                     fill="#101317",
-                    width=max(1.0, radius * 0.3),
+                    width=max(1.0, scaled_radius * 0.3),
                 )
                 canvas.create_line(
-                    cx - (radius * 0.15),
-                    cy + (radius * 0.15),
-                    cx + (radius * 0.95),
-                    cy + (radius * 0.95),
+                    cx - (scaled_radius * 0.15),
+                    cy + (scaled_radius * 0.15),
+                    cx + (scaled_radius * 0.95),
+                    cy + (scaled_radius * 0.95),
                     fill="#101317",
-                    width=max(1.0, radius * 0.3),
+                    width=max(1.0, scaled_radius * 0.3),
                 )
             elif node.node_type == "sensor":
-                glyph_radius = max(1.2, radius * 0.28)
+                glyph_radius = max(1.2, scaled_radius * 0.28)
                 canvas.create_oval(
                     cx - glyph_radius,
                     cy - glyph_radius,
@@ -1292,14 +1399,14 @@ def _launch_tk_viewer(
                     outline="",
                 )
             elif node.node_type == "photoreceptor":
-                glyph_radius = max(1.4, radius * 0.52)
+                glyph_radius = max(1.4, scaled_radius * 0.52)
                 canvas.create_oval(
                     cx - glyph_radius,
                     cy - glyph_radius,
                     cx + glyph_radius,
                     cy + glyph_radius,
                     outline="#101317",
-                    width=max(1.0, radius * 0.22),
+                    width=max(1.0, scaled_radius * 0.22),
                 )
             if role is not None:
                 role_radius = max(1.0, radius * 0.35)

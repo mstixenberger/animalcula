@@ -54,6 +54,9 @@ def test_encode_creature_genome_preserves_local_structure() -> None:
     assert genome.brain is not None
     assert genome.brain.states == (0.0,)
     assert genome.color_rgb == creature.color_rgb
+    assert genome.visuals.silhouette_scale == 1.0
+    assert genome.visuals.glyph_scale == 1.0
+    assert genome.visuals.band_count == 2
 
 
 def test_decode_genome_rebuilds_nodes_edges_and_brain() -> None:
@@ -120,6 +123,10 @@ def test_mutate_genome_changes_shape_or_brain_but_keeps_bounds_valid() -> None:
     assert mutated.brain is not None
     assert all(value > 0.0 for value in mutated.brain.time_constants)
     assert all(0 <= channel <= 255 for channel in mutated.color_rgb)
+    assert 0.85 <= mutated.visuals.silhouette_scale <= 1.5
+    assert 0.85 <= mutated.visuals.glyph_scale <= 1.75
+    assert 1 <= mutated.visuals.band_count <= 4
+    assert 0.0 <= mutated.visuals.band_offset < 1.0
 
 
 def test_genome_dict_roundtrip_preserves_lineage_color() -> None:
@@ -128,6 +135,24 @@ def test_genome_dict_roundtrip_preserves_lineage_color() -> None:
         edges=(),
         brain=None,
         color_rgb=(45, 120, 200),
+    )
+
+    restored = genome_from_dict(genome_to_dict(genome))
+
+    assert restored == genome
+
+
+def test_genome_dict_roundtrip_preserves_visual_traits() -> None:
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(),
+        brain=None,
+        visuals=CreatureGenome.VisualGene(
+            silhouette_scale=1.25,
+            glyph_scale=1.4,
+            band_count=4,
+            band_offset=0.35,
+        ),
     )
 
     restored = genome_from_dict(genome_to_dict(genome))

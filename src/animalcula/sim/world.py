@@ -92,6 +92,10 @@ class CreatureSnapshot:
     center_x: float
     center_y: float
     color_rgb: tuple[int, int, int]
+    silhouette_scale: float
+    glyph_scale: float
+    band_count: int
+    band_offset: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -306,6 +310,9 @@ class World:
                     "num_photoreceptors": photoreceptors,
                     "energy": creature.energy,
                     "mean_speed_recent": creature.mean_speed_recent,
+                    "visual_silhouette_scale": creature.genome.visuals.silhouette_scale if creature.genome is not None else 1.0,
+                    "visual_glyph_scale": creature.genome.visuals.glyph_scale if creature.genome is not None else 1.0,
+                    "visual_band_count": creature.genome.visuals.band_count if creature.genome is not None else 2,
                 }
             )
         return snapshots
@@ -325,6 +332,9 @@ class World:
             "mean_speed_recent",
             "energy",
             "age_ticks",
+            "visual_silhouette_scale",
+            "visual_glyph_scale",
+            "visual_band_count",
         ]
         vectors: list[dict[str, object]] = []
         for creature in self.creatures:
@@ -361,6 +371,9 @@ class World:
                 float(creature.mean_speed_recent),
                 float(creature.energy),
                 float(creature.age_ticks),
+                float(creature.genome.visuals.silhouette_scale if creature.genome is not None else 1.0),
+                float(creature.genome.visuals.glyph_scale if creature.genome is not None else 1.0),
+                float(creature.genome.visuals.band_count if creature.genome is not None else 2),
             ]
             vectors.append(
                 {
@@ -593,6 +606,10 @@ class World:
                 center_x=self._creature_centroid(creature).x if self._creature_centroid(creature) is not None else 0.0,
                 center_y=self._creature_centroid(creature).y if self._creature_centroid(creature) is not None else 0.0,
                 color_rgb=creature.color_rgb,
+                silhouette_scale=creature.genome.visuals.silhouette_scale if creature.genome is not None else 1.0,
+                glyph_scale=creature.genome.visuals.glyph_scale if creature.genome is not None else 1.0,
+                band_count=creature.genome.visuals.band_count if creature.genome is not None else 2,
+                band_offset=creature.genome.visuals.band_offset if creature.genome is not None else 0.0,
             )
             for creature in self.creatures
         )

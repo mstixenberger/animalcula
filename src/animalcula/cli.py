@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 import sqlite3
+import sys
 
 from animalcula.analysis.metrics import trophic_balance_score
 from animalcula.analysis.seedbank import evaluate_seed_bank, promote_seed_bank
@@ -150,7 +151,7 @@ def main() -> int:
     if args.command == "view":
         world = _load_or_create_world(args)
         if args.resume is None and args.warmup_ticks > 0:
-            world.step(args.warmup_ticks)
+            _warmup_world_with_progress(world, args.warmup_ticks)
         html_viewer = launch_viewer(
             world,
             steps_per_frame=max(1, args.steps_per_frame),
@@ -282,6 +283,32 @@ def main() -> int:
 
     parser.error(f"unknown command: {args.command}")
     return 2
+
+
+def _warmup_world_with_progress(world: World, ticks: int) -> None:
+    if ticks <= 0:
+        return
+    if not sys.stderr.isatty():
+        world.step(ticks)
+        return
+    chunk = max(1, min(20, ticks // 24 or 1))
+    completed = 0
+    while completed < ticks:
+        step_ticks = min(chunk, ticks - completed)
+        world.step(step_ticks)
+        completed += step_ticks
+        _print_progress_bar(label="warming viewer", completed=completed, total=ticks)
+    sys.stderr.write("\n")
+    sys.stderr.flush()
+
+
+def _print_progress_bar(*, label: str, completed: int, total: int, width: int = 28) -> None:
+    safe_total = max(total, 1)
+    ratio = max(0.0, min(1.0, completed / safe_total))
+    filled = min(width, int(round(width * ratio)))
+    bar = ("#" * filled) + ("-" * (width - filled))
+    sys.stderr.write(f"\r{label} [{bar}] {completed}/{total}")
+    sys.stderr.flush()
 
 
 def _format_stats(seed: int, stats: object) -> str:

@@ -43,6 +43,7 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     assert 'id="predatorStat"' in payload
     assert 'function drawNodeGlyph' in payload
     assert 'function drawCreatureSilhouettes' in payload
+    assert 'function drawCreatureBands' in payload
     assert 'function drawSelectedLabel' in payload
     assert 'hexToRgba' in payload
     assert "function creatureFocusScore" in payload
@@ -55,6 +56,9 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     assert '"detritus": [[' in payload
     assert '"species_id": "species-' in payload
     assert '"genome_hash": "' in payload
+    assert '"silhouette_scale": ' in payload
+    assert '"glyph_scale": ' in payload
+    assert '"band_count": ' in payload
     assert "\"tick\": 0" in payload
 
 
@@ -97,6 +101,7 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
     assert 'zoom.addEventListener("input"' in payload
     assert 'event.key === "4"' in payload
     assert "preferredCreatureId(snapshot)" in payload
-    assert "drawCreatureSilhouettes(snapshot, creatureColors)" in payload
+    assert "drawCreatureSilhouettes(snapshot, creatureColors, creatureVisuals)" in payload
+    assert "drawCreatureBands(snapshot, nodes, visual" in payload
     assert "drawSelectedLabel(selected, sx, sy)" in payload
     assert 'node.node_type === "photoreceptor"' in payload

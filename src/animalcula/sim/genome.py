@@ -47,16 +47,26 @@ class GenomeBrainGene:
 
 
 @dataclass(slots=True, frozen=True)
+class GenomeVisualGene:
+    silhouette_scale: float = 1.0
+    glyph_scale: float = 1.0
+    band_count: int = 2
+    band_offset: float = 0.0
+
+
+@dataclass(slots=True, frozen=True)
 class CreatureGenome:
     nodes: tuple[GenomeNodeGene, ...]
     edges: tuple[GenomeEdgeGene, ...]
     brain: GenomeBrainGene | None = None
     color_rgb: tuple[int, int, int] = DEFAULT_LINEAGE_COLOR_RGB
+    visuals: GenomeVisualGene = GenomeVisualGene()
 
 
 CreatureGenome.NodeGene = GenomeNodeGene  # type: ignore[attr-defined]
 CreatureGenome.EdgeGene = GenomeEdgeGene  # type: ignore[attr-defined]
 CreatureGenome.BrainGene = GenomeBrainGene  # type: ignore[attr-defined]
+CreatureGenome.VisualGene = GenomeVisualGene  # type: ignore[attr-defined]
 
 MUTABLE_NODE_TYPES: tuple[NodeType, ...] = (
     NodeType.BODY,
@@ -93,6 +103,22 @@ def _mutate_color_rgb(
     if sigma <= 0.0:
         return color_rgb
     return tuple(_clamp_rgb_channel(channel + rng.gauss(0.0, sigma)) for channel in color_rgb)
+
+
+def _clamp(value: float, minimum: float, maximum: float) -> float:
+    return max(minimum, min(maximum, value))
+
+
+def _mutate_visuals(visuals: GenomeVisualGene, *, rng: random.Random) -> GenomeVisualGene:
+    band_count = visuals.band_count
+    if rng.random() < 0.25:
+        band_count += 1 if rng.random() < 0.5 else -1
+    return GenomeVisualGene(
+        silhouette_scale=_clamp(visuals.silhouette_scale + rng.gauss(0.0, 0.08), 0.85, 1.5),
+        glyph_scale=_clamp(visuals.glyph_scale + rng.gauss(0.0, 0.1), 0.85, 1.75),
+        band_count=max(1, min(4, band_count)),
+        band_offset=(visuals.band_offset + rng.gauss(0.0, 0.12)) % 1.0,
+    )
 
 
 def _resize_brain_for_outputs(
@@ -246,6 +272,9 @@ def genome_distance(left: CreatureGenome | None, right: CreatureGenome | None) -
         left_mean_radius = sum(node.radius for node in left.nodes) / len(left.nodes)
         right_mean_radius = sum(node.radius for node in right.nodes) / len(right.nodes)
         distance += abs(left_mean_radius - right_mean_radius)
+    distance += abs(left.visuals.silhouette_scale - right.visuals.silhouette_scale) * 0.2
+    distance += abs(left.visuals.glyph_scale - right.visuals.glyph_scale) * 0.15
+    distance += abs(left.visuals.band_count - right.visuals.band_count) * 0.1
 
     if left.brain is None and right.brain is None:
         return distance
@@ -472,6 +501,7 @@ def mutate_genome(
         edges=tuple(mutated_edges),
         brain=None,
         color_rgb=genome.color_rgb,
+        visuals=genome.visuals,
     )
     mutated_brain = None
     if genome.brain is not None:
@@ -511,6 +541,7 @@ def mutate_genome(
         edges=tuple(mutated_edges),
         brain=mutated_brain,
         color_rgb=_mutate_color_rgb(genome.color_rgb, rng=rng, sigma=color_sigma),
+        visuals=_mutate_visuals(genome.visuals, rng=rng),
     )
 
 
@@ -519,6 +550,12 @@ def genome_to_dict(genome: CreatureGenome | None) -> dict[str, Any] | None:
         return None
     return {
         "color_rgb": list(genome.color_rgb),
+        "visuals": {
+            "silhouette_scale": genome.visuals.silhouette_scale,
+            "glyph_scale": genome.visuals.glyph_scale,
+            "band_count": genome.visuals.band_count,
+            "band_offset": genome.visuals.band_offset,
+        },
         "nodes": [
             {
                 "position": [node.position.x, node.position.y],
@@ -555,6 +592,7 @@ def genome_from_dict(payload: dict[str, Any] | None) -> CreatureGenome | None:
     if payload is None:
         return None
     color_rgb = tuple(payload.get("color_rgb", DEFAULT_LINEAGE_COLOR_RGB))
+    visuals_payload = payload.get("visuals", {})
     return CreatureGenome(
         nodes=tuple(
             GenomeNodeGene(
@@ -586,6 +624,12 @@ def genome_from_dict(payload: dict[str, Any] | None) -> CreatureGenome | None:
             output_size=payload["brain"]["output_size"],
         ),
         color_rgb=tuple(_clamp_rgb_channel(channel) for channel in color_rgb),
+        visuals=GenomeVisualGene(
+            silhouette_scale=float(visuals_payload.get("silhouette_scale", 1.0)),
+            glyph_scale=float(visuals_payload.get("glyph_scale", 1.0)),
+            band_count=int(visuals_payload.get("band_count", 2)),
+            band_offset=float(visuals_payload.get("band_offset", 0.0)),
+        ),
     )
 
 

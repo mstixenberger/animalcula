@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import animalcula.cli as cli
 from animalcula import Config, World
 from animalcula.sim.genome import decode_genome
 from animalcula.sim.types import BrainState, CreatureState, EdgeState, NodeState, NodeType, Vec2
@@ -240,6 +241,9 @@ def test_world_snapshot_contains_renderable_creature_graph() -> None:
     assert all(creature.species_id for creature in snapshot.creatures)
     assert all(creature.genome_hash for creature in snapshot.creatures)
     assert all(creature.born_tick == 0 for creature in snapshot.creatures)
+    assert all(creature.silhouette_scale > 0.0 for creature in snapshot.creatures)
+    assert all(creature.glyph_scale > 0.0 for creature in snapshot.creatures)
+    assert all(creature.band_count >= 1 for creature in snapshot.creatures)
     assert {creature.trophic_role for creature in snapshot.creatures} >= {"autotroph", "herbivore", "predator"}
 
 
@@ -1560,6 +1564,9 @@ def test_world_can_build_phenotype_snapshots() -> None:
     assert all("num_nodes" in snapshot for snapshot in snapshots)
     assert all("mean_speed_recent" in snapshot for snapshot in snapshots)
     assert all("species_id" in snapshot for snapshot in snapshots)
+    assert all("visual_silhouette_scale" in snapshot for snapshot in snapshots)
+    assert all("visual_glyph_scale" in snapshot for snapshot in snapshots)
+    assert all("visual_band_count" in snapshot for snapshot in snapshots)
 
 
 def test_world_can_build_phenotype_vectors() -> None:
@@ -1576,6 +1583,9 @@ def test_world_can_build_phenotype_vectors() -> None:
     assert all(len(vector["vector"]) == len(vector["vector_labels"]) for vector in vectors)
     assert all("species_id" in vector for vector in vectors)
     assert all("genome_hash" in vector for vector in vectors)
+    assert "visual_silhouette_scale" in vectors[0]["vector_labels"]
+    assert "visual_glyph_scale" in vectors[0]["vector_labels"]
+    assert "visual_band_count" in vectors[0]["vector_labels"]
 
 
 def test_cli_run_command_advances_the_world() -> None:
@@ -1687,6 +1697,30 @@ def test_cli_view_help_describes_minimal_debug_viewer() -> None:
     assert "--html-out" in result.stdout
     assert "--warmup-ticks" in result.stdout
     assert "--steps-per-frame" in result.stdout
+
+
+def test_warmup_world_with_progress_writes_tty_progress(monkeypatch: pytest.MonkeyPatch) -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+    writes: list[str] = []
+
+    class _StderrProxy:
+        def isatty(self) -> bool:
+            return True
+
+        def write(self, chunk: str) -> int:
+            writes.append(chunk)
+            return len(chunk)
+
+        def flush(self) -> None:
+            return None
+
+    monkeypatch.setattr(cli.sys, "stderr", _StderrProxy())
+
+    cli._warmup_world_with_progress(world, 5)
+
+    assert world.tick == 5
+    assert any("warming viewer" in chunk for chunk in writes)
 
 
 def test_cli_species_command_reads_checkpoint_species_snapshots(tmp_path: Path) -> None:
