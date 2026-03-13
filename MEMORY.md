@@ -5,7 +5,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 ## Current State
 
 - Branch state: working directly on `main` with frequent stable checkpoints
-- Product focus: spec-aligned headless simulation, logging, and tuning loop
+- Product focus: spec-aligned headless simulation plus the permanent browser frontend path
 - Test status at last update: focused phylogeny/export tests passing after wiring lineage-colored event persistence
 - Recent completed slices:
   - direct trophic-balance weighting in shared interestingness scoring
@@ -51,11 +51,12 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - HTML viewer launches now auto-open by default, with `--no-open-browser` available when deterministic non-GUI behavior is needed
 - HTML fallback startup now has an explicit second `recording html viewer` progress phase after warmup, which fixes the misleading dead-air period on slower runs
 - both debug viewer backends now have a compact ecology HUD/history layer, so recent births/deaths/reproductions/predation and short population/species/predator trends are visible while watching
+- the real browser frontend path has started: `animalcula web` now serves a live FastAPI/WebSocket viewer shell; Tk remains a stopgap local viewer, not the main frontend target
 
 ## Current Priority
 
-- Keep tightening the headless ecosystem loop before adding broader UI work
-- Prefer spec-aligned environmental variation, observability, and tuning improvements
+- Keep tightening the headless ecosystem loop while moving product-facing viewer work into the browser frontend
+- Prefer permanent browser/frontend slices over additional Tk-only UX work
 - Maintain clean, narrow commits with matching tests/docs
 
 ## Active Constraints
@@ -68,6 +69,5 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 ## Likely Next Slices
 
 - Close the next spec-facing runtime or viewer gap with clear user-visible payoff
-- Prefer slices that make evolving lineages/ecologies easier to inspect without committing to the full browser frontend yet
-- Good next candidates: lightweight field visualization in the debug viewer, richer checkpoint/species lineage summaries, or first phenotype-space export
-- Good next candidates: richer checkpoint/species lineage summaries, first phenotype-space export, or stronger species/lineage analytics beyond single-creature inspection
+- Prefer slices that deepen the live browser frontend rather than extending throwaway local viewers
+- Good next candidates: richer browser inspector panels, timeline analytics, live species/lineage panels, or phenotype-space views on top of the new WebSocket path

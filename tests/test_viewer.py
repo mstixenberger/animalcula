@@ -223,8 +223,24 @@ def test_launch_viewer_uses_tk_safe_hex_colors(
         def pack(self, **_kwargs: object) -> None:
             return None
 
+    class _Frame:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def pack(self, **_kwargs: object) -> None:
+            return None
+
+    class _Button:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+        def pack(self, **_kwargs: object) -> None:
+            return None
+
     class _FakeTkModule:
         Canvas = _Canvas
+        Button = _Button
+        Frame = _Frame
         Label = _Label
         StringVar = _StringVar
 

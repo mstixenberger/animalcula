@@ -15,6 +15,7 @@ from animalcula.analysis.sweep import run_sweep
 from animalcula.config import Config
 from animalcula.sim.world import World
 from animalcula.viz.debug_viewer import launch_viewer
+from animalcula.web import run_web_frontend
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,6 +57,25 @@ def build_parser() -> argparse.ArgumentParser:
     view_parser.add_argument("--html-out", default=None)
     view_parser.add_argument("--max-frames", type=int, default=600)
     view_parser.add_argument("--no-open-browser", action="store_true")
+
+    web_parser = subparsers.add_parser(
+        "web",
+        help="Run the live browser frontend",
+        description="Run the live browser frontend over FastAPI/WebSocket for live inspection and control.",
+    )
+    web_parser.add_argument("--config", default="config/default.yaml")
+    web_parser.add_argument("--seed", type=int, default=None)
+    web_parser.add_argument("--seed-demo", action="store_true")
+    web_parser.add_argument("--resume", default=None)
+    web_parser.add_argument("--seed-from", default=None)
+    web_parser.add_argument("--set", action="append", default=[])
+    web_parser.add_argument("--turbo", action="store_true")
+    web_parser.add_argument("--warmup-ticks", type=int, default=120)
+    web_parser.add_argument("--host", default="127.0.0.1")
+    web_parser.add_argument("--port", type=int, default=8765)
+    web_parser.add_argument("--target-fps", type=int, default=30)
+    web_parser.add_argument("--default-speed", type=int, default=4)
+    web_parser.add_argument("--no-open-browser", action="store_true")
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
@@ -169,6 +189,21 @@ def main() -> int:
         )
         if html_viewer is not None:
             print(f"saved_html_viewer={html_viewer}")
+        return 0
+
+    if args.command == "web":
+        world = _load_or_create_world(args)
+        if args.resume is None and args.warmup_ticks > 0:
+            _warmup_world_with_progress(world, args.warmup_ticks)
+        print(f"serving_web_viewer=http://{args.host}:{args.port}/")
+        run_web_frontend(
+            world,
+            host=args.host,
+            port=args.port,
+            target_fps=max(1, args.target_fps),
+            default_speed=max(1, args.default_speed),
+            open_browser=not args.no_open_browser,
+        )
         return 0
 
     if args.command == "report":

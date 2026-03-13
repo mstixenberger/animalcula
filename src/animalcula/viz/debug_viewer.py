@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict
 import json
 import math
 from pathlib import Path
@@ -10,8 +9,8 @@ import tempfile
 from types import ModuleType
 import webbrowser
 
-from animalcula.sim.types import Vec2
 from animalcula.sim.world import Snapshot, World
+from animalcula.viz.payloads import sample_fields, snapshot_payload
 
 NODE_COLORS = {
     "body": "#9aa5b1",
@@ -1064,44 +1063,7 @@ def _default_html_path(world: World) -> Path:
 
 
 def _sample_fields(world: World, *, cols: int = 12, rows: int = 12) -> dict[str, object]:
-    nutrient: list[list[float]] = []
-    light: list[list[float]] = []
-    chemical_a: list[list[float]] = []
-    chemical_b: list[list[float]] = []
-    detritus: list[list[float]] = []
-    width = max(world.config.world.width, 1.0)
-    height = max(world.config.world.height, 1.0)
-
-    for row in range(rows):
-        nutrient_row: list[float] = []
-        light_row: list[float] = []
-        chemical_a_row: list[float] = []
-        chemical_b_row: list[float] = []
-        detritus_row: list[float] = []
-        sample_y = ((row + 0.5) / rows) * height
-        for col in range(cols):
-            sample_x = ((col + 0.5) / cols) * width
-            position = Vec2(sample_x, sample_y)
-            nutrient_row.append(world.nutrient_grid.sample(position))
-            light_row.append(world.light_grid.sample(position))
-            chemical_a_row.append(world.chemical_a_grid.sample(position))
-            chemical_b_row.append(world.chemical_b_grid.sample(position))
-            detritus_row.append(world.detritus_grid.sample(position))
-        nutrient.append(nutrient_row)
-        light.append(light_row)
-        chemical_a.append(chemical_a_row)
-        chemical_b.append(chemical_b_row)
-        detritus.append(detritus_row)
-
-    return {
-        "cols": cols,
-        "rows": rows,
-        "nutrient": nutrient,
-        "light": light,
-        "chemical_a": chemical_a,
-        "chemical_b": chemical_b,
-        "detritus": detritus,
-    }
+    return sample_fields(world, cols=cols, rows=rows)
 
 
 def _history_delta(
@@ -1173,10 +1135,7 @@ def _draw_creature_bands(
 
 
 def _snapshot_payload(world: World) -> dict[str, object]:
-    payload = asdict(world.snapshot())
-    payload["fields"] = _sample_fields(world)
-    payload["stats"] = asdict(world.stats())
-    return payload
+    return snapshot_payload(world)
 
 
 def _build_html_viewer(
@@ -1258,6 +1217,9 @@ def _launch_tk_viewer(
     )
     canvas.pack(fill="both", expand=True)
 
+    controls = tk.Frame(root, bg="#111318", padx=10, pady=8)
+    controls.pack(fill="x")
+
     overlay = tk.StringVar(value="")
     label = tk.Label(
         root,
@@ -1283,24 +1245,40 @@ def _launch_tk_viewer(
     step_stride = max(1, steps_per_frame)
     history: list[dict[str, float | int]] = []
     last_history_tick: int | None = None
+    field_status = tk.StringVar(value="")
+    camera_status = tk.StringVar(value="")
+    speed_status = tk.StringVar(value="")
+    play_button_text = tk.StringVar(value="Pause")
+
+    def _refresh_control_status() -> None:
+        field_status.set(f"field={FIELD_MODE_SEQUENCE[field_mode_index]}")
+        camera_status.set(
+            f"follow={'on' if follow_selected else 'off'} ambient={'on' if ambient_mode else 'off'} zoom={zoom_level:.1f}x"
+        )
+        speed_status.set(f"stride={step_stride}")
+        play_button_text.set("Pause" if running else "Play")
 
     def _toggle_running(_: object | None = None) -> None:
         nonlocal running
         running = not running
+        _refresh_control_status()
 
     def _single_step(_: object | None = None) -> None:
         nonlocal pending_single_step
         pending_single_step = True
+        _refresh_control_status()
 
     def _cycle_field_mode(_: object | None = None) -> None:
         nonlocal field_mode_index
         field_mode_index = (field_mode_index + 1) % len(FIELD_MODE_SEQUENCE)
+        _refresh_control_status()
 
     def _toggle_follow(_: object | None = None) -> None:
         nonlocal ambient_mode, follow_selected
         follow_selected = not follow_selected
         if not follow_selected:
             ambient_mode = False
+        _refresh_control_status()
 
     def _toggle_ambient(_: object | None = None) -> None:
         nonlocal ambient_frame_counter, ambient_mode, follow_selected
@@ -1308,44 +1286,54 @@ def _launch_tk_viewer(
         if ambient_mode:
             follow_selected = True
             ambient_frame_counter = 0
+        _refresh_control_status()
 
     def _zoom_in(_: object | None = None) -> None:
         nonlocal zoom_level
         zoom_level = min(12.0, zoom_level + 0.5)
+        _refresh_control_status()
 
     def _zoom_out(_: object | None = None) -> None:
         nonlocal zoom_level
         zoom_level = max(1.0, zoom_level - 0.5)
+        _refresh_control_status()
 
     def _reset_camera(_: object | None = None) -> None:
         nonlocal ambient_mode, follow_selected, zoom_level
         follow_selected = False
         ambient_mode = False
         zoom_level = 1.0
+        _refresh_control_status()
 
     def _slow_down(_: object | None = None) -> None:
         nonlocal step_stride
         step_stride = max(1, step_stride // 2)
+        _refresh_control_status()
 
     def _speed_up(_: object | None = None) -> None:
         nonlocal step_stride
         step_stride = min(256, step_stride * 2)
+        _refresh_control_status()
 
     def _set_stride_1(_: object | None = None) -> None:
         nonlocal step_stride
         step_stride = 1
+        _refresh_control_status()
 
     def _set_stride_4(_: object | None = None) -> None:
         nonlocal step_stride
         step_stride = 4
+        _refresh_control_status()
 
     def _set_stride_16(_: object | None = None) -> None:
         nonlocal step_stride
         step_stride = 16
+        _refresh_control_status()
 
     def _set_stride_64(_: object | None = None) -> None:
         nonlocal step_stride
         step_stride = 64
+        _refresh_control_status()
 
     def _select_creature(event: object) -> None:
         nonlocal selected_creature_id
@@ -1370,18 +1358,26 @@ def _launch_tk_viewer(
                 ((y - focus_y) * scale_y) + (canvas_height / 2),
             )
 
+        node_positions: dict[int, list[tuple[float, float]]] = {}
+        for node in snapshot.nodes:
+            if node.creature_id is None:
+                continue
+            node_positions.setdefault(node.creature_id, []).append(_project(node.x, node.y))
+
         best_creature = None
         best_distance = float("inf")
         for creature in snapshot.creatures:
-            cx, cy = _project(creature.center_x, creature.center_y)
-            distance = math.hypot(click_x - cx, click_y - cy)
+            candidate_points = [ _project(creature.center_x, creature.center_y), *node_positions.get(creature.creature_id, []) ]
+            distance = min(math.hypot(click_x - px, click_y - py) for px, py in candidate_points)
             if distance < best_distance:
                 best_distance = distance
                 best_creature = creature
-        if best_creature is not None and best_distance <= 28.0:
+        click_threshold = max(40.0, 12.0 * zoom_level)
+        if best_creature is not None and best_distance <= click_threshold:
             selected_creature_id = best_creature.creature_id
             ambient_mode = False
             follow_selected = True
+            _refresh_control_status()
 
     root.bind("<space>", _toggle_running)
     root.bind("<Right>", _single_step)
@@ -1402,6 +1398,49 @@ def _launch_tk_viewer(
     root.bind("3", _set_stride_16)
     root.bind("4", _set_stride_64)
     canvas.bind("<Button-1>", _select_creature)
+
+    def _button(*, text: str | None = None, textvariable: object | None = None, command: object) -> object:
+        kwargs: dict[str, object] = {
+            "bg": "#1d2430",
+            "fg": "#e5edf5",
+            "activebackground": "#2a3442",
+            "activeforeground": "#e5edf5",
+            "relief": "flat",
+            "padx": 8,
+            "pady": 4,
+            "command": command,
+        }
+        if text is not None:
+            kwargs["text"] = text
+        if textvariable is not None:
+            kwargs["textvariable"] = textvariable
+        button = tk.Button(controls, **kwargs)
+        button.pack(side="left", padx=4)
+        return button
+
+    _button(textvariable=play_button_text, command=_toggle_running)
+    _button(text="Step", command=_single_step)
+    _button(text="Follow", command=_toggle_follow)
+    _button(text="Ambient", command=_toggle_ambient)
+    _button(text="Field", command=_cycle_field_mode)
+    _button(text="Zoom +", command=_zoom_in)
+    _button(text="Zoom -", command=_zoom_out)
+    _button(text="Speed -", command=_slow_down)
+    _button(text="Speed +", command=_speed_up)
+    _button(text="Overview", command=_reset_camera)
+
+    for variable in (field_status, camera_status, speed_status):
+        tk.Label(
+            controls,
+            textvariable=variable,
+            anchor="w",
+            justify="left",
+            bg="#111318",
+            fg="#9fb0c1",
+            font=("Menlo", 10),
+            padx=6,
+        ).pack(side="left")
+    _refresh_control_status()
 
     def _creature_focus_score(creature: object) -> tuple[float, int]:
         speed = float(getattr(creature, "mean_speed_recent", 0.0))

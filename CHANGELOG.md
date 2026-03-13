@@ -137,6 +137,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - HTML viewer launches now open the generated viewer in the browser automatically by default, with `--no-open-browser` available for scriptable workflows
 - `animalcula view` now shows a second `recording html viewer` TTY progress phase while the HTML fallback records frames, so startup no longer appears hung after warmup
 - Both debug viewer backends now surface a compact ecology HUD with species/diversity, recent lifecycle-event deltas, short population/species/predator history, and selected-creature speed/energy-trend readouts
+- `animalcula web` now starts the permanent frontend path with a live FastAPI/WebSocket browser viewer shell, browser transport controls, canvas rendering, inspection, and timeline scaffolding
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

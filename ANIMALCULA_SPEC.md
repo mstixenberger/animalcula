@@ -466,6 +466,11 @@ This avoids premature optimization while still being playable during development
 
 **Stack:** Python backend (FastAPI + uvicorn) → WebSocket → Browser (PixiJS or raw WebGL)
 
+**Implementation policy:** this is the product-facing frontend path and should begin as soon as
+the simulation can emit stable live snapshots. Local Tk/Pygame-style viewers remain useful
+debug fallbacks, but they are not the long-term UI target and should not receive major product
+features that would later be reimplemented in the browser.
+
 **Why browser:**
 - PixiJS makes 2D rendering with thousands of sprites trivial and GPU-accelerated.
 - WebGL shaders enable the microscope aesthetic (glow, blur, caustics) cheaply.
@@ -1369,6 +1374,10 @@ animalcula extract-genomes results/ --top 20 --out seeds.bin
 - [ ] Creature rendering with microscope aesthetic.
 - [ ] Field visualization (nutrients, light, chemicals).
 - [ ] UI controls (speed, pause, inspect).
+
+Implementation note:
+Begin the browser/frontend path as soon as live snapshot transport exists; do not wait for the
+entire Rust port or all analytics work to finish before starting the permanent UI.
 
 ### Phase 7: Analytics (Week 12-14)
 - [ ] Phylogenetic tree construction and visualization.

@@ -8,8 +8,8 @@ This file is a living document. It exists to give future coding agents and human
 
 - Repository state: executable headless prototype
 - Current source of truth: `ANIMALCULA_SPEC.md`
-- Current priority: tighten the spec-aligned headless ecosystem loop before adding broader analytics or UI
-- Primary product mode: headless simulation and parameter tuning
+- Current priority: build the permanent browser frontend path in parallel with headless ecosystem tuning
+- Primary product mode: headless simulation plus live browser inspection
 - Initial implementation stack: Python + NumPy/Numba
 - Deferred stack: Rust core via PyO3, browser frontend
 
@@ -20,8 +20,8 @@ Build the project in layers:
 1. Headless simulation core
 2. Logging, checkpoints, and parameter sweeps
 3. Minimal debug visualization
-4. Rust acceleration for hot paths
-5. Rich browser visualization and analytics
+4. Rich browser visualization and analytics
+5. Rust acceleration for hot paths
 
 The project must maintain a stable seam between orchestration and simulation so the Python core can later be replaced by a Rust implementation without breaking higher-level tooling.
 
@@ -313,6 +313,7 @@ Current implementation baseline:
 - HTML viewer launches now auto-open the generated file in the browser by default; keep `--no-open-browser` for scriptable/test workflows
 - `animalcula view` now also shows a second `recording html viewer` TTY progress phase when the HTML fallback is baking frames, so the terminal no longer appears stalled after warmup
 - both debug viewer backends now surface a compact ecology HUD/history layer with species/diversity, recent lifecycle-event deltas, short population/species/predator traces, and selected-creature speed/energy-trend readouts
+- the permanent frontend path now starts in earnest with `animalcula web`: a live FastAPI/WebSocket browser app shell; Tk remains a fallback/debug viewer and should not absorb product-facing UI work that belongs in the browser
 
 ## Update Protocol
 
