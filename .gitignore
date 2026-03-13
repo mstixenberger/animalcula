@@ -9,17 +9,26 @@ htmlcov/
 
 # Virtual environments
 .venv/
+.venv.*/
 venv/
+.python-version
 
 # Build artifacts
 build/
 dist/
 *.egg-info/
+node_modules/
 
 # OS files
 .DS_Store
+
+# Editor files
+.idea/
+.vscode/
 
 # Project outputs
 checkpoints/
 results/
 logs/
+*.sqlite-shm
+*.sqlite-wal

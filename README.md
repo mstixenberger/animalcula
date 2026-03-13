@@ -1,5 +1,7 @@
 # Animalcula
 
+![Example Animalcula critter](docs/assets/example-critter.svg)
+
 Animalcula is a 2D artificial life simulator centered on evolved, physics-based microscopic creatures. The current project focus is to keep the headless sim rigorous while building the permanent browser frontend path now, then layer on richer analytics and later a Rust acceleration path.
 
 ## Status

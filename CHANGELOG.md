@@ -138,6 +138,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `animalcula view` now shows a second `recording html viewer` TTY progress phase while the HTML fallback records frames, so startup no longer appears hung after warmup
 - Both debug viewer backends now surface a compact ecology HUD with species/diversity, recent lifecycle-event deltas, short population/species/predator history, and selected-creature speed/energy-trend readouts
 - `animalcula web` now starts the permanent frontend path with a live FastAPI/WebSocket browser viewer shell, browser transport controls, canvas rendering, inspection, and timeline scaffolding
+- The README now opens with a committed deterministic example-critter SVG rendered from the display seed set
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints
@@ -145,6 +146,10 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 ### Fixed
 
 - The Tk live viewer now uses Tk-safe hex colors for lineage/selection rendering instead of CSS `rgb(...)` strings, fixing a startup crash on Tk-capable Python builds
+
+### Changed
+
+- `.gitignore` now also ignores local virtual-environment backups, editor metadata, `node_modules`, and SQLite sidecar files to keep release/push workflows clean
 - Headless runs now expose current and peak carrying-capacity fractions, and shared interestingness scoring now rewards the spec’s target midrange population band
 - Direct CLI run/report output and periodic stats logs now also expose trophic-balance scoring
 - Shared interestingness scoring now also rewards trophic balance directly instead of leaving it as a passive analysis column

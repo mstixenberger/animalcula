@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="title desc">
+  <title id="title">Animalcula example critter</title>
+  <desc id="desc">A stylized render of a three-node predator from the deterministic display seed set.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#081017"/>
+      <stop offset="100%" stop-color="#111c27"/>
+    </linearGradient>
+    <radialGradient id="fieldGlow" cx="42%" cy="38%" r="58%">
+      <stop offset="0%" stop-color="#214234" stop-opacity="0.65"/>
+      <stop offset="58%" stop-color="#153125" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#081017" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bodyGlow" cx="45%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#f2a3af" stop-opacity="0.94"/>
+      <stop offset="55%" stop-color="#d16173" stop-opacity="0.88"/>
+      <stop offset="100%" stop-color="#7d2938" stop-opacity="0.92"/>
+    </radialGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <rect width="320" height="220" fill="url(#bg)"/>
+  <rect width="320" height="220" fill="url(#fieldGlow)"/>
+
+  <ellipse cx="154" cy="104" rx="58" ry="36" fill="#cb6676" opacity="0.22" filter="url(#softGlow)"/>
+
+  <path
+    d="M109 108
+       C126 78, 167 72, 203 92
+       C218 101, 226 121, 211 133
+       C189 151, 145 154, 113 132
+       C101 124, 99 116, 109 108Z"
+    fill="url(#bodyGlow)"
+    stroke="#eaa2ad"
+    stroke-opacity="0.42"
+    stroke-width="3"
+  />
+
+  <path d="M122 100 C146 106, 172 118, 195 128" fill="none" stroke="#f3bac2" stroke-opacity="0.25" stroke-width="6" stroke-linecap="round"/>
+  <path d="M116 119 C142 123, 170 127, 196 126" fill="none" stroke="#f3bac2" stroke-opacity="0.18" stroke-width="5" stroke-linecap="round"/>
+
+  <line x1="139" y1="112" x2="106" y2="122" stroke="#dca2aa" stroke-opacity="0.55" stroke-width="9" stroke-linecap="round"/>
+  <line x1="159" y1="102" x2="191" y2="96" stroke="#dca2aa" stroke-opacity="0.55" stroke-width="9" stroke-linecap="round"/>
+
+  <circle cx="140" cy="112" r="19" fill="#e76f51" stroke="#101317" stroke-width="4"/>
+  <path d="M127 116 L152 116" stroke="#101317" stroke-width="4.5" stroke-linecap="round"/>
+
+  <circle cx="197" cy="95" r="18" fill="#2a9d8f" stroke="#101317" stroke-width="4"/>
+  <path d="M191 88 L206 74" stroke="#101317" stroke-width="4" stroke-linecap="round"/>
+  <path d="M191 102 L206 116" stroke="#101317" stroke-width="4" stroke-linecap="round"/>
+
+  <circle cx="107" cy="123" r="17" fill="#9aa5b1" stroke="#101317" stroke-width="4"/>
+
+  <circle cx="140" cy="112" r="5.5" fill="#c1121f"/>
+  <circle cx="197" cy="95" r="5.5" fill="#c1121f"/>
+  <circle cx="107" cy="123" r="5.5" fill="#c1121f"/>
+
+  <text x="24" y="28" fill="#e8f0f7" font-family="Iosevka Aile, IBM Plex Sans, sans-serif" font-size="17" font-weight="700">Animalcula</text>
+  <text x="24" y="49" fill="#9cb2c4" font-family="Iosevka Aile, IBM Plex Sans, sans-serif" font-size="11">deterministic display-seed predator, tick 240</text>
+</svg>
