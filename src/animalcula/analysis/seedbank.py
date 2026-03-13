@@ -118,6 +118,7 @@ def _evaluate_seed_candidate(
         "species_count": stats.species_count,
         "observed_species_count": stats.observed_species_count,
         "peak_species_count": stats.peak_species_count,
+        "peak_species_fraction": stats.peak_species_fraction,
         "diversity_index": stats.diversity_index,
         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
         "longest_species_lifespan": stats.longest_species_lifespan,
@@ -125,6 +126,7 @@ def _evaluate_seed_candidate(
         "autotroph_count": stats.autotroph_count,
         "herbivore_count": stats.herbivore_count,
         "predator_count": stats.predator_count,
+        "runaway_dominance_detected": stats.runaway_dominance_detected,
         "trophic_balance_score": trophic_balance_score(
             autotrophs=stats.autotroph_count,
             herbivores=stats.herbivore_count,
@@ -174,6 +176,7 @@ def _aggregate_seed_runs(
                 "species_sum": 0,
                 "observed_species_sum": 0,
                 "peak_species_sum": 0,
+                "peak_species_fraction_max": 0.0,
                 "diversity_sum": 0.0,
                 "lineage_sum": 0,
                 "complexity_sum": 0.0,
@@ -187,6 +190,7 @@ def _aggregate_seed_runs(
                 "ended_extinct_runs": 0,
                 "had_speciation_runs": 0,
                 "had_predation_runs": 0,
+                "runaway_dominance_runs": 0,
                 "promoted_creature": None,
                 "promoted_energy": 0.0,
                 "promoted_seed": None,
@@ -207,6 +211,7 @@ def _aggregate_seed_runs(
         bucket["species_sum"] += record["species_count"]
         bucket["observed_species_sum"] += record["observed_species_count"]
         bucket["peak_species_sum"] += record["peak_species_count"]
+        bucket["peak_species_fraction_max"] = max(bucket["peak_species_fraction_max"], record["peak_species_fraction"])
         bucket["diversity_sum"] += record["diversity_index"]
         bucket["lineage_sum"] += record["lineage_count"]
         bucket["complexity_sum"] += record["mean_nodes_per_creature"]
@@ -223,6 +228,7 @@ def _aggregate_seed_runs(
         bucket["ended_extinct_runs"] += 1 if record["ended_extinct"] else 0
         bucket["had_speciation_runs"] += 1 if record["had_speciation"] else 0
         bucket["had_predation_runs"] += 1 if record["had_predation"] else 0
+        bucket["runaway_dominance_runs"] += 1 if record["runaway_dominance_detected"] else 0
         if (
             record["promoted_creature"] is not None
             and (
@@ -261,6 +267,7 @@ def _aggregate_seed_runs(
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
             "avg_observed_species_count": round(bucket["observed_species_sum"] / bucket["runs"], 3),
             "avg_peak_species_count": round(bucket["peak_species_sum"] / bucket["runs"], 3),
+            "peak_species_fraction_max": round(bucket["peak_species_fraction_max"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
             "avg_lineage_count": round(bucket["lineage_sum"] / bucket["runs"], 3),
             "avg_mean_nodes_per_creature": round(bucket["complexity_sum"] / bucket["runs"], 3),
@@ -277,6 +284,7 @@ def _aggregate_seed_runs(
             "ended_extinct_runs": bucket["ended_extinct_runs"],
             "had_speciation_runs": bucket["had_speciation_runs"],
             "had_predation_runs": bucket["had_predation_runs"],
+            "runaway_dominance_runs": bucket["runaway_dominance_runs"],
         }
         for bucket in grouped.values()
     ]

@@ -37,6 +37,8 @@ def test_evaluate_seed_bank_ranks_candidates_by_aggregate_results(tmp_path: Path
     assert "avg_drag_multiplier" in report["rankings"][0]
     assert "avg_species_turnover" in report["rankings"][0]
     assert "avg_observed_species_count" in report["rankings"][0]
+    assert "peak_species_fraction_max" in report["rankings"][0]
+    assert "runaway_dominance_runs" in report["rankings"][0]
     assert "avg_trophic_balance_score" in report["rankings"][0]
 
     promoted = json.loads(promoted_path.read_text(encoding="utf-8"))

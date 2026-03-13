@@ -104,6 +104,8 @@ class Stats:
     herbivore_count: int
     predator_count: int
     drag_multiplier: float
+    peak_species_fraction: float
+    runaway_dominance_detected: bool
 
 
 class World:
@@ -138,6 +140,13 @@ class World:
         self._species_last_seen_tick = {species_id: self.tick for species_id in self._known_species_ids}
         self._extinct_species_ids: set[str] = set()
         self._peak_species_count = len(self._known_species_ids)
+        self._peak_species_fraction = 0.0
+        self._runaway_dominance_detected = False
+        self._dominant_species_id: str | None = None
+        self._dominant_species_streak = 0
+        self._runaway_dominance_fraction_threshold = 0.8
+        self._runaway_dominance_tick_threshold = 5000
+        self._update_species_dominance_metrics(self._species_labels())
         self.nutrient_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
@@ -400,6 +409,8 @@ class World:
             herbivore_count=herbivore_count,
             predator_count=predator_count,
             drag_multiplier=self.current_drag_multiplier(),
+            peak_species_fraction=self._peak_species_fraction,
+            runaway_dominance_detected=self._runaway_dominance_detected,
         )
 
     def save(self, path: str | Path) -> None:
@@ -462,6 +473,10 @@ class World:
             "species_last_seen_tick": self._species_last_seen_tick,
             "extinct_species_ids": sorted(self._extinct_species_ids),
             "peak_species_count": self._peak_species_count,
+            "peak_species_fraction": self._peak_species_fraction,
+            "runaway_dominance_detected": self._runaway_dominance_detected,
+            "dominant_species_id": self._dominant_species_id,
+            "dominant_species_streak": self._dominant_species_streak,
             "grip_latches": [
                 {
                     "creature_a_id": latch.creature_a_id,
@@ -560,6 +575,10 @@ class World:
         world._species_last_seen_tick = dict(payload.get("species_last_seen_tick", {}))
         world._extinct_species_ids = set(payload.get("extinct_species_ids", []))
         world._peak_species_count = payload.get("peak_species_count", len(world._species_labels()))
+        world._peak_species_fraction = payload.get("peak_species_fraction", 0.0)
+        world._runaway_dominance_detected = payload.get("runaway_dominance_detected", False)
+        world._dominant_species_id = payload.get("dominant_species_id")
+        world._dominant_species_streak = payload.get("dominant_species_streak", 0)
         world.grip_latches = [
             GripLatch(
                 creature_a_id=latch["creature_a_id"],
@@ -1147,6 +1166,7 @@ class World:
         species_labels = self._species_labels()
         current_species_ids = set(species_labels.values())
         self._peak_species_count = max(self._peak_species_count, len(current_species_ids))
+        self._update_species_dominance_metrics(species_labels)
         for species_id in current_species_ids:
             self._species_first_seen_tick.setdefault(species_id, self.tick)
             self._species_last_seen_tick[species_id] = self.tick
@@ -1157,6 +1177,7 @@ class World:
         current_species_ids = set(species_labels.values())
         new_species_ids = sorted(current_species_ids - self._known_species_ids)
         self._peak_species_count = max(self._peak_species_count, len(current_species_ids))
+        self._update_species_dominance_metrics(species_labels)
         for species_id in new_species_ids:
             representative = next(
                 creature
@@ -1209,6 +1230,31 @@ class World:
             for species_id in self._extinct_species_ids
         ]
         return sum(lifespans) / len(lifespans)
+
+    def _update_species_dominance_metrics(self, species_labels: dict[int, str]) -> None:
+        if not species_labels:
+            self._dominant_species_id = None
+            self._dominant_species_streak = 0
+            return
+
+        species_counts = Counter(species_labels.values())
+        total = sum(species_counts.values())
+        dominant_species_id, dominant_count = max(species_counts.items(), key=lambda item: item[1])
+        dominant_fraction = dominant_count / total if total > 0 else 0.0
+        self._peak_species_fraction = max(self._peak_species_fraction, dominant_fraction)
+
+        if dominant_fraction > self._runaway_dominance_fraction_threshold:
+            if dominant_species_id == self._dominant_species_id:
+                self._dominant_species_streak += 1
+            else:
+                self._dominant_species_id = dominant_species_id
+                self._dominant_species_streak = 1
+        else:
+            self._dominant_species_id = None
+            self._dominant_species_streak = 0
+
+        if self._dominant_species_streak > self._runaway_dominance_tick_threshold:
+            self._runaway_dominance_detected = True
 
     def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
         updated: list[CreatureState] = []

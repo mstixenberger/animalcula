@@ -192,4 +192,32 @@ def test_world_stats_capture_species_turnover_after_extinction() -> None:
     assert stats.species_turnover == 1
     assert stats.observed_species_count == 1
     assert stats.peak_species_count == 1
+    assert stats.peak_species_fraction == 1.0
+    assert stats.runaway_dominance_detected is False
     assert stats.mean_extinct_species_lifespan == 0.0
+
+
+def test_world_detects_runaway_species_dominance() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+        ]
+    )
+    node = NodeState(
+        position=Vec2(10.0, 10.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+    world._runaway_dominance_tick_threshold = 2
+
+    world.step(3)
+
+    stats = world.stats()
+    assert stats.peak_species_fraction == 1.0
+    assert stats.runaway_dominance_detected is True

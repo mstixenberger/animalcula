@@ -62,6 +62,8 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "species_turnover" in records[0]
     assert "longest_species_lifespan" in records[0]
     assert "mean_extinct_species_lifespan" in records[0]
+    assert "peak_species_fraction" in records[0]
+    assert "runaway_dominance_detected" in records[0]
     assert "predation_kills" in records[0]
     assert "ended_extinct" in records[0]
     assert "had_speciation" in records[0]
@@ -101,8 +103,10 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "had_predation": False,
             "observed_species_count": 3,
             "peak_species_count": 2,
+            "peak_species_fraction": 0.75,
             "longest_species_lifespan": 100,
             "mean_extinct_species_lifespan": 0.0,
+            "runaway_dominance_detected": False,
         },
         {
             "overrides": {"energy.reproduction_threshold": 20.0},
@@ -126,8 +130,10 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "had_predation": True,
             "observed_species_count": 2,
             "peak_species_count": 1,
+            "peak_species_fraction": 1.0,
             "longest_species_lifespan": 80,
             "mean_extinct_species_lifespan": 80.0,
+            "runaway_dominance_detected": True,
         },
     ]
 
@@ -146,7 +152,9 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["avg_trophic_balance_score"] == 0.95
     assert summaries[0]["avg_observed_species_count"] == 2.5
     assert summaries[0]["peak_species_count_max"] == 2
+    assert summaries[0]["peak_species_fraction_max"] == 1.0
     assert summaries[0]["had_speciation_runs"] == 1
     assert summaries[0]["had_predation_runs"] == 1
+    assert summaries[0]["runaway_dominance_runs"] == 1
     assert summaries[0]["longest_species_lifespan_max"] == 100
     assert summaries[0]["avg_mean_extinct_species_lifespan"] == 40.0

@@ -1453,7 +1453,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 drag_multiplier=1.00 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 species=0 observed_species=0 peak_species=0 lineages=0 diversity=0.000 complexity=0.00 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0"
+        == "tick=3 seed=11 drag_multiplier=1.00 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 species=0 observed_species=0 peak_species=0 peak_species_fraction=0.000 lineages=0 runaway_dominance=false diversity=0.000 complexity=0.00 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0"
     )
 
 
@@ -1902,6 +1902,8 @@ def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:
     assert len(lines) == 3
     assert "\"tick\": 1" in lines[0]
     assert "\"drag_multiplier\": 1.0" in lines[0]
+    assert "\"peak_species_fraction\":" in lines[0]
+    assert "\"runaway_dominance_detected\":" in lines[0]
     assert "\"tick\": 3" in lines[-1]
 
 

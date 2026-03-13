@@ -45,6 +45,7 @@ def test_world_checkpoint_roundtrip_preserves_state(tmp_path: Path) -> None:
         CreatureState(node_indices=(1,), energy=1.0, brain=grip_brain),
     ]
     world = World(config=config, seed=7, nodes=nodes, creatures=creatures)
+    world._runaway_dominance_tick_threshold = 1
     world.step(2)
 
     world.save(checkpoint_path)
@@ -61,3 +62,5 @@ def test_world_checkpoint_roundtrip_preserves_state(tmp_path: Path) -> None:
     assert restored.chemical_b_grid.values == world.chemical_b_grid.values
     assert restored.grip_latches == world.grip_latches
     assert restored.events == world.events
+    assert restored.stats().peak_species_fraction == world.stats().peak_species_fraction
+    assert restored.stats().runaway_dominance_detected == world.stats().runaway_dominance_detected

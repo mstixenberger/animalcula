@@ -262,6 +262,7 @@ Current implementation baseline:
 - environment configs can now shift nutrient-source locations on a deterministic timestep cycle, covering the first spec-facing slice of environmental variation without breaking reproducibility
 - light gradients can now rotate and dim/brighten on a deterministic medium-horizon seasonal cycle, so environmental variation now covers both nutrient and light regimes
 - long-horizon drag regimes can now cycle deterministically across configured multipliers, and the active drag multiplier is exposed through headless stats/logs/sweeps for tuning visibility
+- headless stats/logs/sweeps/seed-bank reports now also expose peak species share and runaway-dominance detection so long runs can distinguish diversification from monoculture lock-in
 - sweep and seed-bank analysis now expose a trophic-balance score so headless selection loops can reward viable mixed ecologies, not just high population
 - initial passing pytest suite
 

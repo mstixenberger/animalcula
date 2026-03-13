@@ -53,8 +53,10 @@ The raw JSONL and `.summary.json` outputs now include turnover-oriented ecology 
 - `species_turnover`
 - `observed_species_count`
 - `peak_species_count`
+- `peak_species_fraction`
 - `mean_extinct_species_lifespan`
 - `drag_multiplier`
+- `runaway_dominance_detected`
 - `trophic_balance_score`
 
 Once a run produces a checkpoint with promising survivors, use the headless seed-bank loop to promote candidates without manual inspection:
@@ -138,6 +140,8 @@ As of March 12, 2026, after correcting the starter predator archetype to match t
   This completes the next spec-facing environmental variation slice without changing the short-horizon baseline, but it raises the priority on longer `10,000+` multi-seed checks because phototroph and photoreceptor lineages will now see real seasonal pressure.
 - As of March 13, 2026, the shipped headless profiles also enable deterministic long-cycle drag-regime shifts every `100,000` ticks, with the active multiplier now exposed in headless stats/logs/sweeps.
   This lands the first spec-facing major environmental shift without adding obstacle mechanics yet. The immediate follow-up is empirical, not structural: long multi-seed runs now need to verify whether regime changes trigger useful turnover instead of simple collapse.
+- As of March 13, 2026, headless reporting also tracks peak species share and flags runaway dominance once a species holds more than `80%` of the population for over `5000` ticks.
+  That gives tuning runs a first direct monoculture alarm instead of inferring collapse or stagnation only from end-state species counts.
 
 ## Interpretation
 

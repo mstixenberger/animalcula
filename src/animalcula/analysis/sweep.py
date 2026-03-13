@@ -92,6 +92,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "turnover_sum": 0,
                 "observed_species_sum": 0,
                 "peak_species_count_max": 0,
+                "peak_species_fraction_max": 0.0,
                 "autotroph_sum": 0,
                 "herbivore_sum": 0,
                 "predator_sum": 0,
@@ -99,6 +100,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "ended_extinct_runs": 0,
                 "had_speciation_runs": 0,
                 "had_predation_runs": 0,
+                "runaway_dominance_runs": 0,
                 "longest_species_lifespan_max": 0,
                 "mean_extinct_species_lifespan_sum": 0.0,
             }
@@ -117,6 +119,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["turnover_sum"] += record["species_turnover"]
         bucket["observed_species_sum"] += record["observed_species_count"]
         bucket["peak_species_count_max"] = max(bucket["peak_species_count_max"], record["peak_species_count"])
+        bucket["peak_species_fraction_max"] = max(bucket["peak_species_fraction_max"], record["peak_species_fraction"])
         bucket["autotroph_sum"] += record["autotroph_count"]
         bucket["herbivore_sum"] += record["herbivore_count"]
         bucket["predator_sum"] += record["predator_count"]
@@ -124,6 +127,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["ended_extinct_runs"] += 1 if record["ended_extinct"] else 0
         bucket["had_speciation_runs"] += 1 if record["had_speciation"] else 0
         bucket["had_predation_runs"] += 1 if record["had_predation"] else 0
+        bucket["runaway_dominance_runs"] += 1 if record["runaway_dominance_detected"] else 0
         bucket["longest_species_lifespan_max"] = max(
             bucket["longest_species_lifespan_max"],
             record["longest_species_lifespan"],
@@ -146,6 +150,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_species_extinctions": round(bucket["extinction_sum"] / bucket["runs"], 3),
             "avg_species_turnover": round(bucket["turnover_sum"] / bucket["runs"], 3),
             "avg_observed_species_count": round(bucket["observed_species_sum"] / bucket["runs"], 3),
+            "peak_species_fraction_max": round(bucket["peak_species_fraction_max"], 3),
             "avg_autotroph_count": round(bucket["autotroph_sum"] / bucket["runs"], 3),
             "avg_herbivore_count": round(bucket["herbivore_sum"] / bucket["runs"], 3),
             "avg_predator_count": round(bucket["predator_sum"] / bucket["runs"], 3),
@@ -153,6 +158,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "ended_extinct_runs": bucket["ended_extinct_runs"],
             "had_speciation_runs": bucket["had_speciation_runs"],
             "had_predation_runs": bucket["had_predation_runs"],
+            "runaway_dominance_runs": bucket["runaway_dominance_runs"],
             "longest_species_lifespan_max": bucket["longest_species_lifespan_max"],
             "peak_species_count_max": bucket["peak_species_count_max"],
             "avg_mean_extinct_species_lifespan": round(
@@ -217,6 +223,7 @@ def _run_sweep_combination(
         "species_count": stats.species_count,
         "observed_species_count": stats.observed_species_count,
         "peak_species_count": stats.peak_species_count,
+        "peak_species_fraction": stats.peak_species_fraction,
         "diversity_index": stats.diversity_index,
         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
         "longest_species_lifespan": stats.longest_species_lifespan,
@@ -224,6 +231,7 @@ def _run_sweep_combination(
         "autotroph_count": stats.autotroph_count,
         "herbivore_count": stats.herbivore_count,
         "predator_count": stats.predator_count,
+        "runaway_dominance_detected": stats.runaway_dominance_detected,
         "trophic_balance_score": trophic_balance_score(
             autotrophs=stats.autotroph_count,
             herbivores=stats.herbivore_count,
