@@ -49,6 +49,8 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - genomes now have bounded inherited visual traits for silhouette scale, glyph scale, and body banding; the viewers render them and phenotype snapshots/vectors expose them
 - `animalcula view` warmup now prints a TTY progress bar while it pre-steps a fresh world
 - HTML viewer launches now auto-open by default, with `--no-open-browser` available when deterministic non-GUI behavior is needed
+- HTML fallback startup now has an explicit second `recording html viewer` progress phase after warmup, which fixes the misleading dead-air period on slower runs
+- both debug viewer backends now have a compact ecology HUD/history layer, so recent births/deaths/reproductions/predation and short population/species/predator trends are visible while watching
 
 ## Current Priority
 

@@ -1724,6 +1724,31 @@ def test_warmup_world_with_progress_writes_tty_progress(monkeypatch: pytest.Monk
     assert any("warming viewer" in chunk for chunk in writes)
 
 
+def test_progress_callback_for_tty_writes_html_recording_progress(monkeypatch: pytest.MonkeyPatch) -> None:
+    writes: list[str] = []
+
+    class _StderrProxy:
+        def isatty(self) -> bool:
+            return True
+
+        def write(self, chunk: str) -> int:
+            writes.append(chunk)
+            return len(chunk)
+
+        def flush(self) -> None:
+            return None
+
+    monkeypatch.setattr(cli.sys, "stderr", _StderrProxy())
+
+    callback = cli._progress_callback_for_tty("recording html viewer")
+
+    assert callback is not None
+    callback(2, 5)
+    callback(5, 5)
+
+    assert any("recording html viewer" in chunk for chunk in writes)
+
+
 def test_cli_species_command_reads_checkpoint_species_snapshots(tmp_path: Path) -> None:
     checkpoint_path = tmp_path / "species.json"
     world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)

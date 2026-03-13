@@ -15,6 +15,7 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
     world.seed_demo_archetypes()
     opened: list[str] = []
+    progress_updates: list[tuple[int, int]] = []
 
     def _raise_missing_tk() -> object:
         raise ModuleNotFoundError("_tkinter")
@@ -27,11 +28,13 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
         backend="auto",
         html_out_path=tmp_path / "viewer.html",
         max_frames=3,
+        html_progress_callback=lambda completed, total: progress_updates.append((completed, total)),
     )
 
     assert html_path is not None
     assert html_path.exists()
     assert opened == [html_path.resolve().as_uri()]
+    assert progress_updates == [(1, 3), (2, 3), (3, 3)]
     payload = html_path.read_text(encoding="utf-8")
     assert "Animalcula Debug Viewer" in payload
     assert "Generated from <code>animalcula view</code> HTML fallback" in payload
@@ -41,19 +44,29 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     assert 'id="ambientToggle"' in payload
     assert 'id="zoom"' in payload
     assert 'id="fieldMode"' in payload
+    assert 'id="speciesStat"' in payload
+    assert 'id="diversityStat"' in payload
+    assert 'id="recentBirthsStat"' in payload
+    assert 'id="historyCanvas"' in payload
     assert 'id="inspector"' in payload
     assert 'id="selectedSpecies"' in payload
+    assert 'id="selectedSpeed"' in payload
+    assert 'id="selectedEnergyDelta"' in payload
     assert 'id="predatorStat"' in payload
     assert 'function drawNodeGlyph' in payload
     assert 'function drawCreatureSilhouettes' in payload
     assert 'function drawCreatureBands' in payload
     assert 'function drawSelectedLabel' in payload
+    assert 'function drawHistory' in payload
     assert 'hexToRgba' in payload
     assert "function creatureFocusScore" in payload
     assert "function rankedCreatureIds" in payload
+    assert "function recentCounterDelta" in payload
+    assert "function selectedTrend" in payload
     assert 'node.node_type === "gripper"' in payload
     assert '"color_rgb": [' in payload
     assert '"fields": {' in payload
+    assert '"stats": {' in payload
     assert '"chemical_a": [[' in payload
     assert '"chemical_b": [[' in payload
     assert '"detritus": [[' in payload
@@ -105,6 +118,7 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
     assert 'zoom.addEventListener("input"' in payload
     assert 'event.key === "4"' in payload
     assert "preferredCreatureId(snapshot)" in payload
+    assert "drawHistory(frame);" in payload
     assert "drawCreatureSilhouettes(snapshot, creatureColors, creatureVisuals)" in payload
     assert "drawCreatureBands(snapshot, nodes, visual" in payload
     assert "drawSelectedLabel(selected, sx, sy)" in payload

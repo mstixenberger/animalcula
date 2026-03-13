@@ -311,6 +311,8 @@ Current implementation baseline:
 - genomes now carry bounded visual-only traits for silhouette scale, appendage glyph scale, and body banding; they are inherited, mutated, surfaced in phenotype data, and rendered in both viewers without changing physical interaction radii
 - `animalcula view` now shows a TTY progress bar during warmup, so the pre-view inspection path communicates progress instead of looking stuck
 - HTML viewer launches now auto-open the generated file in the browser by default; keep `--no-open-browser` for scriptable/test workflows
+- `animalcula view` now also shows a second `recording html viewer` TTY progress phase when the HTML fallback is baking frames, so the terminal no longer appears stalled after warmup
+- both debug viewer backends now surface a compact ecology HUD/history layer with species/diversity, recent lifecycle-event deltas, short population/species/predator traces, and selected-creature speed/energy-trend readouts
 
 ## Update Protocol
 

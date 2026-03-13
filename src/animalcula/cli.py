@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import sqlite3
 import sys
+from typing import Callable
 
 from animalcula.analysis.metrics import trophic_balance_score
 from animalcula.analysis.seedbank import evaluate_seed_bank, promote_seed_bank
@@ -153,6 +154,7 @@ def main() -> int:
         world = _load_or_create_world(args)
         if args.resume is None and args.warmup_ticks > 0:
             _warmup_world_with_progress(world, args.warmup_ticks)
+        html_progress = _progress_callback_for_tty("recording html viewer")
         html_viewer = launch_viewer(
             world,
             steps_per_frame=max(1, args.steps_per_frame),
@@ -163,6 +165,7 @@ def main() -> int:
             html_out_path=args.html_out,
             max_frames=max(1, args.max_frames),
             open_html_in_browser=not args.no_open_browser,
+            html_progress_callback=html_progress,
         )
         if html_viewer is not None:
             print(f"saved_html_viewer={html_viewer}")
@@ -311,6 +314,19 @@ def _print_progress_bar(*, label: str, completed: int, total: int, width: int = 
     bar = ("#" * filled) + ("-" * (width - filled))
     sys.stderr.write(f"\r{label} [{bar}] {completed}/{total}")
     sys.stderr.flush()
+
+
+def _progress_callback_for_tty(label: str) -> Callable[[int, int], None] | None:
+    if not sys.stderr.isatty():
+        return None
+
+    def _callback(completed: int, total: int) -> None:
+        _print_progress_bar(label=label, completed=completed, total=total)
+        if completed >= total:
+            sys.stderr.write("\n")
+            sys.stderr.flush()
+
+    return _callback
 
 
 def _format_stats(seed: int, stats: object) -> str:

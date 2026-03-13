@@ -168,6 +168,18 @@ HTML_TEMPLATE = """<!doctype html>
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 10px;
     }}
+    .history-card {{
+      padding: 12px;
+    }}
+    #historyCanvas {{
+      width: 100%;
+      height: 160px;
+      display: block;
+      margin-top: 8px;
+      background: rgba(10, 14, 20, 0.56);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }}
     .inspector {{
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -226,16 +238,31 @@ HTML_TEMPLATE = """<!doctype html>
       <div class="meta" id="status"></div>
       <div class="stats">
         <div class="card"><span class="label">Population</span><span class="value" id="populationStat"></span></div>
+        <div class="card"><span class="label">Species</span><span class="value" id="speciesStat"></span></div>
+        <div class="card"><span class="label">Diversity</span><span class="value" id="diversityStat"></span></div>
         <div class="card"><span class="label">Energy</span><span class="value" id="energyStat"></span></div>
         <div class="card"><span class="label">Autotrophs</span><span class="value" id="autotrophStat"></span></div>
         <div class="card"><span class="label">Herbivores</span><span class="value" id="herbivoreStat"></span></div>
         <div class="card"><span class="label">Predators</span><span class="value" id="predatorStat"></span></div>
+      </div>
+      <div class="stats">
+        <div class="card"><span class="label">Recent Births</span><span class="value" id="recentBirthsStat"></span></div>
+        <div class="card"><span class="label">Recent Deaths</span><span class="value" id="recentDeathsStat"></span></div>
+        <div class="card"><span class="label">Recent Repros</span><span class="value" id="recentReproductionStat"></span></div>
+        <div class="card"><span class="label">Recent Kills</span><span class="value" id="recentPredationStat"></span></div>
+        <div class="card"><span class="label">Perturbations</span><span class="value" id="recentPerturbationStat"></span></div>
+      </div>
+      <div class="card history-card">
+        <span class="label">Recent Ecology</span>
+        <canvas id="historyCanvas" width="{canvas_width}" height="160"></canvas>
       </div>
       <div class="inspector" id="inspector">
         <div class="card"><span class="label">Selected</span><span class="value" id="selectedCreatureId"></span></div>
         <div class="card"><span class="label">Species</span><span class="value" id="selectedSpecies"></span></div>
         <div class="card"><span class="label">Role</span><span class="value" id="selectedRole"></span></div>
         <div class="card"><span class="label">Energy</span><span class="value" id="selectedEnergy"></span></div>
+        <div class="card"><span class="label">Speed</span><span class="value" id="selectedSpeed"></span></div>
+        <div class="card"><span class="label">Energy Trend</span><span class="value" id="selectedEnergyDelta"></span></div>
         <div class="card"><span class="label">Parent</span><span class="value" id="selectedParent"></span></div>
         <div class="card"><span class="label">Age</span><span class="value" id="selectedAge"></span></div>
         <div class="card"><span class="label">Born</span><span class="value" id="selectedBorn"></span></div>
@@ -262,14 +289,25 @@ HTML_TEMPLATE = """<!doctype html>
     const fieldMode = document.getElementById("fieldMode");
     const status = document.getElementById("status");
     const populationStat = document.getElementById("populationStat");
+    const speciesStat = document.getElementById("speciesStat");
+    const diversityStat = document.getElementById("diversityStat");
     const energyStat = document.getElementById("energyStat");
     const autotrophStat = document.getElementById("autotrophStat");
     const herbivoreStat = document.getElementById("herbivoreStat");
     const predatorStat = document.getElementById("predatorStat");
+    const recentBirthsStat = document.getElementById("recentBirthsStat");
+    const recentDeathsStat = document.getElementById("recentDeathsStat");
+    const recentReproductionStat = document.getElementById("recentReproductionStat");
+    const recentPredationStat = document.getElementById("recentPredationStat");
+    const recentPerturbationStat = document.getElementById("recentPerturbationStat");
+    const historyCanvas = document.getElementById("historyCanvas");
+    const historyCtx = historyCanvas.getContext("2d");
     const selectedCreatureIdStat = document.getElementById("selectedCreatureId");
     const selectedSpeciesStat = document.getElementById("selectedSpecies");
     const selectedRoleStat = document.getElementById("selectedRole");
     const selectedEnergyStat = document.getElementById("selectedEnergy");
+    const selectedSpeedStat = document.getElementById("selectedSpeed");
+    const selectedEnergyDeltaStat = document.getElementById("selectedEnergyDelta");
     const selectedParentStat = document.getElementById("selectedParent");
     const selectedAgeStat = document.getElementById("selectedAge");
     const selectedBornStat = document.getElementById("selectedBorn");
@@ -323,6 +361,103 @@ HTML_TEMPLATE = """<!doctype html>
     function preferredCreatureId(snapshot) {{
       const rankedIds = rankedCreatureIds(snapshot);
       return rankedIds.length ? rankedIds[0] : null;
+    }}
+
+    function statsFor(snapshot) {{
+      return snapshot.stats || {{}};
+    }}
+
+    function recentCounterDelta(frameIndex, key, windowSize = 48) {{
+      const currentStats = statsFor(snapshots[frameIndex]);
+      const earlierIndex = Math.max(0, frameIndex - Math.max(1, windowSize));
+      const earlierStats = statsFor(snapshots[earlierIndex]);
+      return (Number(currentStats[key] || 0) - Number(earlierStats[key] || 0));
+    }}
+
+    function previousCreatureFrame(frameIndex, creatureId) {{
+      for (let index = frameIndex - 1; index >= 0; index -= 1) {{
+        const creature = snapshots[index].creatures.find((candidate) => candidate.creature_id === creatureId);
+        if (creature) {{
+          return [index, creature];
+        }}
+      }}
+      return [null, null];
+    }}
+
+    function selectedTrend(frameIndex, creature) {{
+      if (!creature) {{
+        return {{ speed: null, energyDelta: null }};
+      }}
+      const [previousIndex, previousCreature] = previousCreatureFrame(frameIndex, creature.creature_id);
+      if (previousIndex === null || !previousCreature) {{
+        return {{ speed: null, energyDelta: null }};
+      }}
+      const tickDelta = Math.max(1, snapshots[frameIndex].tick - snapshots[previousIndex].tick);
+      const distance = Math.hypot(
+        creature.center_x - previousCreature.center_x,
+        creature.center_y - previousCreature.center_y,
+      );
+      return {{
+        speed: distance / tickDelta,
+        energyDelta: (Number(creature.energy || 0) - Number(previousCreature.energy || 0)) / tickDelta,
+      }};
+    }}
+
+    function drawHistory(frameIndex) {{
+      const series = snapshots.slice(Math.max(0, frameIndex - 159), frameIndex + 1);
+      historyCtx.clearRect(0, 0, historyCanvas.width, historyCanvas.height);
+      historyCtx.fillStyle = "#0f141a";
+      historyCtx.fillRect(0, 0, historyCanvas.width, historyCanvas.height);
+      if (!series.length) {{
+        return;
+      }}
+      const plotX = 14;
+      const plotY = 18;
+      const plotWidth = historyCanvas.width - 28;
+      const plotHeight = historyCanvas.height - 36;
+      historyCtx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      historyCtx.lineWidth = 1;
+      for (let row = 0; row < 4; row += 1) {{
+        const y = plotY + ((plotHeight / 3) * row);
+        historyCtx.beginPath();
+        historyCtx.moveTo(plotX, y);
+        historyCtx.lineTo(plotX + plotWidth, y);
+        historyCtx.stroke();
+      }}
+
+      const populationValues = series.map((snapshot) => Number(snapshot.population || 0));
+      const speciesValues = series.map((snapshot) => Number(statsFor(snapshot).species_count || 0));
+      const predatorValues = series.map((snapshot) =>
+        snapshot.creatures.reduce((count, creature) => count + (creature.trophic_role === "predator" ? 1 : 0), 0)
+      );
+      const peakValue = Math.max(1, ...populationValues, ...speciesValues, ...predatorValues);
+
+      function drawSeries(values, color) {{
+        historyCtx.beginPath();
+        values.forEach((value, index) => {{
+          const x = plotX + (plotWidth * (index / Math.max(values.length - 1, 1)));
+          const y = plotY + plotHeight - ((value / peakValue) * plotHeight);
+          if (index === 0) {{
+            historyCtx.moveTo(x, y);
+          }} else {{
+            historyCtx.lineTo(x, y);
+          }}
+        }});
+        historyCtx.strokeStyle = color;
+        historyCtx.lineWidth = 2;
+        historyCtx.stroke();
+      }}
+
+      drawSeries(populationValues, "#f4a261");
+      drawSeries(speciesValues, "#8ecae6");
+      drawSeries(predatorValues, "#e63946");
+      historyCtx.fillStyle = "#9fb0c1";
+      historyCtx.font = '12px "Iosevka Aile", "IBM Plex Sans", sans-serif';
+      historyCtx.fillText("pop", plotX, historyCanvas.height - 8);
+      historyCtx.fillStyle = "#8ecae6";
+      historyCtx.fillText("species", plotX + 54, historyCanvas.height - 8);
+      historyCtx.fillStyle = "#e63946";
+      historyCtx.fillText("pred", plotX + 126, historyCanvas.height - 8);
     }}
 
     function hexToRgba(css, alpha) {{
@@ -403,12 +538,22 @@ HTML_TEMPLATE = """<!doctype html>
         counts[creature.trophic_role] = (counts[creature.trophic_role] || 0) + 1;
         return counts;
       }}, {{}});
+      const snapshotStats = statsFor(snapshot);
+      const trend = selectedTrend(frame, selected);
       populationStat.textContent = String(snapshot.population);
+      speciesStat.textContent = String(snapshotStats.species_count || 0);
+      diversityStat.textContent = Number(snapshotStats.diversity_index || 0).toFixed(2);
       energyStat.textContent = snapshot.total_energy.toFixed(2);
       autotrophStat.textContent = String(roleCounts.autotroph || 0);
       herbivoreStat.textContent = String(roleCounts.herbivore || 0);
       predatorStat.textContent = String(roleCounts.predator || 0);
-      updateInspector(selected);
+      recentBirthsStat.textContent = String(recentCounterDelta(frame, "births"));
+      recentDeathsStat.textContent = String(recentCounterDelta(frame, "deaths"));
+      recentReproductionStat.textContent = String(recentCounterDelta(frame, "reproductions"));
+      recentPredationStat.textContent = String(recentCounterDelta(frame, "predation_kills"));
+      recentPerturbationStat.textContent = String(recentCounterDelta(frame, "environment_perturbations", 96));
+      drawHistory(frame);
+      updateInspector(selected, trend);
       scrub.value = String(frame);
     }}
 
@@ -641,12 +786,14 @@ HTML_TEMPLATE = """<!doctype html>
       }}
     }}
 
-    function updateInspector(creature) {{
+    function updateInspector(creature, trend) {{
       if (!creature) {{
         selectedCreatureIdStat.textContent = "none";
         selectedSpeciesStat.textContent = "-";
         selectedRoleStat.textContent = "-";
         selectedEnergyStat.textContent = "-";
+        selectedSpeedStat.textContent = "-";
+        selectedEnergyDeltaStat.textContent = "-";
         selectedParentStat.textContent = "-";
         selectedAgeStat.textContent = "-";
         selectedBornStat.textContent = "-";
@@ -657,6 +804,11 @@ HTML_TEMPLATE = """<!doctype html>
       selectedSpeciesStat.textContent = creature.species_id || "-";
       selectedRoleStat.textContent = creature.trophic_role;
       selectedEnergyStat.textContent = creature.energy.toFixed(2);
+      selectedSpeedStat.textContent = trend.speed === null ? "-" : trend.speed.toFixed(2) + "/tick";
+      selectedEnergyDeltaStat.textContent =
+        trend.energyDelta === null
+          ? "-"
+          : (trend.energyDelta >= 0 ? "+" : "") + trend.energyDelta.toFixed(2) + "/tick";
       selectedParentStat.textContent = creature.parent_id === null ? "root" : "#" + creature.parent_id;
       selectedAgeStat.textContent = String(creature.age_ticks);
       selectedBornStat.textContent = String(creature.born_tick);
@@ -938,6 +1090,44 @@ def _sample_fields(world: World, *, cols: int = 12, rows: int = 12) -> dict[str,
     }
 
 
+def _history_delta(
+    history: list[dict[str, float | int]],
+    key: str,
+    *,
+    window: int,
+) -> float:
+    if not history:
+        return 0.0
+    current = float(history[-1].get(key, 0.0))
+    earlier_index = max(0, len(history) - 1 - max(1, window))
+    earlier = float(history[earlier_index].get(key, 0.0))
+    return current - earlier
+
+
+def _chart_points(
+    values: list[float],
+    *,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+) -> list[float]:
+    if not values:
+        return []
+    if len(values) == 1:
+        return [x, y + height, x + width, y + height]
+    min_value = min(values)
+    max_value = max(values)
+    span = max(max_value - min_value, 1e-6)
+    points: list[float] = []
+    for index, value in enumerate(values):
+        px = x + (width * (index / max(len(values) - 1, 1)))
+        normalized = (value - min_value) / span
+        py = y + height - (normalized * height)
+        points.extend((px, py))
+    return points
+
+
 def _draw_creature_bands(
     canvas: object,
     nodes: list[object],
@@ -971,6 +1161,7 @@ def _draw_creature_bands(
 def _snapshot_payload(world: World) -> dict[str, object]:
     payload = asdict(world.snapshot())
     payload["fields"] = _sample_fields(world)
+    payload["stats"] = asdict(world.stats())
     return payload
 
 
@@ -982,11 +1173,17 @@ def _build_html_viewer(
     canvas_width: int,
     canvas_height: int,
     max_frames: int,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> str:
+    total_frames = max(1, max_frames)
     snapshots = [_snapshot_payload(world)]
-    for _ in range(max(1, max_frames) - 1):
+    if progress_callback is not None:
+        progress_callback(1, total_frames)
+    for frame_index in range(total_frames - 1):
         world.step(steps_per_frame)
         snapshots.append(_snapshot_payload(world))
+        if progress_callback is not None:
+            progress_callback(frame_index + 2, total_frames)
     return HTML_TEMPLATE.format(
         canvas_width=canvas_width,
         canvas_height=canvas_height,
@@ -1006,6 +1203,7 @@ def write_html_viewer(
     canvas_width: int = 900,
     canvas_height: int = 900,
     max_frames: int = 600,
+    progress_callback: Callable[[int, int], None] | None = None,
 ) -> Path:
     target = Path(path) if path is not None else _default_html_path(world)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -1017,6 +1215,7 @@ def write_html_viewer(
             canvas_width=max(200, canvas_width),
             canvas_height=max(200, canvas_height),
             max_frames=max(1, max_frames),
+            progress_callback=progress_callback,
         ),
         encoding="utf-8",
     )
@@ -1068,6 +1267,8 @@ def _launch_tk_viewer(
     zoom_level = 4.0
     ambient_frame_counter = 0
     step_stride = max(1, steps_per_frame)
+    history: list[dict[str, float | int]] = []
+    last_history_tick: int | None = None
 
     def _toggle_running(_: object | None = None) -> None:
         nonlocal running
@@ -1205,10 +1406,140 @@ def _launch_tk_viewer(
     def _silhouette_color(css: str) -> str:
         return _blend_css_color(css, alpha=0.18)
 
+    def _append_history(stats: object) -> None:
+        nonlocal last_history_tick
+        tick = int(getattr(stats, "tick", 0))
+        if last_history_tick == tick:
+            return
+        last_history_tick = tick
+        history.append(
+            {
+                "population": int(getattr(stats, "population", 0)),
+                "species": int(getattr(stats, "species_count", 0)),
+                "predators": int(getattr(stats, "predator_count", 0)),
+                "births": int(getattr(stats, "births", 0)),
+                "deaths": int(getattr(stats, "deaths", 0)),
+                "reproductions": int(getattr(stats, "reproductions", 0)),
+                "predation_kills": int(getattr(stats, "predation_kills", 0)),
+                "environment_perturbations": int(getattr(stats, "environment_perturbations", 0)),
+                "diversity": float(getattr(stats, "diversity_index", 0.0)),
+            }
+        )
+        del history[:-160]
+
+    def _draw_hud(*, snapshot: Snapshot, stats: object, selected: object | None) -> None:
+        panel_left = 14
+        panel_top = 14
+        panel_width = 294
+        panel_height = 156
+        canvas.create_rectangle(
+            panel_left,
+            panel_top,
+            panel_left + panel_width,
+            panel_top + panel_height,
+            fill="#0f141a",
+            outline="#233142",
+            width=1,
+        )
+        summary_lines = [
+            (
+                f"pop={snapshot.population} species={getattr(stats, 'species_count', 0)} "
+                f"diversity={float(getattr(stats, 'diversity_index', 0.0)):.2f}"
+            ),
+            (
+                f"auto={getattr(stats, 'autotroph_count', 0)} herb={getattr(stats, 'herbivore_count', 0)} "
+                f"pred={getattr(stats, 'predator_count', 0)}"
+            ),
+            (
+                f"recent births={int(_history_delta(history, 'births', window=24))} "
+                f"deaths={int(_history_delta(history, 'deaths', window=24))} "
+                f"repr={int(_history_delta(history, 'reproductions', window=24))} "
+                f"kills={int(_history_delta(history, 'predation_kills', window=24))}"
+            ),
+        ]
+        if selected is not None:
+            summary_lines.append(
+                f"selected=#{selected.creature_id} role={selected.trophic_role} energy={selected.energy:.2f} age={selected.age_ticks}"
+            )
+        for index, line in enumerate(summary_lines):
+            canvas.create_text(
+                panel_left + 10,
+                panel_top + 14 + (index * 18),
+                anchor="w",
+                text=line,
+                fill="#e5edf5",
+                font=("Menlo", 10),
+            )
+        chart_left = panel_left + 10
+        chart_top = panel_top + 84
+        chart_width = panel_width - 20
+        chart_height = 52
+        canvas.create_rectangle(
+            chart_left,
+            chart_top,
+            chart_left + chart_width,
+            chart_top + chart_height,
+            fill="#131b24",
+            outline="",
+        )
+        population_points = _chart_points(
+            [float(entry["population"]) for entry in history],
+            x=chart_left,
+            y=chart_top,
+            width=chart_width,
+            height=chart_height,
+        )
+        species_points = _chart_points(
+            [float(entry["species"]) for entry in history],
+            x=chart_left,
+            y=chart_top,
+            width=chart_width,
+            height=chart_height,
+        )
+        predator_points = _chart_points(
+            [float(entry["predators"]) for entry in history],
+            x=chart_left,
+            y=chart_top,
+            width=chart_width,
+            height=chart_height,
+        )
+        if len(population_points) >= 4:
+            canvas.create_line(*population_points, fill="#f4a261", width=2)
+        if len(species_points) >= 4:
+            canvas.create_line(*species_points, fill="#8ecae6", width=2)
+        if len(predator_points) >= 4:
+            canvas.create_line(*predator_points, fill="#e63946", width=2)
+        canvas.create_text(
+            chart_left,
+            chart_top + chart_height + 10,
+            anchor="w",
+            text="pop",
+            fill="#f4a261",
+            font=("Menlo", 9),
+        )
+        canvas.create_text(
+            chart_left + 42,
+            chart_top + chart_height + 10,
+            anchor="w",
+            text="species",
+            fill="#8ecae6",
+            font=("Menlo", 9),
+        )
+        canvas.create_text(
+            chart_left + 112,
+            chart_top + chart_height + 10,
+            anchor="w",
+            text="pred",
+            fill="#e63946",
+            font=("Menlo", 9),
+        )
+
     def _draw(snapshot: Snapshot) -> None:
         nonlocal ambient_frame_counter, selected_creature_id
         canvas.delete("all")
         field_samples = _sample_fields(world)
+        stats = world.stats()
+        _append_history(stats)
         cell_width = canvas_width / max(int(field_samples["cols"]), 1)
         cell_height = canvas_height / max(int(field_samples["rows"]), 1)
         field_mode = FIELD_MODE_SEQUENCE[field_mode_index]
@@ -1457,15 +1788,26 @@ def _launch_tk_viewer(
                 )
                 canvas.tag_raise(text_id)
 
+        _draw_hud(snapshot=snapshot, stats=stats, selected=selected)
+
         overlay.set(
             "\n".join(
                 [
-                    f"tick={snapshot.tick} population={snapshot.population} total_energy={snapshot.total_energy:.2f}",
+                    (
+                        f"tick={snapshot.tick} population={snapshot.population} species={stats.species_count} "
+                        f"total_energy={snapshot.total_energy:.2f} diversity={stats.diversity_index:.2f}"
+                    ),
                     (
                         f"selected=#{selected.creature_id} species={selected.species_id} role={selected.trophic_role} "
                         f"energy={selected.energy:.2f} age={selected.age_ticks}"
                         if selected is not None
                         else "selected=none"
+                    ),
+                    (
+                        f"recent births={int(_history_delta(history, 'births', window=24))} "
+                        f"deaths={int(_history_delta(history, 'deaths', window=24))} "
+                        f"repr={int(_history_delta(history, 'reproductions', window=24))} "
+                        f"kills={int(_history_delta(history, 'predation_kills', window=24))}"
                     ),
                     (
                         f"follow={'on' if follow_selected else 'off'} ambient={'on' if ambient_mode else 'off'} zoom={zoom_level:.1f}x "
@@ -1500,6 +1842,7 @@ def launch_viewer(
     html_out_path: str | Path | None = None,
     max_frames: int = 600,
     open_html_in_browser: bool = True,
+    html_progress_callback: Callable[[int, int], None] | None = None,
 ) -> Path | None:
     if backend not in {"auto", "tk", "html"}:
         msg = f"unsupported viewer backend: {backend}"
@@ -1514,6 +1857,7 @@ def launch_viewer(
             canvas_width=canvas_width,
             canvas_height=canvas_height,
             max_frames=max_frames,
+            progress_callback=html_progress_callback,
         )
         _open_html_viewer(html_path, enabled=open_html_in_browser)
         return html_path
@@ -1533,6 +1877,7 @@ def launch_viewer(
             canvas_width=canvas_width,
             canvas_height=canvas_height,
             max_frames=max_frames,
+            progress_callback=html_progress_callback,
         )
         _open_html_viewer(html_path, enabled=open_html_in_browser)
         return html_path
