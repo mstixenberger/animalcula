@@ -48,6 +48,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - deterministic seed-demo founder count is being raised from 3 to 9, preserving the three archetype species while materially improving first-run interaction density
 - genomes now have bounded inherited visual traits for silhouette scale, glyph scale, and body banding; the viewers render them and phenotype snapshots/vectors expose them
 - `animalcula view` warmup now prints a TTY progress bar while it pre-steps a fresh world
+- HTML viewer launches now auto-open by default, with `--no-open-browser` available when deterministic non-GUI behavior is needed
 
 ## Current Priority
 

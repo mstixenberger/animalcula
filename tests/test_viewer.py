@@ -14,11 +14,13 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
 ) -> None:
     world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
     world.seed_demo_archetypes()
+    opened: list[str] = []
 
     def _raise_missing_tk() -> object:
         raise ModuleNotFoundError("_tkinter")
 
     monkeypatch.setattr(debug_viewer, "_load_tk", _raise_missing_tk)
+    monkeypatch.setattr(debug_viewer.webbrowser, "open", lambda url: opened.append(url) or True)
 
     html_path = debug_viewer.launch_viewer(
         world,
@@ -29,6 +31,7 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
 
     assert html_path is not None
     assert html_path.exists()
+    assert opened == [html_path.resolve().as_uri()]
     payload = html_path.read_text(encoding="utf-8")
     assert "Animalcula Debug Viewer" in payload
     assert "Generated from <code>animalcula view</code> HTML fallback" in payload
@@ -82,6 +85,7 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
             str(html_path),
             "--max-frames",
             "3",
+            "--no-open-browser",
         ],
         check=True,
         capture_output=True,
@@ -105,3 +109,26 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
     assert "drawCreatureBands(snapshot, nodes, visual" in payload
     assert "drawSelectedLabel(selected, sx, sy)" in payload
     assert 'node.node_type === "photoreceptor"' in payload
+
+
+def test_launch_viewer_can_skip_auto_open_for_html_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    world.seed_demo_archetypes()
+    opened: list[str] = []
+
+    monkeypatch.setattr(debug_viewer.webbrowser, "open", lambda url: opened.append(url) or True)
+
+    html_path = debug_viewer.launch_viewer(
+        world,
+        backend="html",
+        html_out_path=tmp_path / "viewer.html",
+        max_frames=2,
+        open_html_in_browser=False,
+    )
+
+    assert html_path is not None
+    assert html_path.exists()
+    assert opened == []

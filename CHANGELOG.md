@@ -134,6 +134,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `--seed-demo` now starts from a nine-creature founding population instead of just three singleton roots, which gives the default ecology and viewer paths a materially better chance of showing actual interaction
 - Genomes now carry bounded visual traits for silhouette scale, appendage glyph scale, and body banding, and both debug viewers render those traits without distorting the simulation’s physical interaction radii
 - `animalcula view` now shows a TTY progress bar while warming fresh worlds, so the default display path no longer looks hung during pre-view setup
+- HTML viewer launches now open the generated viewer in the browser automatically by default, with `--no-open-browser` available for scriptable workflows
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

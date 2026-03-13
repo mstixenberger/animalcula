@@ -54,6 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
     view_parser.add_argument("--viewer-backend", choices=("auto", "tk", "html"), default="auto")
     view_parser.add_argument("--html-out", default=None)
     view_parser.add_argument("--max-frames", type=int, default=600)
+    view_parser.add_argument("--no-open-browser", action="store_true")
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
@@ -161,6 +162,7 @@ def main() -> int:
             backend=args.viewer_backend,
             html_out_path=args.html_out,
             max_frames=max(1, args.max_frames),
+            open_html_in_browser=not args.no_open_browser,
         )
         if html_viewer is not None:
             print(f"saved_html_viewer={html_viewer}")

@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 import tempfile
 from types import ModuleType
+import webbrowser
 
 from animalcula.sim.types import Vec2
 from animalcula.sim.world import Snapshot, World
@@ -1498,13 +1499,14 @@ def launch_viewer(
     backend: str = "auto",
     html_out_path: str | Path | None = None,
     max_frames: int = 600,
+    open_html_in_browser: bool = True,
 ) -> Path | None:
     if backend not in {"auto", "tk", "html"}:
         msg = f"unsupported viewer backend: {backend}"
         raise ValueError(msg)
 
     if backend == "html":
-        return write_html_viewer(
+        html_path = write_html_viewer(
             world,
             path=html_out_path,
             steps_per_frame=steps_per_frame,
@@ -1513,6 +1515,8 @@ def launch_viewer(
             canvas_height=canvas_height,
             max_frames=max_frames,
         )
+        _open_html_viewer(html_path, enabled=open_html_in_browser)
+        return html_path
 
     try:
         tk = _load_tk()
@@ -1521,7 +1525,7 @@ def launch_viewer(
             raise RuntimeError(
                 "Tkinter is required for `animalcula view --viewer-backend tk` on this machine"
             ) from exc
-        return write_html_viewer(
+        html_path = write_html_viewer(
             world,
             path=html_out_path,
             steps_per_frame=steps_per_frame,
@@ -1530,6 +1534,8 @@ def launch_viewer(
             canvas_height=canvas_height,
             max_frames=max_frames,
         )
+        _open_html_viewer(html_path, enabled=open_html_in_browser)
+        return html_path
 
     _launch_tk_viewer(
         world,
@@ -1540,3 +1546,12 @@ def launch_viewer(
         canvas_height=canvas_height,
     )
     return None
+
+
+def _open_html_viewer(path: Path, *, enabled: bool) -> None:
+    if not enabled:
+        return
+    try:
+        webbrowser.open(path.resolve().as_uri())
+    except Exception:
+        return

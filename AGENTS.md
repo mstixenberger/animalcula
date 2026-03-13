@@ -310,6 +310,7 @@ Current implementation baseline:
 - the deterministic `--seed-demo` founding population now starts at nine creatures instead of three, keeping the same three archetype species but giving the default ecology/viewer paths more actual contact opportunities
 - genomes now carry bounded visual-only traits for silhouette scale, appendage glyph scale, and body banding; they are inherited, mutated, surfaced in phenotype data, and rendered in both viewers without changing physical interaction radii
 - `animalcula view` now shows a TTY progress bar during warmup, so the pre-view inspection path communicates progress instead of looking stuck
+- HTML viewer launches now auto-open the generated file in the browser by default; keep `--no-open-browser` for scriptable/test workflows
 
 ## Update Protocol
 
