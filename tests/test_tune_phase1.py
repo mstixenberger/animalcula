@@ -57,6 +57,7 @@ def test_tune_phase1_writes_raw_and_summary_outputs(tmp_path: Path) -> None:
     assert "avg_drag_multiplier" in summaries[0]
     assert "avg_nutrient_source_strength_multiplier" in summaries[0]
     assert "avg_species_turnover" in summaries[0]
+    assert "avg_environment_perturbations" in summaries[0]
     assert "avg_observed_species_count" in summaries[0]
     assert "peak_species_count_max" in summaries[0]
     assert "peak_species_fraction_max" in summaries[0]

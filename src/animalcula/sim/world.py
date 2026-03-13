@@ -96,6 +96,7 @@ class Stats:
     species_extinctions: int
     species_turnover: int
     predation_kills: int
+    environment_perturbations: int
     lineage_count: int
     species_count: int
     observed_species_count: int
@@ -379,6 +380,7 @@ class World:
         speciation_events = sum(1 for event in self.events if event.event_type == "speciation")
         species_extinctions = sum(1 for event in self.events if event.event_type == "species_extinction")
         predation_kills = sum(1 for event in self.events if event.event_type == "predation_kill")
+        environment_perturbations = sum(1 for event in self.events if event.event_type == "environment_perturbation")
         lineage_counts = Counter(
             genome_hash(creature.genome) for creature in self.creatures if creature.genome is not None
         )
@@ -411,6 +413,7 @@ class World:
             species_extinctions=species_extinctions,
             species_turnover=speciation_events + species_extinctions,
             predation_kills=predation_kills,
+            environment_perturbations=environment_perturbations,
             lineage_count=len(lineage_counts),
             species_count=len(species_counts),
             observed_species_count=len(self._known_species_ids),
@@ -666,6 +669,7 @@ class World:
             self.detritus_grid.decay(rate=self.config.environment.detritus_decay_rate)
         if not self._reseed_nutrient_sources_if_due():
             self._shift_nutrient_sources_if_due()
+        self._apply_dominance_perturbation_if_due()
         nutrient_source_strength = (
             self.config.environment.nutrient_source_strength * self.current_nutrient_source_strength_multiplier()
         )
@@ -1136,18 +1140,7 @@ class World:
             return
         if (self.tick + 1) % interval != 0:
             return
-
-        source_cells = set(self._nutrient_source_cells)
-        shift_count = min(self.config.environment.nutrient_shift_count, len(source_cells))
-        if shift_count <= 0:
-            return
-
-        cells = list(source_cells)
-        self._rng.shuffle(cells)
-        for old_cell in cells[:shift_count]:
-            source_cells.remove(old_cell)
-            source_cells.add(self._random_unoccupied_nutrient_cell(source_cells))
-        self._nutrient_source_cells = sorted(source_cells)
+        self._shift_nutrient_sources(self.config.environment.nutrient_shift_count)
 
     def _reseed_nutrient_sources_if_due(self) -> bool:
         interval = self.config.environment.nutrient_epoch_interval
@@ -1158,6 +1151,21 @@ class World:
         self._nutrient_source_cells = self._initialize_nutrient_sources()
         return True
 
+    def _apply_dominance_perturbation_if_due(self) -> None:
+        interval = self.config.environment.dominance_perturbation_interval
+        if interval <= 0 or not self._runaway_dominance_detected:
+            return
+        if (self.tick + 1) % interval != 0:
+            return
+        if self._shift_nutrient_sources(self.config.environment.dominance_perturbation_shift_count):
+            self._record_event(
+                "environment_perturbation",
+                creature_id=-1,
+                parent_ids=(),
+                energy=0.0,
+                genome_hash_value="",
+            )
+
     def _random_unoccupied_nutrient_cell(self, occupied: set[tuple[int, int]]) -> tuple[int, int]:
         while True:
             candidate = (
@@ -1166,6 +1174,23 @@ class World:
             )
             if candidate not in occupied:
                 return candidate
+
+    def _shift_nutrient_sources(self, shift_count: int) -> bool:
+        if shift_count <= 0 or not self._nutrient_source_cells:
+            return False
+
+        source_cells = set(self._nutrient_source_cells)
+        shift_count = min(shift_count, len(source_cells))
+        if shift_count <= 0:
+            return False
+
+        cells = list(source_cells)
+        self._rng.shuffle(cells)
+        for old_cell in cells[:shift_count]:
+            source_cells.remove(old_cell)
+            source_cells.add(self._random_unoccupied_nutrient_cell(source_cells))
+        self._nutrient_source_cells = sorted(source_cells)
+        return True
 
     def _initial_next_creature_id(self) -> int:
         existing_ids = [creature.id for creature in self.creatures if creature.id >= 0]

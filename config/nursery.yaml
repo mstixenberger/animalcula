@@ -20,6 +20,8 @@ environment:
   nutrient_shift_count: 1
   nutrient_epoch_interval: 100000
   nutrient_epoch_strength_multipliers: [1.0, 0.85, 1.25]
+  dominance_perturbation_interval: 20000
+  dominance_perturbation_shift_count: 2
   chemical_diffusion_rate: 0.2
   chemical_decay_rate: 0.05
   detritus_decay_rate: 0.005

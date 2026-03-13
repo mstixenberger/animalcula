@@ -225,3 +225,25 @@ def test_world_detects_runaway_species_dominance() -> None:
     stats = world.stats()
     assert stats.peak_species_fraction == 1.0
     assert stats.runaway_dominance_detected is True
+
+
+def test_world_logs_environment_perturbation_events_when_runaway_dominance_triggers_them() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "environment.nutrient_source_count=3",
+            "environment.nutrient_shift_interval=0",
+            "environment.nutrient_epoch_interval=0",
+            "environment.dominance_perturbation_interval=2",
+            "environment.dominance_perturbation_shift_count=2",
+        ]
+    )
+    world = World(config=config, seed=7)
+    before = list(world._nutrient_source_cells)
+    world._runaway_dominance_detected = True
+
+    world.step(2)
+
+    event_types = [event.event_type for event in world.events]
+    assert "environment_perturbation" in event_types
+    assert world._nutrient_source_cells != before
+    assert world.stats().environment_perturbations == 1

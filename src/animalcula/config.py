@@ -37,6 +37,8 @@ class EnvironmentConfig:
     nutrient_shift_count: int
     nutrient_epoch_interval: int
     nutrient_epoch_strength_multipliers: tuple[float, ...]
+    dominance_perturbation_interval: int
+    dominance_perturbation_shift_count: int
     chemical_diffusion_rate: float
     chemical_decay_rate: float
     detritus_decay_rate: float
@@ -123,6 +125,8 @@ class Config:
             "nutrient_shift_count": 1,
             "nutrient_epoch_interval": 0,
             "nutrient_epoch_strength_multipliers": [1.0],
+            "dominance_perturbation_interval": 0,
+            "dominance_perturbation_shift_count": 0,
             **raw["environment"],
         }
         environment_raw.setdefault("light_intensity_min", environment_raw["light_intensity_max"])

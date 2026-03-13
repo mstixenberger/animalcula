@@ -93,6 +93,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "deaths_sum": 0,
                 "speciation_sum": 0,
                 "predation_sum": 0,
+                "environment_perturbation_sum": 0,
                 "extinction_sum": 0,
                 "turnover_sum": 0,
                 "observed_species_sum": 0,
@@ -128,6 +129,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["deaths_sum"] += record["deaths"]
         bucket["speciation_sum"] += record["speciation_events"]
         bucket["predation_sum"] += record["predation_kills"]
+        bucket["environment_perturbation_sum"] += record["environment_perturbations"]
         bucket["extinction_sum"] += record["species_extinctions"]
         bucket["turnover_sum"] += record["species_turnover"]
         bucket["observed_species_sum"] += record["observed_species_count"]
@@ -168,6 +170,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_deaths": round(bucket["deaths_sum"] / bucket["runs"], 3),
             "avg_speciation_events": round(bucket["speciation_sum"] / bucket["runs"], 3),
             "avg_predation_kills": round(bucket["predation_sum"] / bucket["runs"], 3),
+            "avg_environment_perturbations": round(bucket["environment_perturbation_sum"] / bucket["runs"], 3),
             "avg_species_extinctions": round(bucket["extinction_sum"] / bucket["runs"], 3),
             "avg_species_turnover": round(bucket["turnover_sum"] / bucket["runs"], 3),
             "avg_observed_species_count": round(bucket["observed_species_sum"] / bucket["runs"], 3),
@@ -242,6 +245,7 @@ def _run_sweep_combination(
         "species_extinctions": stats.species_extinctions,
         "species_turnover": stats.species_turnover,
         "predation_kills": stats.predation_kills,
+        "environment_perturbations": stats.environment_perturbations,
         "ended_extinct": stats.population == 0,
         "had_speciation": stats.speciation_events > 0,
         "had_predation": stats.predation_kills > 0,

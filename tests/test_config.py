@@ -19,6 +19,8 @@ def test_loads_default_config() -> None:
     assert config.environment.nutrient_shift_count == 1
     assert config.environment.nutrient_epoch_interval == 100000
     assert config.environment.nutrient_epoch_strength_multipliers == (1.0, 0.6, 1.4)
+    assert config.environment.dominance_perturbation_interval == 20000
+    assert config.environment.dominance_perturbation_shift_count == 2
     assert config.environment.light_intensity_max == 1.0
     assert config.environment.light_intensity_min == 0.5
     assert config.environment.light_direction == (1.0, 0.0)
@@ -118,6 +120,18 @@ def test_config_from_dict_backfills_nutrient_epoch_defaults_for_old_payloads() -
 
     assert loaded.environment.nutrient_epoch_interval == 0
     assert loaded.environment.nutrient_epoch_strength_multipliers == (1.0,)
+
+
+def test_config_from_dict_backfills_dominance_perturbation_defaults_for_old_payloads() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    payload = config.to_dict()
+    del payload["environment"]["dominance_perturbation_interval"]
+    del payload["environment"]["dominance_perturbation_shift_count"]
+
+    loaded = Config.from_dict(payload)
+
+    assert loaded.environment.dominance_perturbation_interval == 0
+    assert loaded.environment.dominance_perturbation_shift_count == 0
 
 
 def test_config_from_dict_backfills_light_season_defaults_for_old_payloads() -> None:

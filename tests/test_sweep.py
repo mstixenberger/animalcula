@@ -70,6 +70,7 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "peak_species_fraction" in records[0]
     assert "runaway_dominance_detected" in records[0]
     assert "predation_kills" in records[0]
+    assert "environment_perturbations" in records[0]
     assert "ended_extinct" in records[0]
     assert "had_speciation" in records[0]
     assert "had_predation" in records[0]
@@ -104,6 +105,7 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "predation_kills": 0,
             "species_extinctions": 0,
             "species_turnover": 1,
+            "environment_perturbations": 0,
             "autotroph_count": 1,
             "herbivore_count": 2,
             "predator_count": 2,
@@ -136,6 +138,7 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "predation_kills": 1,
             "species_extinctions": 1,
             "species_turnover": 1,
+            "environment_perturbations": 1,
             "autotroph_count": 1,
             "herbivore_count": 1,
             "predator_count": 1,
@@ -166,6 +169,7 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["avg_nutrient_source_strength_multiplier"] == 0.875
     assert summaries[0]["avg_reproductions"] == 3.0
     assert summaries[0]["avg_species_turnover"] == 1.0
+    assert summaries[0]["avg_environment_perturbations"] == 0.5
     assert summaries[0]["avg_autotroph_count"] == 1.0
     assert summaries[0]["avg_herbivore_count"] == 1.5
     assert summaries[0]["avg_predator_count"] == 1.5
