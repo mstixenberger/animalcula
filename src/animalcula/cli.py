@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from animalcula.analysis.metrics import trophic_balance_score
 from animalcula.analysis.seedbank import evaluate_seed_bank, promote_seed_bank
 from animalcula.analysis.sweep import run_sweep
 from animalcula.config import Config
@@ -272,6 +273,7 @@ def _format_stats(seed: int, stats: object) -> str:
             f"autotrophs={stats.autotroph_count}",
             f"herbivores={stats.herbivore_count}",
             f"predators={stats.predator_count}",
+            f"trophic_balance={trophic_balance_score(stats.autotroph_count, stats.herbivore_count, stats.predator_count):.3f}",
         ]
     )
 
@@ -317,6 +319,11 @@ def _run_with_stats_log(world: World, ticks: int, log_path: str, log_every: int)
                         "autotroph_count": stats.autotroph_count,
                         "herbivore_count": stats.herbivore_count,
                         "predator_count": stats.predator_count,
+                        "trophic_balance_score": trophic_balance_score(
+                            stats.autotroph_count,
+                            stats.herbivore_count,
+                            stats.predator_count,
+                        ),
                     }
                 )
             )
