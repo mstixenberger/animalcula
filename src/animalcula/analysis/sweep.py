@@ -82,6 +82,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "population_sum": 0,
                 "population_variance_sum": 0.0,
                 "peak_population_max": 0,
+                "population_capacity_fraction_sum": 0.0,
+                "peak_population_capacity_fraction_max": 0.0,
                 "energy_sum": 0.0,
                 "drag_multiplier_sum": 0.0,
                 "species_sum": 0,
@@ -111,6 +113,11 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["population_sum"] += record["population"]
         bucket["population_variance_sum"] += record["population_variance"]
         bucket["peak_population_max"] = max(bucket["peak_population_max"], record["peak_population"])
+        bucket["population_capacity_fraction_sum"] += record["population_capacity_fraction"]
+        bucket["peak_population_capacity_fraction_max"] = max(
+            bucket["peak_population_capacity_fraction_max"],
+            record["peak_population_capacity_fraction"],
+        )
         bucket["energy_sum"] += record["total_energy"]
         bucket["drag_multiplier_sum"] += record["drag_multiplier"]
         bucket["species_sum"] += record["species_count"]
@@ -145,6 +152,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_population": round(bucket["population_sum"] / bucket["runs"], 3),
             "avg_population_variance": round(bucket["population_variance_sum"] / bucket["runs"], 3),
             "peak_population_max": bucket["peak_population_max"],
+            "avg_population_capacity_fraction": round(bucket["population_capacity_fraction_sum"] / bucket["runs"], 3),
+            "peak_population_capacity_fraction_max": round(bucket["peak_population_capacity_fraction_max"], 3),
             "avg_total_energy": round(bucket["energy_sum"] / bucket["runs"], 3),
             "avg_drag_multiplier": round(bucket["drag_multiplier_sum"] / bucket["runs"], 3),
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
@@ -214,6 +223,8 @@ def _run_sweep_combination(
         "population": stats.population,
         "peak_population": stats.peak_population,
         "population_variance": stats.population_variance,
+        "population_capacity_fraction": stats.population_capacity_fraction,
+        "peak_population_capacity_fraction": stats.peak_population_capacity_fraction,
         "nodes": stats.node_count,
         "total_energy": stats.total_energy,
         "drag_multiplier": stats.drag_multiplier,
@@ -258,6 +269,7 @@ def _run_sweep_combination(
             observed_species_count=stats.observed_species_count,
             peak_species_fraction=stats.peak_species_fraction,
             runaway_dominance_detected=stats.runaway_dominance_detected,
+            population_capacity_fraction=stats.population_capacity_fraction,
         ),
     }
 

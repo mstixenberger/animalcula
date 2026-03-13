@@ -50,6 +50,36 @@ def test_interestingness_score_penalizes_runaway_dominance() -> None:
     assert diverse > monoculture
 
 
+def test_interestingness_score_rewards_midrange_capacity_fraction() -> None:
+    low = interestingness_score(
+        population=10,
+        total_energy=5.0,
+        births=1,
+        deaths=1,
+        reproductions=1,
+        population_capacity_fraction=0.05,
+    )
+    mid = interestingness_score(
+        population=10,
+        total_energy=5.0,
+        births=1,
+        deaths=1,
+        reproductions=1,
+        population_capacity_fraction=0.55,
+    )
+    saturated = interestingness_score(
+        population=10,
+        total_energy=5.0,
+        births=1,
+        deaths=1,
+        reproductions=1,
+        population_capacity_fraction=1.0,
+    )
+
+    assert mid > low
+    assert mid > saturated
+
+
 def test_shannon_diversity_is_zero_for_single_lineage() -> None:
     assert shannon_diversity({"aaa": 5}) == 0.0
 

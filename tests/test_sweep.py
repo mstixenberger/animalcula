@@ -55,6 +55,8 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert records[0]["births"] > records[1]["births"]
     assert "peak_population" in records[0]
     assert "population_variance" in records[0]
+    assert "population_capacity_fraction" in records[0]
+    assert "peak_population_capacity_fraction" in records[0]
     assert "drag_multiplier" in records[0]
     assert "lineage_count" in records[0]
     assert "species_count" in records[0]
@@ -88,6 +90,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "population": 5,
             "peak_population": 6,
             "population_variance": 1.5,
+            "population_capacity_fraction": 0.4,
+            "peak_population_capacity_fraction": 0.5,
             "total_energy": 10.0,
             "drag_multiplier": 1.0,
             "species_count": 2,
@@ -117,6 +121,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "population": 3,
             "peak_population": 5,
             "population_variance": 0.5,
+            "population_capacity_fraction": 0.2,
+            "peak_population_capacity_fraction": 0.35,
             "total_energy": 6.0,
             "drag_multiplier": 1.5,
             "species_count": 1,
@@ -150,6 +156,8 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["avg_population"] == 4.0
     assert summaries[0]["avg_population_variance"] == 1.0
     assert summaries[0]["peak_population_max"] == 6
+    assert summaries[0]["avg_population_capacity_fraction"] == 0.3
+    assert summaries[0]["peak_population_capacity_fraction_max"] == 0.5
     assert summaries[0]["avg_diversity_index"] == 0.65
     assert summaries[0]["avg_drag_multiplier"] == 1.25
     assert summaries[0]["avg_reproductions"] == 3.0

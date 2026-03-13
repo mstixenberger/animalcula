@@ -52,6 +52,8 @@ The raw JSONL and `.summary.json` outputs now include turnover-oriented ecology 
 
 - `peak_population`
 - `population_variance`
+- `population_capacity_fraction`
+- `peak_population_capacity_fraction`
 - `species_turnover`
 - `observed_species_count`
 - `peak_species_count`
@@ -146,6 +148,8 @@ As of March 12, 2026, after correcting the starter predator archetype to match t
   That gives tuning runs a first direct monoculture alarm instead of inferring collapse or stagnation only from end-state species counts.
 - As of March 13, 2026, headless reporting also tracks peak population and whole-run population variance.
   That closes another health-metric gap from the spec: tuning can now separate flatline runs from real boom-bust ecologies without needing a full external time-series analysis step.
+- As of March 13, 2026, headless reporting also tracks current and peak carrying-capacity fractions, and the shared interestingness score now rewards runs nearer the spec’s `30-80%` population band.
+  That means automated sweep and seed-bank ranking no longer treats raw cap saturation as automatically “better” when a more balanced midrange ecology exists.
 
 ## Interpretation
 

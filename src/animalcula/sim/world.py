@@ -84,6 +84,8 @@ class Stats:
     population: int
     peak_population: int
     population_variance: float
+    population_capacity_fraction: float
+    peak_population_capacity_fraction: float
     node_count: int
     edge_count: int
     total_energy: float
@@ -396,6 +398,8 @@ class World:
             population=len(self.creatures) if self.creatures else len(self.nodes),
             peak_population=self._peak_population,
             population_variance=self.population_variance(),
+            population_capacity_fraction=self.population_capacity_fraction(),
+            peak_population_capacity_fraction=self.peak_population_capacity_fraction(),
             node_count=len(self.nodes),
             edge_count=len(self.edges),
             total_energy=sum(creature.energy for creature in self.creatures),
@@ -1287,6 +1291,14 @@ class World:
         if self._population_observation_count <= 1:
             return 0.0
         return self._population_m2 / self._population_observation_count
+
+    def population_capacity_fraction(self) -> float:
+        capacity = max(self.config.creatures.max_population, 1)
+        return (len(self.creatures) if self.creatures else len(self.nodes)) / capacity
+
+    def peak_population_capacity_fraction(self) -> float:
+        capacity = max(self.config.creatures.max_population, 1)
+        return self._peak_population / capacity
 
     def _update_recent_speeds(self, creatures: list[CreatureState]) -> list[CreatureState]:
         updated: list[CreatureState] = []

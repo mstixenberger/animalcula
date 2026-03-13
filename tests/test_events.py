@@ -194,6 +194,8 @@ def test_world_stats_capture_species_turnover_after_extinction() -> None:
     assert stats.peak_species_count == 1
     assert stats.peak_population == 1
     assert stats.population_variance > 0.0
+    assert stats.population_capacity_fraction == 0.0
+    assert stats.peak_population_capacity_fraction > 0.0
     assert stats.peak_species_fraction == 1.0
     assert stats.runaway_dominance_detected is False
     assert stats.mean_extinct_species_lifespan == 0.0
