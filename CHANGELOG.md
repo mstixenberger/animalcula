@@ -104,6 +104,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints
 - Headless runs now expose current and peak carrying-capacity fractions, and shared interestingness scoring now rewards the spec’s target midrange population band
 - Direct CLI run/report output and periodic stats logs now also expose trophic-balance scoring
+- Shared interestingness scoring now also rewards trophic balance directly instead of leaving it as a passive analysis column
 
 ### Changed
 
@@ -131,3 +132,4 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now also expose peak population and population variance for boom-bust triage
 - Sweep and seed-bank ranking now also consider carrying-capacity fit instead of treating cap-saturation as automatically desirable
 - Single-run CLI inspection now uses the same trophic-balance vocabulary as sweeps and seed-bank reports
+- Sweep and seed-bank ranking now also favor balanced trophic mixes, not just population, turnover, and anti-monoculture signals

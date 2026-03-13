@@ -19,6 +19,7 @@ def interestingness_score(
     peak_species_fraction: float = 0.0,
     runaway_dominance_detected: bool = False,
     population_capacity_fraction: float = 0.0,
+    trophic_balance: float = 0.0,
 ) -> float:
     if population <= 0:
         return 0.0
@@ -38,7 +39,8 @@ def interestingness_score(
     if runaway_dominance_detected:
         dominance_penalty += 10.0
     capacity_bonus = max(0.0, 1.0 - (abs(population_capacity_fraction - 0.55) / 0.55)) * 5.0
-    return max(0.0, score + capacity_bonus - dominance_penalty)
+    trophic_bonus = max(0.0, trophic_balance) * 5.0
+    return max(0.0, score + capacity_bonus + trophic_bonus - dominance_penalty)
 
 
 def shannon_diversity(lineage_counts: dict[str, int]) -> float:

@@ -80,6 +80,27 @@ def test_interestingness_score_rewards_midrange_capacity_fraction() -> None:
     assert mid > saturated
 
 
+def test_interestingness_score_rewards_trophic_balance() -> None:
+    imbalanced = interestingness_score(
+        population=10,
+        total_energy=5.0,
+        births=1,
+        deaths=1,
+        reproductions=1,
+        trophic_balance=0.0,
+    )
+    balanced = interestingness_score(
+        population=10,
+        total_energy=5.0,
+        births=1,
+        deaths=1,
+        reproductions=1,
+        trophic_balance=1.0,
+    )
+
+    assert balanced > imbalanced
+
+
 def test_shannon_diversity_is_zero_for_single_lineage() -> None:
     assert shannon_diversity({"aaa": 5}) == 0.0
 

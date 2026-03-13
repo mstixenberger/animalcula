@@ -150,6 +150,11 @@ def _evaluate_seed_candidate(
             peak_species_fraction=stats.peak_species_fraction,
             runaway_dominance_detected=stats.runaway_dominance_detected,
             population_capacity_fraction=stats.population_capacity_fraction,
+            trophic_balance=trophic_balance_score(
+                autotrophs=stats.autotroph_count,
+                herbivores=stats.herbivore_count,
+                predators=stats.predator_count,
+            ),
         ),
     }
 
