@@ -36,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     view_parser = subparsers.add_parser(
         "view",
         help="Open the minimal local debug viewer",
-        description="Open the minimal local debug viewer.",
+        description="Open the minimal local debug viewer. Falls back to a self-contained HTML viewer when Tk is unavailable.",
     )
     view_parser.add_argument("--config", default="config/default.yaml")
     view_parser.add_argument("--seed", type=int, default=None)
@@ -49,6 +49,9 @@ def build_parser() -> argparse.ArgumentParser:
     view_parser.add_argument("--frame-delay-ms", type=int, default=33)
     view_parser.add_argument("--canvas-width", type=int, default=900)
     view_parser.add_argument("--canvas-height", type=int, default=900)
+    view_parser.add_argument("--viewer-backend", choices=("auto", "tk", "html"), default="auto")
+    view_parser.add_argument("--html-out", default=None)
+    view_parser.add_argument("--max-frames", type=int, default=600)
 
     report_parser = subparsers.add_parser("report", help="Report summary stats from a checkpoint")
     report_parser.add_argument("checkpoint")
@@ -135,13 +138,18 @@ def main() -> int:
 
     if args.command == "view":
         world = _load_or_create_world(args)
-        launch_viewer(
+        html_viewer = launch_viewer(
             world,
             steps_per_frame=max(1, args.steps_per_frame),
             frame_delay_ms=max(1, args.frame_delay_ms),
             canvas_width=max(200, args.canvas_width),
             canvas_height=max(200, args.canvas_height),
+            backend=args.viewer_backend,
+            html_out_path=args.html_out,
+            max_frames=max(1, args.max_frames),
         )
+        if html_viewer is not None:
+            print(f"saved_html_viewer={html_viewer}")
         return 0
 
     if args.command == "report":

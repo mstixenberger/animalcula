@@ -116,6 +116,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now expose mean mouth and gripper counts so morphology mix is visible during headless tuning
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now expose mean sensor and photoreceptor counts so sensing morphology is visible during headless tuning
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now expose mean motor-edge count so control topology is visible during headless tuning
+- `animalcula view` now falls back to a self-contained HTML viewer on machines without Tkinter, and also supports explicit `--viewer-backend html`
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

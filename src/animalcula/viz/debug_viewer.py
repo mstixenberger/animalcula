@@ -1,6 +1,12 @@
-"""Tiny Tkinter debug viewer for local simulation inspection."""
+"""Minimal local viewers for simulation inspection."""
 
 from __future__ import annotations
+
+from dataclasses import asdict
+import json
+from pathlib import Path
+import tempfile
+from types import ModuleType
 
 from animalcula.sim.world import Snapshot, World
 
@@ -18,20 +24,291 @@ ROLE_COLORS = {
     "predator": "#c1121f",
 }
 
+HTML_TEMPLATE = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animalcula Debug Viewer</title>
+  <style>
+    :root {{
+      color-scheme: dark;
+      --bg: #101317;
+      --panel: #151a20;
+      --panel-2: #1d2430;
+      --text: #e5edf5;
+      --muted: #9fb0c1;
+      --accent: #f4a261;
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top, rgba(244, 162, 97, 0.16), transparent 28%),
+        linear-gradient(180deg, #0d1117, var(--bg));
+      color: var(--text);
+      font-family: "Iosevka Aile", "IBM Plex Sans", sans-serif;
+    }}
+    .wrap {{
+      max-width: {canvas_width}px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }}
+    canvas {{
+      width: 100%;
+      height: auto;
+      background: #161a1f;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    }}
+    .bar {{
+      display: grid;
+      gap: 10px;
+      padding: 14px 16px;
+      background: rgba(21, 26, 32, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+    }}
+    .row {{
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+    }}
+    button {{
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: var(--accent);
+      color: #101317;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }}
+    input[type="range"] {{
+      flex: 1 1 320px;
+      accent-color: var(--accent);
+    }}
+    .meta {{
+      color: var(--muted);
+      font-size: 0.95rem;
+    }}
+    code {{
+      font-family: "Iosevka Term", "SFMono-Regular", monospace;
+      color: var(--text);
+    }}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <canvas id="sim" width="{canvas_width}" height="{canvas_height}"></canvas>
+    <section class="bar">
+      <div class="row">
+        <button id="toggle">Pause</button>
+        <button id="step">Step</button>
+        <input id="scrub" type="range" min="0" max="0" value="0">
+      </div>
+      <div class="meta" id="status"></div>
+      <div class="meta">
+        Generated from <code>animalcula view</code> HTML fallback because Tkinter was unavailable.
+      </div>
+    </section>
+  </main>
+  <script>
+    const snapshots = {snapshots_json};
+    const nodeColors = {node_colors_json};
+    const roleColors = {role_colors_json};
+    const canvas = document.getElementById("sim");
+    const ctx = canvas.getContext("2d");
+    const toggle = document.getElementById("toggle");
+    const step = document.getElementById("step");
+    const scrub = document.getElementById("scrub");
+    const status = document.getElementById("status");
+    let frame = 0;
+    let running = true;
 
-def launch_viewer(
+    scrub.max = String(Math.max(0, snapshots.length - 1));
+
+    function toCanvas(x, y, snapshot) {{
+      return [
+        (x / Math.max(snapshot.world_width, 1.0)) * canvas.width,
+        (y / Math.max(snapshot.world_height, 1.0)) * canvas.height,
+      ];
+    }}
+
+    function draw(snapshot) {{
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const creatureRoles = new Map(snapshot.creatures.map((creature) => [creature.creature_id, creature.trophic_role]));
+
+      for (const edge of snapshot.edges) {{
+        const [ax, ay] = toCanvas(edge.ax, edge.ay, snapshot);
+        const [bx, by] = toCanvas(edge.bx, edge.by, snapshot);
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.strokeStyle = edge.has_motor ? "#9fb3c8" : "#62707d";
+        ctx.lineWidth = edge.has_motor ? 2 : 1;
+        ctx.stroke();
+      }}
+
+      for (const node of snapshot.nodes) {{
+        const [cx, cy] = toCanvas(node.x, node.y, snapshot);
+        const outline = roleColors[creatureRoles.get(node.creature_id)] || "#cbd5e1";
+        const fill = nodeColors[node.node_type] || "#94a3b8";
+        const radius = Math.max(2.0, node.radius * 2.0);
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = outline;
+        ctx.stroke();
+      }}
+
+      status.textContent =
+        "frame=" + (frame + 1) + "/" + snapshots.length +
+        " tick=" + snapshot.tick +
+        " population=" + snapshot.population +
+        " total_energy=" + snapshot.total_energy.toFixed(2);
+      scrub.value = String(frame);
+    }}
+
+    function renderCurrent() {{
+      draw(snapshots[frame]);
+    }}
+
+    function advanceFrame() {{
+      frame = (frame + 1) % snapshots.length;
+      renderCurrent();
+    }}
+
+    toggle.addEventListener("click", () => {{
+      running = !running;
+      toggle.textContent = running ? "Pause" : "Play";
+    }});
+
+    step.addEventListener("click", () => {{
+      running = false;
+      toggle.textContent = "Play";
+      advanceFrame();
+    }});
+
+    scrub.addEventListener("input", (event) => {{
+      running = false;
+      toggle.textContent = "Play";
+      frame = Number(event.target.value);
+      renderCurrent();
+    }});
+
+    window.addEventListener("keydown", (event) => {{
+      if (event.code === "Space") {{
+        event.preventDefault();
+        toggle.click();
+      }} else if (event.code === "ArrowRight") {{
+        event.preventDefault();
+        step.click();
+      }}
+    }});
+
+    renderCurrent();
+    setInterval(() => {{
+      if (running) {{
+        advanceFrame();
+      }}
+    }}, Math.max(16, {frame_delay_ms}));
+  </script>
+</body>
+</html>
+"""
+
+
+def _load_tk() -> ModuleType:
+    import tkinter as tk
+
+    return tk
+
+
+def _to_canvas(
+    x: float,
+    y: float,
+    snapshot: Snapshot,
+    *,
+    canvas_width: int,
+    canvas_height: int,
+) -> tuple[float, float]:
+    return (
+        (x / max(snapshot.world_width, 1.0)) * canvas_width,
+        (y / max(snapshot.world_height, 1.0)) * canvas_height,
+    )
+
+
+def _default_html_path(world: World) -> Path:
+    temp_dir = Path(tempfile.gettempdir())
+    return temp_dir / f"animalcula_view_seed{world.seed}_tick{world.tick}.html"
+
+
+def _build_html_viewer(
     world: World,
     *,
+    steps_per_frame: int,
+    frame_delay_ms: int,
+    canvas_width: int,
+    canvas_height: int,
+    max_frames: int,
+) -> str:
+    snapshots = [asdict(world.snapshot())]
+    for _ in range(max(1, max_frames) - 1):
+        world.step(steps_per_frame)
+        snapshots.append(asdict(world.snapshot()))
+    return HTML_TEMPLATE.format(
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
+        frame_delay_ms=frame_delay_ms,
+        snapshots_json=json.dumps(snapshots),
+        node_colors_json=json.dumps(NODE_COLORS),
+        role_colors_json=json.dumps(ROLE_COLORS),
+    )
+
+
+def write_html_viewer(
+    world: World,
+    *,
+    path: str | Path | None = None,
     steps_per_frame: int = 1,
     frame_delay_ms: int = 33,
     canvas_width: int = 900,
     canvas_height: int = 900,
-) -> None:
-    try:
-        import tkinter as tk
-    except Exception as exc:  # pragma: no cover - platform-dependent
-        raise RuntimeError("Tkinter is required for `animalcula view` on this machine") from exc
+    max_frames: int = 600,
+) -> Path:
+    target = Path(path) if path is not None else _default_html_path(world)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        _build_html_viewer(
+            world,
+            steps_per_frame=max(1, steps_per_frame),
+            frame_delay_ms=max(1, frame_delay_ms),
+            canvas_width=max(200, canvas_width),
+            canvas_height=max(200, canvas_height),
+            max_frames=max(1, max_frames),
+        ),
+        encoding="utf-8",
+    )
+    return target
 
+
+def _launch_tk_viewer(
+    world: World,
+    *,
+    tk: ModuleType,
+    steps_per_frame: int,
+    frame_delay_ms: int,
+    canvas_width: int,
+    canvas_height: int,
+) -> None:
     root = tk.Tk()
     root.title("Animalcula Debug Viewer")
     root.configure(bg="#111318")
@@ -73,12 +350,6 @@ def launch_viewer(
     root.bind("<space>", _toggle_running)
     root.bind("<Right>", _single_step)
 
-    def _to_canvas(x: float, y: float, snapshot: Snapshot) -> tuple[float, float]:
-        return (
-            (x / max(snapshot.world_width, 1.0)) * canvas_width,
-            (y / max(snapshot.world_height, 1.0)) * canvas_height,
-        )
-
     def _draw(snapshot: Snapshot) -> None:
         canvas.delete("all")
 
@@ -87,8 +358,20 @@ def launch_viewer(
             for creature in snapshot.creatures
         }
         for edge in snapshot.edges:
-            ax, ay = _to_canvas(edge.ax, edge.ay, snapshot)
-            bx, by = _to_canvas(edge.bx, edge.by, snapshot)
+            ax, ay = _to_canvas(
+                edge.ax,
+                edge.ay,
+                snapshot,
+                canvas_width=canvas_width,
+                canvas_height=canvas_height,
+            )
+            bx, by = _to_canvas(
+                edge.bx,
+                edge.by,
+                snapshot,
+                canvas_width=canvas_width,
+                canvas_height=canvas_height,
+            )
             canvas.create_line(
                 ax,
                 ay,
@@ -99,7 +382,13 @@ def launch_viewer(
             )
 
         for node in snapshot.nodes:
-            cx, cy = _to_canvas(node.x, node.y, snapshot)
+            cx, cy = _to_canvas(
+                node.x,
+                node.y,
+                snapshot,
+                canvas_width=canvas_width,
+                canvas_height=canvas_height,
+            )
             role = creature_roles.get(node.creature_id)
             outline = ROLE_COLORS.get(role, "#cbd5e1")
             fill = NODE_COLORS.get(node.node_type, "#94a3b8")
@@ -134,3 +423,57 @@ def launch_viewer(
     _draw(world.snapshot())
     _frame()
     root.mainloop()
+
+
+def launch_viewer(
+    world: World,
+    *,
+    steps_per_frame: int = 1,
+    frame_delay_ms: int = 33,
+    canvas_width: int = 900,
+    canvas_height: int = 900,
+    backend: str = "auto",
+    html_out_path: str | Path | None = None,
+    max_frames: int = 600,
+) -> Path | None:
+    if backend not in {"auto", "tk", "html"}:
+        msg = f"unsupported viewer backend: {backend}"
+        raise ValueError(msg)
+
+    if backend == "html":
+        return write_html_viewer(
+            world,
+            path=html_out_path,
+            steps_per_frame=steps_per_frame,
+            frame_delay_ms=frame_delay_ms,
+            canvas_width=canvas_width,
+            canvas_height=canvas_height,
+            max_frames=max_frames,
+        )
+
+    try:
+        tk = _load_tk()
+    except Exception as exc:  # pragma: no cover - platform-dependent
+        if backend == "tk":
+            raise RuntimeError(
+                "Tkinter is required for `animalcula view --viewer-backend tk` on this machine"
+            ) from exc
+        return write_html_viewer(
+            world,
+            path=html_out_path,
+            steps_per_frame=steps_per_frame,
+            frame_delay_ms=frame_delay_ms,
+            canvas_width=canvas_width,
+            canvas_height=canvas_height,
+            max_frames=max_frames,
+        )
+
+    _launch_tk_viewer(
+        world,
+        tk=tk,
+        steps_per_frame=steps_per_frame,
+        frame_delay_ms=frame_delay_ms,
+        canvas_width=canvas_width,
+        canvas_height=canvas_height,
+    )
+    return None

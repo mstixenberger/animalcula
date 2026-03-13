@@ -271,6 +271,7 @@ Current implementation baseline:
 - long-horizon drag regimes can now cycle deterministically across configured multipliers, and the active drag multiplier is exposed through headless stats/logs/sweeps for tuning visibility
 - long-horizon nutrient epochs can now fully reseed nutrient-source layouts while cycling source-strength multipliers, and the active nutrient multiplier is exposed through headless stats/logs/sweeps/seed-bank reports for tuning visibility
 - runaway-dominance detection can now trigger deterministic nutrient-source perturbations, recorded as explicit `environment_perturbation` events and exposed through headless stats/logs/sweeps/seed-bank reports
+- `animalcula view` now auto-falls back to a self-contained HTML viewer when Tkinter is unavailable, so local visual inspection still works on non-Tk Python builds
 - headless stats/logs/sweeps/seed-bank reports now also expose peak species share and runaway-dominance detection so long runs can distinguish diversification from monoculture lock-in
 - shared interestingness scoring now penalizes monoculture-heavy runs using peak species share and explicit runaway-dominance detection, so automated ranking favors turnover over lock-in
 - headless stats/logs/sweeps/seed-bank reports now also expose peak population and population variance so tuning can distinguish flatlined runs from boom-bust ecology
