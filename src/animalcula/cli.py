@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sqlite3
 
 from animalcula.analysis.metrics import trophic_balance_score
 from animalcula.analysis.seedbank import evaluate_seed_bank, promote_seed_bank
@@ -28,6 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--seed-from", default=None)
     run_parser.add_argument("--set", action="append", default=[])
     run_parser.add_argument("--log-stats", default=None)
+    run_parser.add_argument("--log-stats-sqlite", default=None)
     run_parser.add_argument("--log-every", type=int, default=1)
     run_parser.add_argument("--turbo", action="store_true")
 
@@ -115,8 +117,14 @@ def main() -> int:
 
     if args.command == "run":
         world = _load_or_create_world(args)
-        if args.log_stats is not None:
-            _run_with_stats_log(world=world, ticks=args.ticks, log_path=args.log_stats, log_every=args.log_every)
+        if args.log_stats is not None or args.log_stats_sqlite is not None:
+            _run_with_stats_log(
+                world=world,
+                ticks=args.ticks,
+                log_path=args.log_stats,
+                sqlite_path=args.log_stats_sqlite,
+                log_every=args.log_every,
+            )
         else:
             world.step(args.ticks)
         if args.save is not None:
@@ -280,59 +288,130 @@ def _format_stats(seed: int, stats: object) -> str:
     )
 
 
-def _run_with_stats_log(world: World, ticks: int, log_path: str, log_every: int) -> None:
-    output = Path(log_path)
-    output.parent.mkdir(parents=True, exist_ok=True)
+def _stats_record(stats: object) -> dict[str, object]:
+    return {
+        "tick": stats.tick,
+        "population": stats.population,
+        "peak_population": stats.peak_population,
+        "population_variance": stats.population_variance,
+        "population_capacity_fraction": stats.population_capacity_fraction,
+        "peak_population_capacity_fraction": stats.peak_population_capacity_fraction,
+        "drag_multiplier": stats.drag_multiplier,
+        "nutrient_source_strength_multiplier": stats.nutrient_source_strength_multiplier,
+        "nodes": stats.node_count,
+        "total_energy": stats.total_energy,
+        "births": stats.births,
+        "deaths": stats.deaths,
+        "reproductions": stats.reproductions,
+        "speciation_events": stats.speciation_events,
+        "species_extinctions": stats.species_extinctions,
+        "species_turnover": stats.species_turnover,
+        "predation_kills": stats.predation_kills,
+        "environment_perturbations": stats.environment_perturbations,
+        "lineage_count": stats.lineage_count,
+        "species_count": stats.species_count,
+        "observed_species_count": stats.observed_species_count,
+        "peak_species_count": stats.peak_species_count,
+        "peak_species_fraction": stats.peak_species_fraction,
+        "runaway_dominance_detected": stats.runaway_dominance_detected,
+        "diversity_index": stats.diversity_index,
+        "mean_nodes_per_creature": stats.mean_nodes_per_creature,
+        "longest_species_lifespan": stats.longest_species_lifespan,
+        "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,
+        "autotroph_count": stats.autotroph_count,
+        "herbivore_count": stats.herbivore_count,
+        "predator_count": stats.predator_count,
+        "trophic_balance_score": trophic_balance_score(
+            stats.autotroph_count,
+            stats.herbivore_count,
+            stats.predator_count,
+        ),
+    }
+
+
+def _run_with_stats_log(
+    world: World,
+    ticks: int,
+    log_path: str | None,
+    sqlite_path: str | None,
+    log_every: int,
+) -> None:
     records: list[str] = []
+    connection: sqlite3.Connection | None = None
+    if log_path is not None:
+        output = Path(log_path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+    if sqlite_path is not None:
+        sqlite_output = Path(sqlite_path)
+        sqlite_output.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(sqlite_output)
+        _initialize_stats_sqlite(connection)
 
     for tick_index in range(1, ticks + 1):
         world.step(1)
         if tick_index % log_every == 0 or tick_index == ticks:
-            stats = world.stats()
-            records.append(
-                json.dumps(
-                    {
-                        "tick": stats.tick,
-                        "population": stats.population,
-                        "peak_population": stats.peak_population,
-                        "population_variance": stats.population_variance,
-                        "population_capacity_fraction": stats.population_capacity_fraction,
-                        "peak_population_capacity_fraction": stats.peak_population_capacity_fraction,
-                        "drag_multiplier": stats.drag_multiplier,
-                        "nutrient_source_strength_multiplier": stats.nutrient_source_strength_multiplier,
-                        "nodes": stats.node_count,
-                        "total_energy": stats.total_energy,
-                        "births": stats.births,
-                        "deaths": stats.deaths,
-                        "reproductions": stats.reproductions,
-                        "speciation_events": stats.speciation_events,
-                        "species_extinctions": stats.species_extinctions,
-                        "species_turnover": stats.species_turnover,
-                        "predation_kills": stats.predation_kills,
-                        "environment_perturbations": stats.environment_perturbations,
-                        "lineage_count": stats.lineage_count,
-                        "species_count": stats.species_count,
-                        "observed_species_count": stats.observed_species_count,
-                        "peak_species_count": stats.peak_species_count,
-                        "peak_species_fraction": stats.peak_species_fraction,
-                        "runaway_dominance_detected": stats.runaway_dominance_detected,
-                        "diversity_index": stats.diversity_index,
-                        "mean_nodes_per_creature": stats.mean_nodes_per_creature,
-                        "longest_species_lifespan": stats.longest_species_lifespan,
-                        "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,
-                        "autotroph_count": stats.autotroph_count,
-                        "herbivore_count": stats.herbivore_count,
-                        "predator_count": stats.predator_count,
-                        "trophic_balance_score": trophic_balance_score(
-                            stats.autotroph_count,
-                            stats.herbivore_count,
-                            stats.predator_count,
-                        ),
-                    }
-                )
-            )
+            record = _stats_record(world.stats())
+            if log_path is not None:
+                records.append(json.dumps(record))
+            if connection is not None:
+                _append_stats_sqlite(connection, record)
 
-    output.write_text("\n".join(records) + ("\n" if records else ""), encoding="utf-8")
+    if log_path is not None:
+        output.write_text("\n".join(records) + ("\n" if records else ""), encoding="utf-8")
+    if connection is not None:
+        connection.close()
+
+
+def _initialize_stats_sqlite(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS stats_log (
+            tick INTEGER PRIMARY KEY,
+            population INTEGER NOT NULL,
+            peak_population INTEGER NOT NULL,
+            population_variance REAL NOT NULL,
+            population_capacity_fraction REAL NOT NULL,
+            peak_population_capacity_fraction REAL NOT NULL,
+            drag_multiplier REAL NOT NULL,
+            nutrient_source_strength_multiplier REAL NOT NULL,
+            nodes INTEGER NOT NULL,
+            total_energy REAL NOT NULL,
+            births INTEGER NOT NULL,
+            deaths INTEGER NOT NULL,
+            reproductions INTEGER NOT NULL,
+            speciation_events INTEGER NOT NULL,
+            species_extinctions INTEGER NOT NULL,
+            species_turnover INTEGER NOT NULL,
+            predation_kills INTEGER NOT NULL,
+            environment_perturbations INTEGER NOT NULL,
+            lineage_count INTEGER NOT NULL,
+            species_count INTEGER NOT NULL,
+            observed_species_count INTEGER NOT NULL,
+            peak_species_count INTEGER NOT NULL,
+            peak_species_fraction REAL NOT NULL,
+            runaway_dominance_detected INTEGER NOT NULL,
+            diversity_index REAL NOT NULL,
+            mean_nodes_per_creature REAL NOT NULL,
+            longest_species_lifespan INTEGER NOT NULL,
+            mean_extinct_species_lifespan REAL NOT NULL,
+            autotroph_count INTEGER NOT NULL,
+            herbivore_count INTEGER NOT NULL,
+            predator_count INTEGER NOT NULL,
+            trophic_balance_score REAL NOT NULL
+        )
+        """
+    )
+    connection.commit()
+
+
+def _append_stats_sqlite(connection: sqlite3.Connection, record: dict[str, object]) -> None:
+    columns = list(record.keys())
+    placeholders = ", ".join("?" for _ in columns)
+    connection.execute(
+        f"INSERT OR REPLACE INTO stats_log ({', '.join(columns)}) VALUES ({placeholders})",
+        tuple(record[column] for column in columns),
+    )
+    connection.commit()
 
 def _load_or_create_world(args: argparse.Namespace) -> World:
     if args.resume is not None:

@@ -1,5 +1,6 @@
 from dataclasses import replace
 import json
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -1962,6 +1963,51 @@ def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:
     assert "\"environment_perturbations\":" in lines[0]
     assert "\"trophic_balance_score\":" in lines[0]
     assert "\"tick\": 3" in lines[-1]
+
+
+def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> None:
+    log_path = tmp_path / "stats.sqlite"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "run",
+            "--config",
+            "config/default.yaml",
+            "--ticks",
+            "3",
+            "--seed",
+            "11",
+            "--seed-demo",
+            "--log-stats-sqlite",
+            str(log_path),
+            "--log-every",
+            "1",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    with sqlite3.connect(log_path) as connection:
+        rows = connection.execute(
+            """
+            SELECT tick, peak_population, drag_multiplier, nutrient_source_strength_multiplier,
+                   environment_perturbations, trophic_balance_score
+            FROM stats_log
+            ORDER BY tick
+            """
+        ).fetchall()
+
+    assert len(rows) == 3
+    assert rows[0][0] == 1
+    assert rows[0][1] >= 3
+    assert rows[0][2] == 1.0
+    assert rows[0][3] == 1.0
+    assert rows[0][4] == 0
+    assert rows[-1][0] == 3
+    assert rows[0][5] >= 0.0
 
 
 def test_cli_nursery_command_runs_and_saves_checkpoint(tmp_path: Path) -> None:

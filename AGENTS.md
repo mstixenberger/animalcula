@@ -213,6 +213,7 @@ Current implementation baseline:
 - interestingness scoring now rewards lifecycle activity, not just static population/energy
 - checkpoint-backed CLI event export for direct observation of run history
 - periodic JSONL stats logging during headless runs
+- periodic SQLite stats logging during headless runs
 - creature-level population safeguards: crowding pressure and optional immigration floor
 - dedicated nursery config profile and nursery CLI workflow for generous bootstrapping runs
 - soft node repulsion for first-pass contact avoidance in dense physics states
