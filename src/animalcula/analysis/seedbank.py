@@ -137,6 +137,8 @@ def _evaluate_seed_candidate(
         "mean_speed_recent": stats.mean_speed_recent,
         "active_grip_latch_count": stats.active_grip_latch_count,
         "peak_grip_latch_count": stats.peak_grip_latch_count,
+        "mean_gripper_contact_signal": stats.mean_gripper_contact_signal,
+        "mean_gripper_active_signal": stats.mean_gripper_active_signal,
         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
         "longest_species_lifespan": stats.longest_species_lifespan,
         "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,
@@ -220,6 +222,8 @@ def _aggregate_seed_runs(
                 "mean_speed_sum": 0.0,
                 "active_grip_latch_sum": 0,
                 "peak_grip_latch_max": 0,
+                "gripper_contact_signal_sum": 0.0,
+                "gripper_active_signal_sum": 0.0,
                 "lineage_sum": 0,
                 "complexity_sum": 0.0,
                 "longest_species_lifespan_max": 0,
@@ -278,6 +282,8 @@ def _aggregate_seed_runs(
         bucket["mean_speed_sum"] += record["mean_speed_recent"]
         bucket["active_grip_latch_sum"] += record["active_grip_latch_count"]
         bucket["peak_grip_latch_max"] = max(bucket["peak_grip_latch_max"], record["peak_grip_latch_count"])
+        bucket["gripper_contact_signal_sum"] += record["mean_gripper_contact_signal"]
+        bucket["gripper_active_signal_sum"] += record["mean_gripper_active_signal"]
         bucket["lineage_sum"] += record["lineage_count"]
         bucket["complexity_sum"] += record["mean_nodes_per_creature"]
         bucket["longest_species_lifespan_max"] = max(
@@ -357,6 +363,8 @@ def _aggregate_seed_runs(
             "avg_mean_speed_recent": round(bucket["mean_speed_sum"] / bucket["runs"], 3),
             "avg_active_grip_latch_count": round(bucket["active_grip_latch_sum"] / bucket["runs"], 3),
             "peak_grip_latch_count_max": bucket["peak_grip_latch_max"],
+            "avg_mean_gripper_contact_signal": round(bucket["gripper_contact_signal_sum"] / bucket["runs"], 3),
+            "avg_mean_gripper_active_signal": round(bucket["gripper_active_signal_sum"] / bucket["runs"], 3),
             "avg_lineage_count": round(bucket["lineage_sum"] / bucket["runs"], 3),
             "avg_mean_nodes_per_creature": round(bucket["complexity_sum"] / bucket["runs"], 3),
             "longest_species_lifespan_max": bucket["longest_species_lifespan_max"],

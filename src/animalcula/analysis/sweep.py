@@ -100,6 +100,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "mean_speed_sum": 0.0,
                 "active_grip_latch_sum": 0,
                 "peak_grip_latch_max": 0,
+                "gripper_contact_signal_sum": 0.0,
+                "gripper_active_signal_sum": 0.0,
                 "reproductions_sum": 0,
                 "deaths_sum": 0,
                 "speciation_sum": 0,
@@ -150,6 +152,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["mean_speed_sum"] += record["mean_speed_recent"]
         bucket["active_grip_latch_sum"] += record["active_grip_latch_count"]
         bucket["peak_grip_latch_max"] = max(bucket["peak_grip_latch_max"], record["peak_grip_latch_count"])
+        bucket["gripper_contact_signal_sum"] += record["mean_gripper_contact_signal"]
+        bucket["gripper_active_signal_sum"] += record["mean_gripper_active_signal"]
         bucket["reproductions_sum"] += record["reproductions"]
         bucket["deaths_sum"] += record["deaths"]
         bucket["speciation_sum"] += record["speciation_events"]
@@ -202,6 +206,8 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_mean_speed_recent": round(bucket["mean_speed_sum"] / bucket["runs"], 3),
             "avg_active_grip_latch_count": round(bucket["active_grip_latch_sum"] / bucket["runs"], 3),
             "peak_grip_latch_count_max": bucket["peak_grip_latch_max"],
+            "avg_mean_gripper_contact_signal": round(bucket["gripper_contact_signal_sum"] / bucket["runs"], 3),
+            "avg_mean_gripper_active_signal": round(bucket["gripper_active_signal_sum"] / bucket["runs"], 3),
             "avg_reproductions": round(bucket["reproductions_sum"] / bucket["runs"], 3),
             "avg_deaths": round(bucket["deaths_sum"] / bucket["runs"], 3),
             "avg_speciation_events": round(bucket["speciation_sum"] / bucket["runs"], 3),
@@ -302,6 +308,8 @@ def _run_sweep_combination(
         "mean_speed_recent": stats.mean_speed_recent,
         "active_grip_latch_count": stats.active_grip_latch_count,
         "peak_grip_latch_count": stats.peak_grip_latch_count,
+        "mean_gripper_contact_signal": stats.mean_gripper_contact_signal,
+        "mean_gripper_active_signal": stats.mean_gripper_active_signal,
         "mean_nodes_per_creature": stats.mean_nodes_per_creature,
         "longest_species_lifespan": stats.longest_species_lifespan,
         "mean_extinct_species_lifespan": stats.mean_extinct_species_lifespan,

@@ -63,6 +63,8 @@ def test_tune_phase1_writes_raw_and_summary_outputs(tmp_path: Path) -> None:
     assert "avg_mean_speed_recent" in summaries[0]
     assert "avg_active_grip_latch_count" in summaries[0]
     assert "peak_grip_latch_count_max" in summaries[0]
+    assert "avg_mean_gripper_contact_signal" in summaries[0]
+    assert "avg_mean_gripper_active_signal" in summaries[0]
     assert "avg_drag_multiplier" in summaries[0]
     assert "avg_nutrient_source_strength_multiplier" in summaries[0]
     assert "avg_light_intensity" in summaries[0]

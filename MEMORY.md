@@ -6,7 +6,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 - Branch state: working directly on `main` with frequent stable checkpoints
 - Product focus: spec-aligned headless simulation, logging, and tuning loop
-- Test status at last update: full `uv run pytest` passing after the light-regime observability slice
+- Test status at last update: full `uv run pytest` passing after the predator-engagement observability slice
 - Recent completed slices:
   - direct trophic-balance weighting in shared interestingness scoring
   - deterministic nutrient epoch reseeding with source-strength multipliers
@@ -20,6 +20,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - population-level recent-speed visibility in headless stats/logs/sweeps/seed-bank summaries
 - active and peak grip-latch visibility in headless stats/logs/sweeps/seed-bank summaries
 - current seasonal light intensity and direction visibility in headless stats/logs/sweeps/seed-bank summaries
+- mean gripper contact and active-signal visibility in headless stats/logs/sweeps/seed-bank summaries
 
 ## Current Priority
 

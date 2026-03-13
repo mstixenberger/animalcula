@@ -44,6 +44,8 @@ def test_world_step_advances_tick_and_returns_snapshot() -> None:
     assert world.stats().mean_speed_recent == 0.0
     assert world.stats().active_grip_latch_count == 0
     assert world.stats().peak_grip_latch_count == 0
+    assert world.stats().mean_gripper_contact_signal == 0.0
+    assert world.stats().mean_gripper_active_signal == 0.0
     assert snapshot.phase_trace == [
         "environment",
         "sensing",
@@ -582,6 +584,8 @@ def test_world_exposes_gripper_contact_and_active_signals() -> None:
     assert world.creatures[0].last_sensed_inputs[-1] > 0.0
     assert world.creatures[1].last_sensed_inputs[-2] > 0.0
     assert world.creatures[1].last_sensed_inputs[-1] > 0.0
+    assert world.stats().mean_gripper_contact_signal > 0.0
+    assert world.stats().mean_gripper_active_signal > 0.0
 
 
 def test_world_charges_energy_for_active_grips() -> None:
@@ -1530,7 +1534,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 drag_multiplier=1.00 nutrient_strength_multiplier=1.00 light_intensity=1.00 light_direction_degrees=0.0 population=0 peak_population=0 population_variance=0.000 population_capacity_fraction=0.000 peak_population_capacity_fraction=0.000 crowding_multiplier=1.000 peak_crowding_multiplier=1.000 nodes=0 total_energy=0.000 nutrient_total=12.922 detritus_total=0.000 chemical_a_total=0.000 chemical_b_total=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 environment_perturbations=0 species=0 observed_species=0 peak_species=0 peak_species_fraction=0.000 lineages=0 runaway_dominance=false diversity=0.000 complexity=0.00 mean_speed_recent=0.000 active_grip_latches=0 peak_grip_latches=0 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0 trophic_balance=0.000"
+        == "tick=3 seed=11 drag_multiplier=1.00 nutrient_strength_multiplier=1.00 light_intensity=1.00 light_direction_degrees=0.0 population=0 peak_population=0 population_variance=0.000 population_capacity_fraction=0.000 peak_population_capacity_fraction=0.000 crowding_multiplier=1.000 peak_crowding_multiplier=1.000 nodes=0 total_energy=0.000 nutrient_total=12.922 detritus_total=0.000 chemical_a_total=0.000 chemical_b_total=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 environment_perturbations=0 species=0 observed_species=0 peak_species=0 peak_species_fraction=0.000 lineages=0 runaway_dominance=false diversity=0.000 complexity=0.00 mean_speed_recent=0.000 active_grip_latches=0 peak_grip_latches=0 mean_gripper_contact_signal=0.000 mean_gripper_active_signal=0.000 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0 trophic_balance=0.000"
     )
 
 
@@ -1999,6 +2003,8 @@ def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:
     assert "\"mean_speed_recent\":" in lines[0]
     assert "\"active_grip_latch_count\":" in lines[0]
     assert "\"peak_grip_latch_count\":" in lines[0]
+    assert "\"mean_gripper_contact_signal\":" in lines[0]
+    assert "\"mean_gripper_active_signal\":" in lines[0]
     assert "\"tick\": 3" in lines[-1]
 
 
@@ -2049,7 +2055,8 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
                    light_intensity, light_direction_degrees,
                    nutrient_total, detritus_total, chemical_a_total, chemical_b_total,
                    environment_perturbations, trophic_balance_score, mean_speed_recent,
-                   active_grip_latch_count, peak_grip_latch_count
+                   active_grip_latch_count, peak_grip_latch_count,
+                   mean_gripper_contact_signal, mean_gripper_active_signal
             FROM stats_log
             ORDER BY tick
             """
@@ -2082,6 +2089,8 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
     assert rows[0][14] >= 0.0
     assert rows[0][15] >= 0
     assert rows[0][16] >= rows[0][15]
+    assert rows[0][17] >= 0.0
+    assert rows[0][18] >= 0.0
 
 
 def test_cli_nursery_command_runs_and_saves_checkpoint(tmp_path: Path) -> None:

@@ -47,6 +47,8 @@ def test_evaluate_seed_bank_ranks_candidates_by_aggregate_results(tmp_path: Path
     assert "avg_mean_speed_recent" in report["rankings"][0]
     assert "avg_active_grip_latch_count" in report["rankings"][0]
     assert "peak_grip_latch_count_max" in report["rankings"][0]
+    assert "avg_mean_gripper_contact_signal" in report["rankings"][0]
+    assert "avg_mean_gripper_active_signal" in report["rankings"][0]
     assert "avg_drag_multiplier" in report["rankings"][0]
     assert "avg_nutrient_source_strength_multiplier" in report["rankings"][0]
     assert "avg_light_intensity" in report["rankings"][0]

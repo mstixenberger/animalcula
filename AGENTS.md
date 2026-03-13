@@ -281,6 +281,7 @@ Current implementation baseline:
 - headless stats/logs/sweeps/seed-bank reports now also expose population-level recent speed, so locomotion is visible in headless analysis
 - headless stats/logs/sweeps/seed-bank reports now also expose active and peak grip-latch counts, so gripper-heavy predator mechanics are visible in headless analysis
 - headless stats/logs/sweeps/seed-bank reports now also expose current seasonal light intensity and direction, so light-regime shifts are visible in headless analysis
+- headless stats/logs/sweeps/seed-bank reports now also expose mean gripper contact and active signals, so predator engagement quality is visible in headless analysis
 - direct CLI run/report output and periodic stats logs now also expose trophic-balance scoring, so single-run inspection uses the same ecology metric vocabulary as sweeps and seed-bank analysis
 - shared interestingness scoring now also rewards trophic balance directly, so automated ranking favors actual mixed food webs rather than treating role balance as a passive side metric
 - sweep and seed-bank analysis now expose a trophic-balance score so headless selection loops can reward viable mixed ecologies, not just high population

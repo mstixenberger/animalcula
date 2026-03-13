@@ -112,6 +112,8 @@ class Stats:
     mean_speed_recent: float
     active_grip_latch_count: int
     peak_grip_latch_count: int
+    mean_gripper_contact_signal: float
+    mean_gripper_active_signal: float
     longest_species_lifespan: int
     mean_extinct_species_lifespan: float
     autotroph_count: int
@@ -400,6 +402,7 @@ class World:
         autotroph_count = 0
         herbivore_count = 0
         predator_count = 0
+        grip_capable_creatures = [creature for creature in self.creatures if self._gripper_node_indices_for_creature(creature)]
         for creature in self.creatures:
             trophic_role = self._trophic_role(creature)
             if trophic_role == "autotroph":
@@ -446,6 +449,18 @@ class World:
             ),
             active_grip_latch_count=len(self.grip_latches),
             peak_grip_latch_count=self._peak_grip_latch_count,
+            mean_gripper_contact_signal=(
+                sum(self._gripper_contact_signal(creature) for creature in grip_capable_creatures)
+                / len(grip_capable_creatures)
+                if grip_capable_creatures
+                else 0.0
+            ),
+            mean_gripper_active_signal=(
+                sum(self._grip_active_signal(creature) for creature in grip_capable_creatures)
+                / len(grip_capable_creatures)
+                if grip_capable_creatures
+                else 0.0
+            ),
             longest_species_lifespan=self._longest_species_lifespan(),
             mean_extinct_species_lifespan=self._mean_extinct_species_lifespan(),
             autotroph_count=autotroph_count,
