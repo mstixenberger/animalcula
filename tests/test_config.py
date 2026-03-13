@@ -22,6 +22,8 @@ def test_loads_default_config() -> None:
     assert config.environment.light_direction == (1.0, 0.0)
     assert config.environment.light_season_interval == 10000
     assert config.environment.light_season_steps == 4
+    assert config.environment.drag_shift_interval == 100000
+    assert config.environment.drag_shift_multipliers == (1.0, 1.35, 0.85)
     assert config.energy.basal_cost_per_node == 0.001
     assert config.energy.feed_rate == 0.01
     assert config.energy.grip_cost == 0.002
@@ -116,3 +118,15 @@ def test_config_from_dict_backfills_light_season_defaults_for_old_payloads() -> 
     assert loaded.environment.light_intensity_min == config.environment.light_intensity_max
     assert loaded.environment.light_season_interval == 0
     assert loaded.environment.light_season_steps == 1
+
+
+def test_config_from_dict_backfills_drag_shift_defaults_for_old_payloads() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    payload = config.to_dict()
+    del payload["environment"]["drag_shift_interval"]
+    del payload["environment"]["drag_shift_multipliers"]
+
+    loaded = Config.from_dict(payload)
+
+    assert loaded.environment.drag_shift_interval == 0
+    assert loaded.environment.drag_shift_multipliers == (1.0,)

@@ -65,6 +65,21 @@ def test_overdamped_dynamics_requires_positive_drag() -> None:
         apply_overdamped_dynamics(node=node, dt=0.1)
 
 
+def test_overdamped_dynamics_applies_drag_multiplier() -> None:
+    node = NodeState(
+        position=Vec2.zero(),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2(4.0, 0.0),
+        drag_coeff=2.0,
+        radius=1.0,
+    )
+
+    updated = apply_overdamped_dynamics(node=node, dt=0.5, drag_multiplier=2.0)
+
+    assert updated.velocity == Vec2(1.0, 0.0)
+    assert updated.position == Vec2(0.5, 0.0)
+
+
 def test_apply_edge_springs_accumulates_equal_and_opposite_forces() -> None:
     nodes = [
         NodeState(

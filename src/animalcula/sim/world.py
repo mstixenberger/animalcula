@@ -103,6 +103,7 @@ class Stats:
     autotroph_count: int
     herbivore_count: int
     predator_count: int
+    drag_multiplier: float
 
 
 class World:
@@ -398,6 +399,7 @@ class World:
             autotroph_count=autotroph_count,
             herbivore_count=herbivore_count,
             predator_count=predator_count,
+            drag_multiplier=self.current_drag_multiplier(),
         )
 
     def save(self, path: str | Path) -> None:
@@ -650,6 +652,14 @@ class World:
         intensity = min_intensity + ((max_intensity - min_intensity) * (0.5 + (0.5 * math.cos(angle))))
         return (direction_x, direction_y), intensity
 
+    def current_drag_multiplier(self) -> float:
+        interval = self.config.environment.drag_shift_interval
+        multipliers = self.config.environment.drag_shift_multipliers
+        if interval <= 0 or len(multipliers) <= 1:
+            return float(multipliers[0]) if multipliers else 1.0
+        regime_index = ((self.tick + 1) // interval) % len(multipliers)
+        return max(0.001, float(multipliers[regime_index]))
+
     def _sense_environment(self) -> None:
         updated_creatures: list[CreatureState] = []
         for creature in self.creatures:
@@ -799,8 +809,13 @@ class World:
             latches=self.grip_latches,
             stiffness=self.config.physics.grip_spring_stiffness,
         )
+        drag_multiplier = self.current_drag_multiplier()
         self.nodes = [
-            apply_overdamped_dynamics(node=node, dt=self.config.physics.dt)
+            apply_overdamped_dynamics(
+                node=node,
+                dt=self.config.physics.dt,
+                drag_multiplier=drag_multiplier,
+            )
             for node in self.nodes
         ]
         self.creatures = self._update_recent_speeds(self.creatures)

@@ -261,6 +261,7 @@ Current implementation baseline:
 - CTRNN genomes can now grow or shrink a bounded hidden-neuron prefix independently of required control outputs, so reproduction can increase controller capacity without breaking morphology-aligned output wiring
 - environment configs can now shift nutrient-source locations on a deterministic timestep cycle, covering the first spec-facing slice of environmental variation without breaking reproducibility
 - light gradients can now rotate and dim/brighten on a deterministic medium-horizon seasonal cycle, so environmental variation now covers both nutrient and light regimes
+- long-horizon drag regimes can now cycle deterministically across configured multipliers, and the active drag multiplier is exposed through headless stats/logs/sweeps for tuning visibility
 - sweep and seed-bank analysis now expose a trophic-balance score so headless selection loops can reward viable mixed ecologies, not just high population
 - initial passing pytest suite
 

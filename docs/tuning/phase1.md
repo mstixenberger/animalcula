@@ -54,6 +54,7 @@ The raw JSONL and `.summary.json` outputs now include turnover-oriented ecology 
 - `observed_species_count`
 - `peak_species_count`
 - `mean_extinct_species_lifespan`
+- `drag_multiplier`
 - `trophic_balance_score`
 
 Once a run produces a checkpoint with promising survivors, use the headless seed-bank loop to promote candidates without manual inspection:
@@ -135,6 +136,8 @@ As of March 12, 2026, after correcting the starter predator archetype to match t
   This is the first environmental-variation slice from the spec. In the current conservative basin check, a `1,000`-tick turbo run at seed `41` still held the same baseline (`population=5`, `deaths=1`, `predation_kills=1`), so the feature is in without destabilizing the existing short-horizon ecology.
 - As of March 13, 2026, the shipped headless profiles also enable deterministic medium-cycle light seasons: direction rotates and intensity swings between configured minimum and maximum values every `10,000` ticks across a four-step cycle.
   This completes the next spec-facing environmental variation slice without changing the short-horizon baseline, but it raises the priority on longer `10,000+` multi-seed checks because phototroph and photoreceptor lineages will now see real seasonal pressure.
+- As of March 13, 2026, the shipped headless profiles also enable deterministic long-cycle drag-regime shifts every `100,000` ticks, with the active multiplier now exposed in headless stats/logs/sweeps.
+  This lands the first spec-facing major environmental shift without adding obstacle mechanics yet. The immediate follow-up is empirical, not structural: long multi-seed runs now need to verify whether regime changes trigger useful turnover instead of simple collapse.
 
 ## Interpretation
 

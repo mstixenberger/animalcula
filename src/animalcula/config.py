@@ -44,6 +44,8 @@ class EnvironmentConfig:
     light_direction: tuple[float, float]
     light_season_interval: int
     light_season_steps: int
+    drag_shift_interval: int
+    drag_shift_multipliers: tuple[float, ...]
 
 
 @dataclass(slots=True, frozen=True)
@@ -122,6 +124,8 @@ class Config:
         environment_raw.setdefault("light_intensity_min", environment_raw["light_intensity_max"])
         environment_raw.setdefault("light_season_interval", 0)
         environment_raw.setdefault("light_season_steps", 1)
+        environment_raw.setdefault("drag_shift_interval", 0)
+        environment_raw.setdefault("drag_shift_multipliers", [1.0])
         return cls(
             world=WorldConfig(**raw["world"]),
             physics=PhysicsConfig(**raw["physics"]),
@@ -129,6 +133,7 @@ class Config:
                 **{
                     **environment_raw,
                     "light_direction": tuple(environment_raw["light_direction"]),
+                    "drag_shift_multipliers": tuple(environment_raw["drag_shift_multipliers"]),
                 }
             ),
             energy=EnergyConfig(**raw["energy"]),

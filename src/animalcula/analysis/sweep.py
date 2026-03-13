@@ -81,6 +81,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "runs": 0,
                 "population_sum": 0,
                 "energy_sum": 0.0,
+                "drag_multiplier_sum": 0.0,
                 "species_sum": 0,
                 "diversity_sum": 0.0,
                 "reproductions_sum": 0,
@@ -105,6 +106,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["runs"] += 1
         bucket["population_sum"] += record["population"]
         bucket["energy_sum"] += record["total_energy"]
+        bucket["drag_multiplier_sum"] += record["drag_multiplier"]
         bucket["species_sum"] += record["species_count"]
         bucket["diversity_sum"] += record["diversity_index"]
         bucket["reproductions_sum"] += record["reproductions"]
@@ -134,6 +136,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "runs": bucket["runs"],
             "avg_population": round(bucket["population_sum"] / bucket["runs"], 3),
             "avg_total_energy": round(bucket["energy_sum"] / bucket["runs"], 3),
+            "avg_drag_multiplier": round(bucket["drag_multiplier_sum"] / bucket["runs"], 3),
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
             "avg_reproductions": round(bucket["reproductions_sum"] / bucket["runs"], 3),
@@ -199,6 +202,7 @@ def _run_sweep_combination(
         "population": stats.population,
         "nodes": stats.node_count,
         "total_energy": stats.total_energy,
+        "drag_multiplier": stats.drag_multiplier,
         "births": stats.births,
         "deaths": stats.deaths,
         "reproductions": stats.reproductions,

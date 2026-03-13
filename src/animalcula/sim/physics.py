@@ -21,11 +21,13 @@ def spring_force(a: Vec2, b: Vec2, rest_length: float, stiffness: float) -> Vec2
     return direction * (stiffness * extension)
 
 
-def apply_overdamped_dynamics(node: NodeState, dt: float) -> NodeState:
+def apply_overdamped_dynamics(node: NodeState, dt: float, drag_multiplier: float = 1.0) -> NodeState:
     if node.drag_coeff <= 0.0:
         raise ValueError("drag_coeff must be positive")
+    if drag_multiplier <= 0.0:
+        raise ValueError("drag_multiplier must be positive")
 
-    velocity = node.accumulated_force / node.drag_coeff
+    velocity = node.accumulated_force / (node.drag_coeff * drag_multiplier)
     position = node.position + (velocity * dt)
     return replace(
         node,

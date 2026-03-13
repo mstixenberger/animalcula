@@ -1,3 +1,4 @@
+from dataclasses import replace
 import json
 import subprocess
 import sys
@@ -75,6 +76,32 @@ def test_world_step_applies_overdamped_physics_to_nodes() -> None:
     assert world.nodes[0].velocity == Vec2(0.5, 0.0)
     assert world.nodes[0].position == Vec2(0.005, 0.0)
     assert snapshot.population == 1
+
+
+def test_world_drag_regime_shift_changes_physics_multiplier() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "environment.drag_shift_interval=2",
+            "environment.drag_shift_multipliers=[1.0, 2.0]",
+        ]
+    )
+    node = NodeState(
+        position=Vec2.zero(),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2(2.0, 0.0),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    world = World(config=config, nodes=[node])
+
+    assert world.current_drag_multiplier() == 1.0
+    world.step(1)
+    assert world.nodes[0].position == Vec2(0.02, 0.0)
+    assert world.current_drag_multiplier() == 2.0
+
+    world.nodes[0] = replace(world.nodes[0], accumulated_force=Vec2(2.0, 0.0))
+    world.step(1)
+    assert world.nodes[0].position == Vec2(0.03, 0.0)
 
 
 def test_world_step_applies_edge_springs_before_integration() -> None:
@@ -1426,7 +1453,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 species=0 observed_species=0 peak_species=0 lineages=0 diversity=0.000 complexity=0.00 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0"
+        == "tick=3 seed=11 drag_multiplier=1.00 population=0 nodes=0 total_energy=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 species=0 observed_species=0 peak_species=0 lineages=0 diversity=0.000 complexity=0.00 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0"
     )
 
 
@@ -1874,6 +1901,7 @@ def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:
     lines = log_path.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 3
     assert "\"tick\": 1" in lines[0]
+    assert "\"drag_multiplier\": 1.0" in lines[0]
     assert "\"tick\": 3" in lines[-1]
 
 

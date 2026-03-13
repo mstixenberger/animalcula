@@ -34,6 +34,7 @@ def test_evaluate_seed_bank_ranks_candidates_by_aggregate_results(tmp_path: Path
     assert len(report["rankings"]) == 2
     assert report["rankings"][0]["source_energy"] == 10.0
     assert report["rankings"][0]["avg_interestingness"] >= report["rankings"][1]["avg_interestingness"]
+    assert "avg_drag_multiplier" in report["rankings"][0]
     assert "avg_species_turnover" in report["rankings"][0]
     assert "avg_observed_species_count" in report["rankings"][0]
     assert "avg_trophic_balance_score" in report["rankings"][0]

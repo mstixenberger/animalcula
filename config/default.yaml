@@ -27,6 +27,8 @@ environment:
   light_direction: [1.0, 0.0]
   light_season_interval: 10000
   light_season_steps: 4
+  drag_shift_interval: 100000
+  drag_shift_multipliers: [1.0, 1.35, 0.85]
 
 energy:
   basal_cost_per_node: 0.001
