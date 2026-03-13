@@ -37,7 +37,7 @@ def build_demo_archetypes(
             radius=1.0,
         ),
     ]
-    _append_creature(nodes, edges, creatures, alga_nodes, [(0, 1)], energy=1.0, color_rgb=(214, 180, 70))
+    _append_creature(nodes, edges, creatures, alga_nodes, [(0, 1)], energy=2.0, color_rgb=(214, 180, 70))
 
     # Grazer: mouth anchored on a nutrient source.
     grazer_nodes = [
@@ -63,7 +63,7 @@ def build_demo_archetypes(
         creatures,
         grazer_nodes,
         [(0, 1)],
-        energy=1.0,
+        energy=2.0,
         brain=_simple_motor_brain(light_gain=0.0, nutrient_gain=2.0),
         color_rgb=(54, 162, 147),
     )
@@ -100,7 +100,7 @@ def build_demo_archetypes(
         creatures,
         amoeba_nodes,
         [(0, 1), (1, 2), (2, 0)],
-        energy=1.0,
+        energy=2.0,
         brain=_predator_brain(light_gain=1.0, nutrient_gain=1.0),
         color_rgb=(198, 73, 92),
     )

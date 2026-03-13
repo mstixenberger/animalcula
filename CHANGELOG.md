@@ -123,6 +123,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Both debug viewer backends now render low-resolution nutrient and light field overlays so creatures are visible against the environments they respond to
 - Both debug viewer backends now support selectable nutrient, light, chemical A/B, and detritus overlays for fuller local field inspection
 - Both debug viewer backends now support click-to-inspect creature metadata, including species ID, parent, age, born tick, energy, and genome hash
+- `animalcula view` now defaults to clearer first-run behavior with more motion per rendered frame, a nutrient-first field mode, and slightly more durable seeded demo archetypes
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

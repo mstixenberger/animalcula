@@ -45,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     view_parser.add_argument("--seed-from", default=None)
     view_parser.add_argument("--set", action="append", default=[])
     view_parser.add_argument("--turbo", action="store_true")
-    view_parser.add_argument("--steps-per-frame", type=int, default=1)
+    view_parser.add_argument("--steps-per-frame", type=int, default=4)
     view_parser.add_argument("--frame-delay-ms", type=int, default=33)
     view_parser.add_argument("--canvas-width", type=int, default=900)
     view_parser.add_argument("--canvas-height", type=int, default=900)
@@ -68,6 +68,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     phenotypes_parser = subparsers.add_parser("phenotypes", help="Print checkpoint phenotype snapshots as JSON lines")
     phenotypes_parser.add_argument("checkpoint")
+
+    phenotype_vectors_parser = subparsers.add_parser(
+        "phenotype-vectors",
+        help="Print checkpoint phenotype vectors as JSON lines",
+    )
+    phenotype_vectors_parser.add_argument("checkpoint")
 
     extract_parser = subparsers.add_parser("extract-genomes", help="Export top creatures from a checkpoint")
     extract_parser.add_argument("checkpoint")
@@ -197,6 +203,12 @@ def main() -> int:
         world = World.load(args.checkpoint)
         for snapshot in world.phenotype_snapshots():
             print(json.dumps(snapshot))
+        return 0
+
+    if args.command == "phenotype-vectors":
+        world = World.load(args.checkpoint)
+        for vector in world.phenotype_vectors():
+            print(json.dumps(vector))
         return 0
 
     if args.command == "extract-genomes":

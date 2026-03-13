@@ -310,6 +310,71 @@ class World:
             )
         return snapshots
 
+    def phenotype_vectors(self) -> list[dict[str, object]]:
+        species_labels = self._species_labels()
+        vector_labels = [
+            "num_nodes",
+            "num_edges",
+            "num_motor_edges",
+            "mean_segment_length",
+            "num_mouths",
+            "num_grippers",
+            "num_sensors",
+            "num_photoreceptors",
+            "body_aspect_ratio",
+            "mean_speed_recent",
+            "energy",
+            "age_ticks",
+        ]
+        vectors: list[dict[str, object]] = []
+        for creature in self.creatures:
+            node_states = [self.nodes[node_index] for node_index in creature.node_indices]
+            creature_node_set = set(creature.node_indices)
+            creature_edges = [
+                edge for edge in self.edges if edge.a in creature_node_set and edge.b in creature_node_set
+            ]
+            x_positions = [node.position.x for node in node_states]
+            y_positions = [node.position.y for node in node_states]
+            width = (max(x_positions) - min(x_positions)) if x_positions else 0.0
+            height = (max(y_positions) - min(y_positions)) if y_positions else 0.0
+            smaller_extent = max(min(width, height), 1e-6)
+            body_aspect_ratio = max(width, height) / smaller_extent if node_states else 1.0
+            mouths = sum(1 for node in node_states if node.node_type == NodeType.MOUTH)
+            grippers = sum(1 for node in node_states if node.node_type == NodeType.GRIPPER)
+            sensors = sum(1 for node in node_states if node.node_type == NodeType.SENSOR)
+            photoreceptors = sum(1 for node in node_states if node.node_type == NodeType.PHOTORECEPTOR)
+            edge_count = len(creature_edges)
+            motor_edges = sum(1 for edge in creature_edges if edge.has_motor)
+            mean_segment_length = (
+                sum(edge.rest_length for edge in creature_edges) / edge_count if edge_count else 0.0
+            )
+            vector = [
+                float(len(creature.node_indices)),
+                float(edge_count),
+                float(motor_edges),
+                float(mean_segment_length),
+                float(mouths),
+                float(grippers),
+                float(sensors),
+                float(photoreceptors),
+                float(body_aspect_ratio),
+                float(creature.mean_speed_recent),
+                float(creature.energy),
+                float(creature.age_ticks),
+            ]
+            vectors.append(
+                {
+                    "tick": self.tick,
+                    "creature_id": creature.id,
+                    "species_id": species_labels.get(creature.id, coarse_species_signature(creature.genome)),
+                    "genome_hash": genome_hash(creature.genome),
+                    "color_rgb": list(creature.color_rgb),
+                    "vector_labels": vector_labels,
+                    "vector": vector,
+                }
+            )
+        return vectors
+
     def get_phylogeny(self) -> dict[str, object]:
         nodes: dict[int, dict[str, object]] = {}
         species_labels = self._species_labels()

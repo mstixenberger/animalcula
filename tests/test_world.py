@@ -1539,6 +1539,22 @@ def test_world_can_build_phenotype_snapshots() -> None:
     assert all("species_id" in snapshot for snapshot in snapshots)
 
 
+def test_world_can_build_phenotype_vectors() -> None:
+    config = Config.from_yaml(Path("config/default.yaml"))
+    world = World(config=config, seed=7)
+    world.seed_demo_archetypes()
+    world.step()
+
+    vectors = world.phenotype_vectors()
+
+    assert len(vectors) == 3
+    assert all("vector" in vector for vector in vectors)
+    assert all("vector_labels" in vector for vector in vectors)
+    assert all(len(vector["vector"]) == len(vector["vector_labels"]) for vector in vectors)
+    assert all("species_id" in vector for vector in vectors)
+    assert all("genome_hash" in vector for vector in vectors)
+
+
 def test_cli_run_command_advances_the_world() -> None:
     result = subprocess.run(
         [
@@ -1694,6 +1710,31 @@ def test_cli_phenotypes_command_reads_checkpoint_phenotypes(tmp_path: Path) -> N
 
     assert "\"num_nodes\": " in result.stdout
     assert "\"mean_speed_recent\": " in result.stdout
+
+
+def test_cli_phenotype_vectors_command_reads_checkpoint_vectors(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "phenotype-vectors.json"
+    world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    world.seed_demo_archetypes()
+    world.step()
+    world.save(checkpoint_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "phenotype-vectors",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "\"vector_labels\": " in result.stdout
+    assert "\"body_aspect_ratio\"" in result.stdout
+    assert "\"genome_hash\": " in result.stdout
 
 
 def test_cli_extract_genomes_writes_top_creatures_from_checkpoint(tmp_path: Path) -> None:

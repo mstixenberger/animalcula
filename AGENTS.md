@@ -299,6 +299,7 @@ Current implementation baseline:
 - both debug viewer backends now also render coarse nutrient and light field overlays so the current environment is visible during local inspection
 - both debug viewer backends now support cycling/selecting nutrient, light, chemical A/B, and detritus overlays for fuller spec-aligned field inspection
 - render snapshots now carry species/lineage metadata for living creatures, and both debug viewer backends now support basic click-to-inspect creature metadata
+- the shipped demo/viewer experience is now tuned for clearer first impressions: nutrient-first field rendering, faster visible motion, and slightly more durable seeded archetypes
 
 ## Update Protocol
 

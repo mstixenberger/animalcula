@@ -245,12 +245,13 @@ HTML_TEMPLATE = """<!doctype html>
     let frame = 0;
     let running = true;
     let playbackRate = 1;
-    let activeFieldMode = "combined";
+    let activeFieldMode = "nutrient";
     let selectedCreatureId = null;
     let lastTimestamp = 0;
     let frameAccumulator = 0;
 
     scrub.max = String(Math.max(0, snapshots.length - 1));
+    fieldMode.value = activeFieldMode;
 
     function toCanvas(x, y, snapshot) {{
       return [
@@ -344,13 +345,13 @@ HTML_TEMPLATE = """<!doctype html>
           const chemicalA = fields.chemical_a[row][col] || 0;
           const chemicalB = fields.chemical_b[row][col] || 0;
           const detritus = fields.detritus[row][col] || 0;
-          const layers = activeFieldMode === "combined"
+      const layers = activeFieldMode === "combined"
             ? [
-                ["rgba(76, 175, 80, ", Math.min(0.26, nutrient * 0.22)],
-                ["rgba(244, 162, 97, ", Math.min(0.18, light * 0.12)],
-                ["rgba(74, 144, 226, ", Math.min(0.16, chemicalA * 0.18)],
-                ["rgba(181, 93, 255, ", Math.min(0.16, chemicalB * 0.18)],
-                ["rgba(143, 98, 65, ", Math.min(0.15, detritus * 0.16)],
+                ["rgba(76, 175, 80, ", Math.min(0.18, nutrient * 0.16)],
+                ["rgba(244, 162, 97, ", Math.min(0.12, light * 0.08)],
+                ["rgba(74, 144, 226, ", Math.min(0.11, chemicalA * 0.12)],
+                ["rgba(181, 93, 255, ", Math.min(0.11, chemicalB * 0.12)],
+                ["rgba(143, 98, 65, ", Math.min(0.10, detritus * 0.11)],
               ]
             : [fieldLayer(activeFieldMode, nutrient, light, chemicalA, chemicalB, detritus)];
           for (const [prefix, alpha] of layers) {{
@@ -681,7 +682,7 @@ def _launch_tk_viewer(
 
     running = True
     pending_single_step = False
-    field_mode_index = 0
+    field_mode_index = 1
     selected_creature_id: int | None = None
 
     def _toggle_running(_: object | None = None) -> None:
