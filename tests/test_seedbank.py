@@ -83,7 +83,7 @@ def test_promote_seed_bank_runs_multiple_rounds_and_records_manifest(tmp_path: P
     source_world.seed_demo_archetypes()
     seed_bank_path = tmp_path / "seed-bank.json"
     out_dir = tmp_path / "promotion"
-    source_world.export_top_creatures(path=seed_bank_path, n=2)
+    source_world.export_top_creatures(path=seed_bank_path, n=4)
 
     manifest = promote_seed_bank(
         config_path="config/default.yaml",
@@ -100,7 +100,7 @@ def test_promote_seed_bank_runs_multiple_rounds_and_records_manifest(tmp_path: P
     assert manifest["rounds_requested"] == 2
     assert manifest["rounds_completed"] == 2
     assert len(manifest["rounds"]) == 2
-    assert manifest["rounds"][0]["candidate_count"] == 2
+    assert manifest["rounds"][0]["candidate_count"] == 4
     assert manifest["rounds"][1]["candidate_count"] == 1
     assert manifest["rounds"][0]["input_genome_hash_count"] == 2
     assert manifest["rounds"][0]["promoted_genome_hash_count"] == 1

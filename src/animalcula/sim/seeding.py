@@ -12,63 +12,72 @@ def build_demo_archetypes(
     nutrient_grid: Grid2D,
     nutrient_source_cells: list[tuple[int, int]],
 ) -> tuple[list[NodeState], list[EdgeState], list[CreatureState]]:
-    source_a = nutrient_grid.position_for_cell(*nutrient_source_cells[0])
-    bright_anchor = Vec2(world_width - 15.0, world_height * 0.5)
+    nutrient_anchors = [
+        nutrient_grid.position_for_cell(*cell)
+        for cell in nutrient_source_cells[:3]
+    ]
+    while len(nutrient_anchors) < 3:
+        base = nutrient_anchors[0] if nutrient_anchors else Vec2(world_width * 0.3, world_height * 0.5)
+        nutrient_anchors.append(Vec2(base.x + (12.0 * len(nutrient_anchors)), base.y + (8.0 * len(nutrient_anchors))))
+    bright_anchors = [
+        Vec2(world_width - 15.0, world_height * 0.35),
+        Vec2(world_width - 15.0, world_height * 0.5),
+        Vec2(world_width - 15.0, world_height * 0.65),
+    ]
 
     nodes: list[NodeState] = []
     edges: list[EdgeState] = []
     creatures: list[CreatureState] = []
 
-    # Alga: tripod light harvester near the bright edge.
-    alga_nodes = [
-        _node(bright_anchor, node_type=NodeType.PHOTORECEPTOR),
-        _node(Vec2(bright_anchor.x - 5.0, bright_anchor.y + 3.0)),
-        _node(Vec2(bright_anchor.x - 5.0, bright_anchor.y - 3.0)),
+    alga_template = [
+        _node(Vec2(0.0, 0.0), node_type=NodeType.PHOTORECEPTOR),
+        _node(Vec2(-5.0, 3.0)),
+        _node(Vec2(-5.0, -3.0)),
     ]
-    _append_creature(
-        nodes,
-        edges,
-        creatures,
-        alga_nodes,
-        [(0, 1), (0, 2), (1, 2)],
-        energy=2.5,
-        color_rgb=(214, 180, 70),
-    )
+    worm_template = [
+        _node(Vec2(0.0, 0.0), node_type=NodeType.MOUTH),
+        _node(Vec2(4.0, 1.5)),
+        _node(Vec2(8.0, -1.5)),
+        _node(Vec2(12.0, 0.5), node_type=NodeType.SENSOR),
+    ]
+    amoeba_template = [
+        _node(Vec2(0.0, 0.0), node_type=NodeType.MOUTH),
+        _node(Vec2(5.0, 4.5), node_type=NodeType.GRIPPER),
+        _node(Vec2(-5.0, 4.5)),
+    ]
 
-    # Worm: four-segment grazer with a visible head/tail body plan.
-    grazer_nodes = [
-        _node(source_a, node_type=NodeType.MOUTH),
-        _node(Vec2(source_a.x + 4.0, source_a.y + 1.5)),
-        _node(Vec2(source_a.x + 8.0, source_a.y - 1.5)),
-        _node(Vec2(source_a.x + 12.0, source_a.y + 0.5), node_type=NodeType.SENSOR),
-    ]
-    _append_creature(
-        nodes,
-        edges,
-        creatures,
-        grazer_nodes,
-        [(0, 1), (1, 2), (2, 3)],
-        energy=2.0,
-        brain=_worm_brain(light_gain=0.2, nutrient_gain=2.8),
-        color_rgb=(54, 162, 147),
-    )
+    for bright_anchor in bright_anchors:
+        _append_creature(
+            nodes,
+            edges,
+            creatures,
+            _translated_nodes(alga_template, bright_anchor),
+            [(0, 1), (0, 2), (1, 2)],
+            energy=2.5,
+            color_rgb=(214, 180, 70),
+        )
 
-    # Amoeba: triangular predator seeded on the grazer basin so predation can actually bootstrap.
-    amoeba_nodes = [
-        _node(source_a, node_type=NodeType.MOUTH),
-        _node(Vec2(source_a.x + 5.0, source_a.y + 4.5), node_type=NodeType.GRIPPER),
-        _node(Vec2(source_a.x - 5.0, source_a.y + 4.5)),
-    ]
-    _append_creature(
-        nodes,
-        edges,
-        creatures,
-        amoeba_nodes,
-        [(0, 1), (1, 2), (2, 0)],
-        energy=2.0,
-        brain=_predator_brain(light_gain=1.0, nutrient_gain=1.0),
-        color_rgb=(198, 73, 92),
-    )
+    for source_anchor in nutrient_anchors:
+        _append_creature(
+            nodes,
+            edges,
+            creatures,
+            _translated_nodes(worm_template, source_anchor),
+            [(0, 1), (1, 2), (2, 3)],
+            energy=2.0,
+            brain=_worm_brain(light_gain=0.2, nutrient_gain=2.8),
+            color_rgb=(54, 162, 147),
+        )
+        _append_creature(
+            nodes,
+            edges,
+            creatures,
+            _translated_nodes(amoeba_template, source_anchor),
+            [(0, 1), (1, 2), (2, 0)],
+            energy=2.0,
+            brain=_predator_brain(light_gain=1.0, nutrient_gain=1.0),
+            color_rgb=(198, 73, 92),
+        )
 
     return nodes, edges, creatures
 
@@ -120,6 +129,17 @@ def _append_creature(
             color_rgb=color_rgb,
         )
     )
+
+
+def _translated_nodes(template: list[NodeState], anchor: Vec2) -> list[NodeState]:
+    return [
+        _node(
+            Vec2(anchor.x + node.position.x, anchor.y + node.position.y),
+            node_type=node.node_type,
+            radius=node.radius,
+        )
+        for node in template
+    ]
 
 
 def _worm_brain(light_gain: float, nutrient_gain: float) -> BrainState:

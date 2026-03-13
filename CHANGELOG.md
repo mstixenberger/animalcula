@@ -131,6 +131,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Ambient viewer follow mode now prefers high-activity creatures instead of cycling blindly by ID, making the display camera more likely to land on visible motion
 - Both debug viewer backends now render translucent creature silhouettes beneath the node graph so organisms read as unified bodies instead of loose points and lines
 - Both debug viewer backends now draw a compact identity tag for the selected creature directly on the canvas, so species/role context stays visible while following motion
+- `--seed-demo` now starts from a nine-creature founding population instead of just three singleton roots, which gives the default ecology and viewer paths a materially better chance of showing actual interaction
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

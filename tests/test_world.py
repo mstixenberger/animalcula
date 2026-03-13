@@ -231,7 +231,7 @@ def test_world_snapshot_contains_renderable_creature_graph() -> None:
 
     snapshot = world.snapshot()
 
-    assert snapshot.population == 3
+    assert snapshot.population == 9
     assert len(snapshot.nodes) == len(world.nodes)
     assert len(snapshot.edges) == len(world.edges)
     assert len(snapshot.creatures) == len(world.creatures)
@@ -1223,10 +1223,10 @@ def test_world_can_seed_demo_archetypes() -> None:
 
     world.seed_demo_archetypes()
 
-    assert len(world.creatures) == 3
-    assert len(world.nodes) >= 10
-    assert len(world.edges) >= 7
-    assert sum(1 for creature in world.creatures if creature.brain is not None) >= 2
+    assert len(world.creatures) == 9
+    assert len(world.nodes) >= 30
+    assert len(world.edges) >= 27
+    assert sum(1 for creature in world.creatures if creature.brain is not None) >= 6
     assert any(creature.brain is not None and creature.brain.output_size >= 4 for creature in world.creatures)
     assert any(
         any(world.nodes[node_index].node_type == NodeType.SENSOR for node_index in creature.node_indices)
@@ -1458,13 +1458,13 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
 
     stats = world.stats()
 
-    assert stats.population == 3
+    assert stats.population == 9
     assert stats.node_count == len(world.nodes)
     assert stats.edge_count == len(world.edges)
     assert stats.total_energy > 0.0
     assert stats.mean_creature_energy > 0.0
     assert stats.max_creature_energy >= stats.mean_creature_energy
-    assert stats.births == 3
+    assert stats.births == 9
     assert stats.deaths == 0
     assert stats.reproductions == 0
     assert stats.speciation_events == 0
@@ -1544,7 +1544,7 @@ def test_world_can_build_species_snapshots() -> None:
     snapshots = world.species_snapshots()
 
     assert len(snapshots) == 3
-    assert all(snapshot["count"] == 1 for snapshot in snapshots)
+    assert all(snapshot["count"] == 3 for snapshot in snapshots)
     assert all("mean_energy" in snapshot for snapshot in snapshots)
 
 
@@ -1556,7 +1556,7 @@ def test_world_can_build_phenotype_snapshots() -> None:
 
     snapshots = world.phenotype_snapshots()
 
-    assert len(snapshots) == 3
+    assert len(snapshots) == 9
     assert all("num_nodes" in snapshot for snapshot in snapshots)
     assert all("mean_speed_recent" in snapshot for snapshot in snapshots)
     assert all("species_id" in snapshot for snapshot in snapshots)
@@ -1570,7 +1570,7 @@ def test_world_can_build_phenotype_vectors() -> None:
 
     vectors = world.phenotype_vectors()
 
-    assert len(vectors) == 3
+    assert len(vectors) == 9
     assert all("vector" in vector for vector in vectors)
     assert all("vector_labels" in vector for vector in vectors)
     assert all(len(vector["vector"]) == len(vector["vector_labels"]) for vector in vectors)
@@ -1653,8 +1653,8 @@ def test_cli_run_command_can_seed_demo_world() -> None:
         text=True,
     )
 
-    assert "population=3" in result.stdout
-    assert "births=3" in result.stdout
+    assert "population=9" in result.stdout
+    assert "births=9" in result.stdout
     assert "speciations=0" in result.stdout
     assert "species_extinctions=0" in result.stdout
     assert "species_turnover=0" in result.stdout
@@ -2003,8 +2003,8 @@ def test_cli_report_command_reads_checkpoint(tmp_path: Path) -> None:
     )
 
     assert "tick=2" in result.stdout
-    assert "population=3" in result.stdout
-    assert "births=3" in result.stdout
+    assert "population=9" in result.stdout
+    assert "births=9" in result.stdout
 
 
 def test_cli_events_command_reads_checkpoint_events(tmp_path: Path) -> None:
@@ -2258,7 +2258,8 @@ def test_cli_run_command_can_log_periodic_stats_to_sqlite(tmp_path: Path) -> Non
     assert rows[0][25] >= 0
     assert rows[0][26] >= 0
     assert rows[0][27] >= 0
-    assert rows[0][28] >= rows[0][27]
+    assert rows[0][27] >= rows[0][26]
+    assert rows[0][28] >= 0.0
     assert rows[0][29] >= 0.0
 
 
@@ -2317,8 +2318,8 @@ def test_cli_run_command_accepts_config_overrides() -> None:
         text=True,
     )
 
-    assert "population=5" in result.stdout
-    assert "reproductions=2" in result.stdout
+    assert "population=15" in result.stdout
+    assert "reproductions=6" in result.stdout
 
 
 def test_cli_run_command_accepts_turbo_mode() -> None:

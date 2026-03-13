@@ -45,6 +45,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - ambient viewer selection is now activity-aware; HTML/Tk both rank creatures by recent speed, energy, and age instead of cycling blindly by creature ID
 - both debug viewer backends now render translucent body silhouettes grouped by creature, which materially improves ambient legibility at non-max zoom
 - both debug viewer backends now render a compact identity tag next to the selected creature, reducing the need to read the side inspector while tracking motion
+- deterministic seed-demo founder count is being raised from 3 to 9, preserving the three archetype species while materially improving first-run interaction density
 
 ## Current Priority
 
