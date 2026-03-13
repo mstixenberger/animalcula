@@ -42,6 +42,8 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     assert 'id="selectedSpecies"' in payload
     assert 'id="predatorStat"' in payload
     assert 'function drawNodeGlyph' in payload
+    assert 'function drawCreatureSilhouettes' in payload
+    assert 'hexToRgba' in payload
     assert "function creatureFocusScore" in payload
     assert "function rankedCreatureIds" in payload
     assert 'node.node_type === "gripper"' in payload
@@ -94,4 +96,5 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
     assert 'zoom.addEventListener("input"' in payload
     assert 'event.key === "4"' in payload
     assert "preferredCreatureId(snapshot)" in payload
+    assert "drawCreatureSilhouettes(snapshot, creatureColors)" in payload
     assert 'node.node_type === "photoreceptor"' in payload

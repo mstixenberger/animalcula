@@ -302,6 +302,13 @@ HTML_TEMPLATE = """<!doctype html>
       return rankedIds.length ? rankedIds[0] : null;
     }}
 
+    function hexToRgba(css, alpha) {{
+      if (typeof css !== "string" || !css.startsWith("rgb(")) {{
+        return "rgba(203, 213, 225, " + alpha.toFixed(3) + ")";
+      }}
+      return css.replace("rgb(", "rgba(").replace(")", ", " + alpha.toFixed(3) + ")");
+    }}
+
     function toCanvas(x, y, snapshot) {{
       const [focusX, focusY] = cameraCenter(snapshot);
       const scaleX = (canvas.width / Math.max(snapshot.world_width, 1.0)) * zoomLevel;
@@ -318,6 +325,7 @@ HTML_TEMPLATE = """<!doctype html>
       const creatureRoles = new Map(snapshot.creatures.map((creature) => [creature.creature_id, creature.trophic_role]));
       const creatureColors = new Map(snapshot.creatures.map((creature) => [creature.creature_id, rgbToCss(creature.color_rgb)]));
       drawFields(snapshot);
+      drawCreatureSilhouettes(snapshot, creatureColors);
 
       for (const edge of snapshot.edges) {{
         const [ax, ay] = toCanvas(edge.ax, edge.ay, snapshot);
@@ -380,6 +388,72 @@ HTML_TEMPLATE = """<!doctype html>
 
     function renderCurrent() {{
       draw(snapshots[frame]);
+    }}
+
+    function drawCreatureSilhouettes(snapshot, creatureColors) {{
+      const creatureNodes = new Map();
+      for (const node of snapshot.nodes) {{
+        if (node.creature_id === null || node.creature_id === undefined) {{
+          continue;
+        }}
+        if (!creatureNodes.has(node.creature_id)) {{
+          creatureNodes.set(node.creature_id, []);
+        }}
+        creatureNodes.get(node.creature_id).push(node);
+      }}
+      for (const [creatureId, nodes] of creatureNodes.entries()) {{
+        const fill = hexToRgba(creatureColors.get(creatureId) || "#cbd5e1", 0.18);
+        if (nodes.length === 1) {{
+          const [cx, cy] = toCanvas(nodes[0].x, nodes[0].y, snapshot);
+          const radius = Math.max(6.0, nodes[0].radius * 4.0);
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          ctx.fillStyle = fill;
+          ctx.fill();
+          continue;
+        }}
+        if (nodes.length === 2) {{
+          const [ax, ay] = toCanvas(nodes[0].x, nodes[0].y, snapshot);
+          const [bx, by] = toCanvas(nodes[1].x, nodes[1].y, snapshot);
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.lineTo(bx, by);
+          ctx.strokeStyle = fill;
+          ctx.lineWidth = Math.max(8.0, (nodes[0].radius + nodes[1].radius) * 3.5);
+          ctx.lineCap = "round";
+          ctx.stroke();
+          ctx.lineCap = "butt";
+          continue;
+        }}
+        const centroidX = nodes.reduce((sum, node) => sum + node.x, 0) / nodes.length;
+        const centroidY = nodes.reduce((sum, node) => sum + node.y, 0) / nodes.length;
+        const ordered = nodes
+          .slice()
+          .sort((left, right) => Math.atan2(left.y - centroidY, left.x - centroidX) - Math.atan2(right.y - centroidY, right.x - centroidX))
+          .map((node) => {{
+            const dx = node.x - centroidX;
+            const dy = node.y - centroidY;
+            const magnitude = Math.hypot(dx, dy) || 1.0;
+            const inflate = node.radius * 1.6;
+            return [
+              node.x + ((dx / magnitude) * inflate),
+              node.y + ((dy / magnitude) * inflate),
+            ];
+          }});
+        if (!ordered.length) {{
+          continue;
+        }}
+        ctx.beginPath();
+        const [startX, startY] = toCanvas(ordered[0][0], ordered[0][1], snapshot);
+        ctx.moveTo(startX, startY);
+        for (const [x, y] of ordered.slice(1)) {{
+          const [px, py] = toCanvas(x, y, snapshot);
+          ctx.lineTo(px, py);
+        }}
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+      }}
     }}
 
     function drawNodeGlyph(node, cx, cy, radius) {{
@@ -1009,6 +1083,11 @@ def _launch_tk_viewer(
         ranked_ids = _ranked_creature_ids(snapshot)
         return ranked_ids[0] if ranked_ids else None
 
+    def _silhouette_color(css: str) -> str:
+        if css.startswith("rgb(") and css.endswith(")"):
+            return css.replace("rgb(", "rgba(").replace(")", ", 0.18)")
+        return "#334155"
+
     def _draw(snapshot: Snapshot) -> None:
         nonlocal ambient_frame_counter, selected_creature_id
         canvas.delete("all")
@@ -1077,6 +1156,57 @@ def _launch_tk_viewer(
             creature.creature_id: _rgb_to_css(creature.color_rgb)
             for creature in snapshot.creatures
         }
+        creature_nodes: dict[int, list[object]] = {}
+        for node in snapshot.nodes:
+            if node.creature_id is None:
+                continue
+            creature_nodes.setdefault(node.creature_id, []).append(node)
+        for creature_id, nodes in creature_nodes.items():
+            fill = _silhouette_color(creature_colors.get(creature_id, "#cbd5e1"))
+            if len(nodes) == 1:
+                cx, cy = _project(nodes[0].x, nodes[0].y)
+                radius = max(6.0, nodes[0].radius * 4.0)
+                canvas.create_oval(
+                    cx - radius,
+                    cy - radius,
+                    cx + radius,
+                    cy + radius,
+                    fill=fill,
+                    outline="",
+                )
+                continue
+            if len(nodes) == 2:
+                ax, ay = _project(nodes[0].x, nodes[0].y)
+                bx, by = _project(nodes[1].x, nodes[1].y)
+                canvas.create_line(
+                    ax,
+                    ay,
+                    bx,
+                    by,
+                    fill=fill,
+                    width=max(8.0, (nodes[0].radius + nodes[1].radius) * 3.5),
+                    capstyle="round",
+                )
+                continue
+            centroid_x = sum(node.x for node in nodes) / len(nodes)
+            centroid_y = sum(node.y for node in nodes) / len(nodes)
+            ordered_nodes = sorted(
+                nodes,
+                key=lambda node: math.atan2(node.y - centroid_y, node.x - centroid_x),
+            )
+            polygon_points: list[float] = []
+            for node in ordered_nodes:
+                dx = node.x - centroid_x
+                dy = node.y - centroid_y
+                magnitude = math.hypot(dx, dy) or 1.0
+                inflate = node.radius * 1.6
+                px, py = _project(
+                    node.x + ((dx / magnitude) * inflate),
+                    node.y + ((dy / magnitude) * inflate),
+                )
+                polygon_points.extend((px, py))
+            if polygon_points:
+                canvas.create_polygon(*polygon_points, fill=fill, outline="")
         for edge in snapshot.edges:
             ax, ay = _project(edge.ax, edge.ay)
             bx, by = _project(edge.bx, edge.by)
