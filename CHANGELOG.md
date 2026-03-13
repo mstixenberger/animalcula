@@ -120,6 +120,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - The HTML fallback viewer now includes playback-speed control and per-frame trophic summary cards for easier local inspection
 - Genome color genes now persist through checkpoints/exports and drive lineage coloring in both debug viewer backends
 - `animalcula phylogeny` now exports checkpoint lineage graphs as JSON or Newick, built from saved birth/death parent pointers and colored lifecycle events
+- Both debug viewer backends now render low-resolution nutrient and light field overlays so creatures are visible against the environments they respond to
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

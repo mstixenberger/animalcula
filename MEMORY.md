@@ -33,6 +33,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - both debug viewer backends now render lineage colors instead of relying only on trophic-role outlines
 - saved lifecycle events now preserve lineage colors, enabling checkpoint phylogeny reconstruction for dead as well as living branches
 - `animalcula phylogeny` now emits checkpoint lineage graphs as JSON or Newick from recorded parent pointers
+- both debug viewer backends now render coarse nutrient and light field overlays instead of showing creatures against a contextless background
 
 ## Current Priority
 
@@ -52,3 +53,4 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - Close the next spec-facing runtime or viewer gap with clear user-visible payoff
 - Prefer slices that make evolving lineages/ecologies easier to inspect without committing to the full browser frontend yet
 - Good next candidates: lightweight field visualization in the debug viewer, richer checkpoint/species lineage summaries, or first phenotype-space export
+- Good next candidates: richer checkpoint/species lineage summaries, first phenotype-space export, or broader field visualization beyond nutrient/light

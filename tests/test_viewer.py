@@ -35,6 +35,7 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     assert 'id="speed"' in payload
     assert 'id="predatorStat"' in payload
     assert '"color_rgb": [' in payload
+    assert '"fields": {' in payload
     assert "\"tick\": 0" in payload
 
 
@@ -69,3 +70,4 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
     payload = html_path.read_text(encoding="utf-8")
     assert "Animalcula Debug Viewer" in payload
     assert "speed=" in payload
+    assert '"light": [[' in payload

@@ -296,6 +296,7 @@ Current implementation baseline:
 - genomes now carry inherited RGB color genes for cosmetic lineage tracking without changing species clustering behavior
 - checkpoint payloads, phenotype snapshots, and both debug viewer backends now preserve and render lineage colors so evolving families are visually trackable
 - saved lifecycle events now preserve lineage colors too, and the CLI can export checkpoint phylogeny graphs as JSON or Newick from the recorded parent pointers
+- both debug viewer backends now also render coarse nutrient and light field overlays so the current environment is visible during local inspection
 
 ## Update Protocol
 

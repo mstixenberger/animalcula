@@ -8,6 +8,7 @@ from pathlib import Path
 import tempfile
 from types import ModuleType
 
+from animalcula.sim.types import Vec2
 from animalcula.sim.world import Snapshot, World
 
 NODE_COLORS = {
@@ -190,6 +191,7 @@ HTML_TEMPLATE = """<!doctype html>
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const creatureRoles = new Map(snapshot.creatures.map((creature) => [creature.creature_id, creature.trophic_role]));
       const creatureColors = new Map(snapshot.creatures.map((creature) => [creature.creature_id, rgbToCss(creature.color_rgb)]));
+      drawFields(snapshot);
 
       for (const edge of snapshot.edges) {{
         const [ax, ay] = toCanvas(edge.ax, edge.ay, snapshot);
@@ -241,6 +243,31 @@ HTML_TEMPLATE = """<!doctype html>
     function advanceFrame() {{
       frame = (frame + 1) % snapshots.length;
       renderCurrent();
+    }}
+
+    function drawFields(snapshot) {{
+      const fields = snapshot.fields;
+      if (!fields) {{
+        return;
+      }}
+      const cellWidth = canvas.width / Math.max(fields.cols, 1);
+      const cellHeight = canvas.height / Math.max(fields.rows, 1);
+      for (let row = 0; row < fields.rows; row += 1) {{
+        for (let col = 0; col < fields.cols; col += 1) {{
+          const nutrient = fields.nutrient[row][col] || 0;
+          const light = fields.light[row][col] || 0;
+          const nutrientAlpha = Math.min(0.26, nutrient * 0.22);
+          const lightAlpha = Math.min(0.18, light * 0.12);
+          if (nutrientAlpha > 0) {{
+            ctx.fillStyle = "rgba(76, 175, 80, " + nutrientAlpha.toFixed(3) + ")";
+            ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth + 1, cellHeight + 1);
+          }}
+          if (lightAlpha > 0) {{
+            ctx.fillStyle = "rgba(244, 162, 97, " + lightAlpha.toFixed(3) + ")";
+            ctx.fillRect(col * cellWidth, row * cellHeight, cellWidth + 1, cellHeight + 1);
+          }}
+        }}
+      }}
     }}
 
     function rgbToCss(rgb) {{
@@ -332,6 +359,38 @@ def _default_html_path(world: World) -> Path:
     return temp_dir / f"animalcula_view_seed{world.seed}_tick{world.tick}.html"
 
 
+def _sample_fields(world: World, *, cols: int = 12, rows: int = 12) -> dict[str, object]:
+    nutrient: list[list[float]] = []
+    light: list[list[float]] = []
+    width = max(world.config.world.width, 1.0)
+    height = max(world.config.world.height, 1.0)
+
+    for row in range(rows):
+        nutrient_row: list[float] = []
+        light_row: list[float] = []
+        sample_y = ((row + 0.5) / rows) * height
+        for col in range(cols):
+            sample_x = ((col + 0.5) / cols) * width
+            position = Vec2(sample_x, sample_y)
+            nutrient_row.append(world.nutrient_grid.sample(position))
+            light_row.append(world.light_grid.sample(position))
+        nutrient.append(nutrient_row)
+        light.append(light_row)
+
+    return {
+        "cols": cols,
+        "rows": rows,
+        "nutrient": nutrient,
+        "light": light,
+    }
+
+
+def _snapshot_payload(world: World) -> dict[str, object]:
+    payload = asdict(world.snapshot())
+    payload["fields"] = _sample_fields(world)
+    return payload
+
+
 def _build_html_viewer(
     world: World,
     *,
@@ -341,10 +400,10 @@ def _build_html_viewer(
     canvas_height: int,
     max_frames: int,
 ) -> str:
-    snapshots = [asdict(world.snapshot())]
+    snapshots = [_snapshot_payload(world)]
     for _ in range(max(1, max_frames) - 1):
         world.step(steps_per_frame)
-        snapshots.append(asdict(world.snapshot()))
+        snapshots.append(_snapshot_payload(world))
     return HTML_TEMPLATE.format(
         canvas_width=canvas_width,
         canvas_height=canvas_height,
@@ -433,6 +492,25 @@ def _launch_tk_viewer(
 
     def _draw(snapshot: Snapshot) -> None:
         canvas.delete("all")
+        field_samples = _sample_fields(world)
+        cell_width = canvas_width / max(int(field_samples["cols"]), 1)
+        cell_height = canvas_height / max(int(field_samples["rows"]), 1)
+
+        for row_index, (nutrient_row, light_row) in enumerate(
+            zip(field_samples["nutrient"], field_samples["light"], strict=True)
+        ):
+            for col_index, (nutrient, light) in enumerate(zip(nutrient_row, light_row, strict=True)):
+                red = max(12, min(255, int(18 + (light * 72))))
+                green = max(20, min(255, int(24 + (nutrient * 110) + (light * 36))))
+                blue = max(24, min(255, int(30 + (light * 40))))
+                canvas.create_rectangle(
+                    col_index * cell_width,
+                    row_index * cell_height,
+                    (col_index + 1) * cell_width,
+                    (row_index + 1) * cell_height,
+                    fill=f"#{red:02x}{green:02x}{blue:02x}",
+                    outline="",
+                )
 
         creature_roles = {
             creature.creature_id: creature.trophic_role
