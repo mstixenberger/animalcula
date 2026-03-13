@@ -6,7 +6,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 - Branch state: working directly on `main` with frequent stable checkpoints
 - Product focus: spec-aligned headless simulation, logging, and tuning loop
-- Test status at last update: focused lineage-color tests passing after wiring genome/checkpoint/viewer support
+- Test status at last update: focused phylogeny/export tests passing after wiring lineage-colored event persistence
 - Recent completed slices:
   - direct trophic-balance weighting in shared interestingness scoring
   - deterministic nutrient epoch reseeding with source-strength multipliers
@@ -31,6 +31,8 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - the HTML fallback viewer now has playback-speed control plus per-frame trophic summary cards
 - genomes now carry inherited RGB lineage colors that persist through checkpoints and exported genome payloads
 - both debug viewer backends now render lineage colors instead of relying only on trophic-role outlines
+- saved lifecycle events now preserve lineage colors, enabling checkpoint phylogeny reconstruction for dead as well as living branches
+- `animalcula phylogeny` now emits checkpoint lineage graphs as JSON or Newick from recorded parent pointers
 
 ## Current Priority
 
@@ -49,3 +51,4 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 - Close the next spec-facing runtime or viewer gap with clear user-visible payoff
 - Prefer slices that make evolving lineages/ecologies easier to inspect without committing to the full browser frontend yet
+- Good next candidates: lightweight field visualization in the debug viewer, richer checkpoint/species lineage summaries, or first phenotype-space export

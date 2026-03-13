@@ -119,6 +119,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `animalcula view` now falls back to a self-contained HTML viewer on machines without Tkinter, and also supports explicit `--viewer-backend html`
 - The HTML fallback viewer now includes playback-speed control and per-frame trophic summary cards for easier local inspection
 - Genome color genes now persist through checkpoints/exports and drive lineage coloring in both debug viewer backends
+- `animalcula phylogeny` now exports checkpoint lineage graphs as JSON or Newick, built from saved birth/death parent pointers and colored lifecycle events
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints
@@ -155,3 +156,4 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Sweep and seed-bank ranking now also favor balanced trophic mixes, not just population, turnover, and anti-monoculture signals
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now also expose the active nutrient-source strength multiplier so epoch-scale nutrient shocks remain visible during tuning
 - Headless stats, logs, sweeps, tuning summaries, and seed-bank reports now also expose environment-perturbation counts so monoculture recovery attempts remain visible during long runs
+- Lifecycle events stored in checkpoints now also preserve lineage colors so historical branches can be reconstructed with visual identity intact

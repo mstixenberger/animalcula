@@ -1977,6 +1977,55 @@ def test_cli_events_command_reads_checkpoint_events(tmp_path: Path) -> None:
 
     assert "\"event_type\": \"birth\"" in result.stdout
     assert "\"genome_hash\": \"" in result.stdout
+    assert "\"color_rgb\": [" in result.stdout
+
+
+def test_cli_phylogeny_command_reads_checkpoint_phylogeny(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "phylogeny.json"
+    world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    world.seed_demo_archetypes()
+    world.step(1)
+    world.save(checkpoint_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "phylogeny",
+            str(checkpoint_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "\"root_ids\": " in result.stdout
+    assert "\"color_rgb\": [" in result.stdout
+
+
+def test_cli_phylogeny_command_can_emit_newick(tmp_path: Path) -> None:
+    checkpoint_path = tmp_path / "phylogeny-newick.json"
+    world = World(config=Config.from_yaml(Path("config/default.yaml")), seed=7)
+    world.seed_demo_archetypes()
+    world.save(checkpoint_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "animalcula.cli",
+            "phylogeny",
+            str(checkpoint_path),
+            "--format",
+            "newick",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout.strip().endswith(";")
 
 
 def test_cli_run_command_can_log_periodic_stats(tmp_path: Path) -> None:

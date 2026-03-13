@@ -295,6 +295,7 @@ Current implementation baseline:
 - initial passing pytest suite
 - genomes now carry inherited RGB color genes for cosmetic lineage tracking without changing species clustering behavior
 - checkpoint payloads, phenotype snapshots, and both debug viewer backends now preserve and render lineage colors so evolving families are visually trackable
+- saved lifecycle events now preserve lineage colors too, and the CLI can export checkpoint phylogeny graphs as JSON or Newick from the recorded parent pointers
 
 ## Update Protocol
 

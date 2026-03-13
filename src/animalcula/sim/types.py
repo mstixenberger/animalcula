@@ -115,3 +115,4 @@ class EventRecord:
     parent_ids: tuple[int, ...] = ()
     energy: float = 0.0
     genome_hash: str = ""
+    color_rgb: tuple[int, int, int] = DEFAULT_LINEAGE_COLOR_RGB

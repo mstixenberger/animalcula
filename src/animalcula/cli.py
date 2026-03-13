@@ -59,6 +59,10 @@ def build_parser() -> argparse.ArgumentParser:
     events_parser = subparsers.add_parser("events", help="Print checkpoint events as JSON lines")
     events_parser.add_argument("checkpoint")
 
+    phylogeny_parser = subparsers.add_parser("phylogeny", help="Export checkpoint phylogeny")
+    phylogeny_parser.add_argument("checkpoint")
+    phylogeny_parser.add_argument("--format", choices=("json", "newick"), default="json")
+
     species_parser = subparsers.add_parser("species", help="Print checkpoint species snapshots as JSON lines")
     species_parser.add_argument("checkpoint")
 
@@ -169,9 +173,18 @@ def main() -> int:
                         "parent_ids": list(event.parent_ids),
                         "energy": event.energy,
                         "genome_hash": event.genome_hash,
+                        "color_rgb": list(event.color_rgb),
                     }
                 )
             )
+        return 0
+
+    if args.command == "phylogeny":
+        world = World.load(args.checkpoint)
+        if args.format == "newick":
+            print(world.phylogeny_newick())
+        else:
+            print(json.dumps(world.get_phylogeny()))
         return 0
 
     if args.command == "species":

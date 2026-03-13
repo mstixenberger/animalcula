@@ -35,7 +35,17 @@ from animalcula.sim.physics import (
     spring_force,
 )
 from animalcula.sim.seeding import build_demo_archetypes
-from animalcula.sim.types import BrainState, CreatureState, EdgeState, EventRecord, GripLatch, NodeState, NodeType, Vec2
+from animalcula.sim.types import (
+    DEFAULT_LINEAGE_COLOR_RGB,
+    BrainState,
+    CreatureState,
+    EdgeState,
+    EventRecord,
+    GripLatch,
+    NodeState,
+    NodeType,
+    Vec2,
+)
 
 
 @dataclass(slots=True, frozen=True)
@@ -294,6 +304,124 @@ class World:
                 }
             )
         return snapshots
+
+    def get_phylogeny(self) -> dict[str, object]:
+        nodes: dict[int, dict[str, object]] = {}
+        species_labels = self._species_labels()
+
+        def _ensure_node(creature_id: int) -> dict[str, object]:
+            return nodes.setdefault(
+                creature_id,
+                {
+                    "creature_id": creature_id,
+                    "parent_ids": [],
+                    "child_ids": [],
+                    "birth_tick": None,
+                    "death_tick": None,
+                    "generation": 0,
+                    "alive": False,
+                    "birth_energy": 0.0,
+                    "current_energy": 0.0,
+                    "age_ticks": 0,
+                    "genome_hash": "",
+                    "color_rgb": list(DEFAULT_LINEAGE_COLOR_RGB),
+                    "species_id": "",
+                },
+            )
+
+        for event in self.events:
+            if event.creature_id < 0:
+                continue
+            node = _ensure_node(event.creature_id)
+            if event.event_type == "birth" and event.parent_ids and not node["parent_ids"]:
+                node["parent_ids"] = list(event.parent_ids)
+            if event.genome_hash and not node["genome_hash"]:
+                node["genome_hash"] = event.genome_hash
+            node["color_rgb"] = list(event.color_rgb)
+            if event.event_type == "birth":
+                node["birth_tick"] = event.tick if node["birth_tick"] is None else min(node["birth_tick"], event.tick)
+                node["birth_energy"] = event.energy
+            elif event.event_type in {"death", "predation_kill"}:
+                node["death_tick"] = event.tick
+
+        for creature in self.creatures:
+            node = _ensure_node(creature.id)
+            inferred_birth_tick = max(0, self.tick - creature.age_ticks)
+            node["birth_tick"] = (
+                inferred_birth_tick
+                if node["birth_tick"] is None
+                else min(node["birth_tick"], inferred_birth_tick)
+            )
+            if creature.parent_id is not None and not node["parent_ids"]:
+                node["parent_ids"] = [creature.parent_id]
+            node["alive"] = True
+            node["death_tick"] = None
+            node["current_energy"] = creature.energy
+            node["age_ticks"] = creature.age_ticks
+            node["genome_hash"] = node["genome_hash"] or genome_hash(creature.genome)
+            node["color_rgb"] = list(creature.color_rgb)
+            node["species_id"] = species_labels.get(creature.id, "")
+
+        for node in list(nodes.values()):
+            for parent_id in node["parent_ids"]:
+                parent = _ensure_node(parent_id)
+                child_ids = parent["child_ids"]
+                if node["creature_id"] not in child_ids:
+                    child_ids.append(node["creature_id"])
+
+        generation_cache: dict[int, int] = {}
+
+        def _generation(creature_id: int) -> int:
+            if creature_id in generation_cache:
+                return generation_cache[creature_id]
+            node = _ensure_node(creature_id)
+            parent_ids = [parent_id for parent_id in node["parent_ids"] if parent_id in nodes and parent_id != creature_id]
+            if not parent_ids:
+                generation_cache[creature_id] = 0
+                return 0
+            generation_cache[creature_id] = 1 + max(_generation(parent_id) for parent_id in parent_ids)
+            return generation_cache[creature_id]
+
+        ordered_nodes: list[dict[str, object]] = []
+        for creature_id in sorted(nodes):
+            node = nodes[creature_id]
+            node["parent_ids"] = sorted(set(node["parent_ids"]))
+            node["child_ids"] = sorted(set(node["child_ids"]))
+            node["generation"] = _generation(creature_id)
+            ordered_nodes.append(node)
+
+        return {
+            "tick": self.tick,
+            "node_count": len(ordered_nodes),
+            "edge_count": sum(len(node["parent_ids"]) for node in ordered_nodes),
+            "root_ids": [node["creature_id"] for node in ordered_nodes if not node["parent_ids"]],
+            "nodes": ordered_nodes,
+        }
+
+    def phylogeny_newick(self) -> str:
+        phylogeny = self.get_phylogeny()
+        nodes = {
+            node["creature_id"]: node
+            for node in phylogeny["nodes"]
+        }
+        if any(len(node["parent_ids"]) > 1 for node in nodes.values()):
+            raise ValueError("Newick export currently supports asexual lineages only")
+
+        def _build(creature_id: int) -> str:
+            node = nodes[creature_id]
+            label = f"{creature_id}"
+            child_ids = node["child_ids"]
+            if not child_ids:
+                return label
+            children = ",".join(_build(child_id) for child_id in child_ids)
+            return f"({children}){label}"
+
+        root_ids = phylogeny["root_ids"]
+        if not root_ids:
+            return ";"
+        if len(root_ids) == 1:
+            return f"{_build(root_ids[0])};"
+        return f"({','.join(_build(root_id) for root_id in root_ids)});"
 
     def seed_from_exported_genomes(self, path: str | Path) -> None:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -584,6 +712,7 @@ class World:
                     "parent_ids": list(event.parent_ids),
                     "energy": event.energy,
                     "genome_hash": event.genome_hash,
+                    "color_rgb": list(event.color_rgb),
                 }
                 for event in self.events
             ],
@@ -686,6 +815,7 @@ class World:
                 parent_ids=tuple(event.get("parent_ids", [])),
                 energy=event.get("energy", 0.0),
                 genome_hash=event.get("genome_hash", ""),
+                color_rgb=tuple(event.get("color_rgb", list(DEFAULT_LINEAGE_COLOR_RGB))),
             )
             for event in payload.get("events", [])
         ]
@@ -1094,6 +1224,7 @@ class World:
                     parent_ids=(),
                     energy=creature.energy,
                     genome_hash_value=genome_hash(creature.genome),
+                    color_rgb_value=creature.color_rgb,
                 )
             self._record_event(
                 "death",
@@ -1101,6 +1232,7 @@ class World:
                 parent_ids=(),
                 energy=creature.energy,
                 genome_hash_value=genome_hash(creature.genome),
+                color_rgb_value=creature.color_rgb,
             )
         living_creatures = [creature for creature in self.creatures if creature.energy > 0.0]
         if len(living_creatures) == len(self.creatures):
@@ -1223,6 +1355,7 @@ class World:
                 parent_ids=(creature.id,),
                 energy=split_energy,
                 genome_hash_value=genome_hash(parent_genome),
+                color_rgb_value=creature.color_rgb,
             )
             self._record_event(
                 "birth",
@@ -1230,6 +1363,7 @@ class World:
                 parent_ids=(creature.id,),
                 energy=split_energy,
                 genome_hash_value=genome_hash(child_genome),
+                color_rgb_value=child_genome.color_rgb,
             )
 
         self.nodes.extend(new_nodes)
@@ -1281,6 +1415,7 @@ class World:
                 parent_ids=(),
                 energy=0.0,
                 genome_hash_value="",
+                color_rgb_value=DEFAULT_LINEAGE_COLOR_RGB,
             )
 
     def _random_unoccupied_nutrient_cell(self, occupied: set[tuple[int, int]]) -> tuple[int, int]:
@@ -1377,6 +1512,7 @@ class World:
                 parent_ids=(),
                 energy=representative.energy,
                 genome_hash_value=genome_hash(representative.genome),
+                color_rgb_value=representative.color_rgb,
             )
             self._species_first_seen_tick.setdefault(species_id, self.tick)
             self._species_last_seen_tick[species_id] = self.tick
@@ -1393,6 +1529,7 @@ class World:
                 parent_ids=(),
                 energy=0.0,
                 genome_hash_value=species_id,
+                color_rgb_value=DEFAULT_LINEAGE_COLOR_RGB,
             )
             self._extinct_species_ids.add(species_id)
             self._species_last_seen_tick.setdefault(species_id, self.tick)
@@ -1758,6 +1895,7 @@ class World:
         parent_ids: tuple[int, ...],
         energy: float,
         genome_hash_value: str,
+        color_rgb_value: tuple[int, int, int] = DEFAULT_LINEAGE_COLOR_RGB,
     ) -> None:
         self.events.append(
             EventRecord(
@@ -1767,6 +1905,7 @@ class World:
                 parent_ids=parent_ids,
                 energy=energy,
                 genome_hash=genome_hash_value,
+                color_rgb=color_rgb_value,
             )
         )
 

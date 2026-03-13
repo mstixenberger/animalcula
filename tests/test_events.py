@@ -59,6 +59,7 @@ def test_world_logs_reproduction_and_death_events() -> None:
     assert "birth" in event_types
     assert "death" in event_types
     assert all(event.genome_hash for event in world.events)
+    assert all(len(event.color_rgb) == 3 for event in world.events)
 
 
 def test_seeded_creatures_receive_unique_ids() -> None:
@@ -247,3 +248,41 @@ def test_world_logs_environment_perturbation_events_when_runaway_dominance_trigg
     assert "environment_perturbation" in event_types
     assert world._nutrient_source_cells != before
     assert world.stats().environment_perturbations == 1
+
+
+def test_world_can_build_phylogeny_from_birth_and_death_events() -> None:
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides(
+        [
+            "energy.reproduction_threshold=0.5",
+            "energy.basal_cost_per_node=0.0",
+            "energy.feed_rate=0.0",
+            "energy.photosynthesis_rate=0.0",
+            "creatures.min_population=0",
+        ]
+    )
+    node = NodeState(
+        position=Vec2(20.0, 20.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=1.0, color_rgb=(10, 20, 30))
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+    world.creatures = [CreatureState(node_indices=child.node_indices, energy=0.0, genome=child.genome, color_rgb=child.color_rgb, id=child.id, parent_id=child.parent_id) for child in world.creatures if child.parent_id is not None]
+    world.step()
+
+    phylogeny = world.get_phylogeny()
+    child_nodes = [node for node in phylogeny["nodes"] if node["parent_ids"]]
+
+    assert phylogeny["node_count"] >= 2
+    assert phylogeny["edge_count"] >= 1
+    assert phylogeny["root_ids"] == [1]
+    assert child_nodes
+    assert child_nodes[0]["generation"] == 1
+    assert child_nodes[0]["birth_tick"] == 0
+    assert child_nodes[0]["death_tick"] == 1
+    assert len(child_nodes[0]["color_rgb"]) == 3
