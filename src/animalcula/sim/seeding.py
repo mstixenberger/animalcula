@@ -19,80 +19,45 @@ def build_demo_archetypes(
     edges: list[EdgeState] = []
     creatures: list[CreatureState] = []
 
-    # Alga: passive light harvester near the bright edge.
+    # Alga: tripod light harvester near the bright edge.
     alga_nodes = [
-        NodeState(
-            position=bright_anchor,
-            velocity=Vec2.zero(),
-            accumulated_force=Vec2.zero(),
-            drag_coeff=1.0,
-            radius=1.0,
-            node_type=NodeType.PHOTORECEPTOR,
-        ),
-        NodeState(
-            position=Vec2(bright_anchor.x - 6.0, bright_anchor.y),
-            velocity=Vec2.zero(),
-            accumulated_force=Vec2.zero(),
-            drag_coeff=1.0,
-            radius=1.0,
-        ),
+        _node(bright_anchor, node_type=NodeType.PHOTORECEPTOR),
+        _node(Vec2(bright_anchor.x - 5.0, bright_anchor.y + 3.0)),
+        _node(Vec2(bright_anchor.x - 5.0, bright_anchor.y - 3.0)),
     ]
-    _append_creature(nodes, edges, creatures, alga_nodes, [(0, 1)], energy=2.0, color_rgb=(214, 180, 70))
+    _append_creature(
+        nodes,
+        edges,
+        creatures,
+        alga_nodes,
+        [(0, 1), (0, 2), (1, 2)],
+        energy=2.5,
+        color_rgb=(214, 180, 70),
+    )
 
-    # Grazer: mouth anchored on a nutrient source.
+    # Worm: four-segment grazer with a visible head/tail body plan.
     grazer_nodes = [
-        NodeState(
-            position=source_a,
-            velocity=Vec2.zero(),
-            accumulated_force=Vec2.zero(),
-            drag_coeff=1.0,
-            radius=1.0,
-            node_type=NodeType.MOUTH,
-        ),
-        NodeState(
-            position=Vec2(source_a.x + 5.0, source_a.y),
-            velocity=Vec2.zero(),
-            accumulated_force=Vec2.zero(),
-            drag_coeff=1.0,
-            radius=1.0,
-        ),
+        _node(source_a, node_type=NodeType.MOUTH),
+        _node(Vec2(source_a.x + 4.0, source_a.y + 1.5)),
+        _node(Vec2(source_a.x + 8.0, source_a.y - 1.5)),
+        _node(Vec2(source_a.x + 12.0, source_a.y + 0.5), node_type=NodeType.SENSOR),
     ]
     _append_creature(
         nodes,
         edges,
         creatures,
         grazer_nodes,
-        [(0, 1)],
+        [(0, 1), (1, 2), (2, 3)],
         energy=2.0,
-        brain=_simple_motor_brain(light_gain=0.0, nutrient_gain=2.0),
+        brain=_worm_brain(light_gain=0.2, nutrient_gain=2.8),
         color_rgb=(54, 162, 147),
     )
 
     # Amoeba: triangular predator seeded on the grazer basin so predation can actually bootstrap.
     amoeba_nodes = [
-        NodeState(
-            position=source_a,
-            velocity=Vec2.zero(),
-            accumulated_force=Vec2.zero(),
-            drag_coeff=1.0,
-            radius=1.0,
-            node_type=NodeType.MOUTH,
-        ),
-        NodeState(
-            position=Vec2(source_a.x + 4.0, source_a.y + 4.0),
-            velocity=Vec2.zero(),
-            accumulated_force=Vec2.zero(),
-            drag_coeff=1.0,
-            radius=1.0,
-            node_type=NodeType.GRIPPER,
-        ),
-        NodeState(
-            position=Vec2(source_a.x - 4.0, source_a.y + 4.0),
-            velocity=Vec2.zero(),
-            accumulated_force=Vec2.zero(),
-            drag_coeff=1.0,
-            radius=1.0,
-        ),
+        _node(source_a, node_type=NodeType.MOUTH),
+        _node(Vec2(source_a.x + 5.0, source_a.y + 4.5), node_type=NodeType.GRIPPER),
+        _node(Vec2(source_a.x - 5.0, source_a.y + 4.5)),
     ]
     _append_creature(
         nodes,
@@ -106,6 +71,22 @@ def build_demo_archetypes(
     )
 
     return nodes, edges, creatures
+
+
+def _node(
+    position: Vec2,
+    *,
+    node_type: NodeType = NodeType.BODY,
+    radius: float = 1.4,
+) -> NodeState:
+    return NodeState(
+        position=position,
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=radius,
+        node_type=node_type,
+    )
 
 
 def _append_creature(
@@ -141,14 +122,24 @@ def _append_creature(
     )
 
 
-def _simple_motor_brain(light_gain: float, nutrient_gain: float) -> BrainState:
+def _worm_brain(light_gain: float, nutrient_gain: float) -> BrainState:
     return BrainState(
-        input_weights=((light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),),
-        recurrent_weights=((1.0,),),
-        biases=(0.0,),
-        time_constants=(1.0,),
-        states=(0.0,),
-        output_size=1,
+        input_weights=(
+            (light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (light_gain, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (light_gain * 0.5, nutrient_gain, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            (0.0, nutrient_gain * 0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+        ),
+        recurrent_weights=(
+            (1.25, -0.9, 0.45, 0.0),
+            (0.55, 1.2, -0.9, 0.0),
+            (0.0, 0.55, 1.2, -0.7),
+            (0.0, 0.0, 0.4, 1.0),
+        ),
+        biases=(0.8, -0.6, 0.5, 1.6),
+        time_constants=(0.8, 1.2, 1.0, 1.0),
+        states=(1.5, -1.0, 1.0, 2.0),
+        output_size=4,
     )
 
 

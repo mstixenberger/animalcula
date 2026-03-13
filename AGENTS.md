@@ -302,6 +302,7 @@ Current implementation baseline:
 - the shipped demo/viewer experience is now tuned for clearer first impressions: nutrient-first field rendering, faster visible motion, and slightly more durable seeded archetypes
 - both debug viewer backends now support follow-and-zoom around the selected creature, making the local viewer materially more useful for real movement inspection
 - both debug viewer backends now also support ambient auto-cycling camera behavior and stronger fast-forward controls, which matters for long-running display use as well as tuning
+- the shipped demo archetypes are now materially more legible for viewing: a four-node worm grazer replaces the old two-node grazer, seeded bodies use larger tripod/triangle silhouettes, and both debug viewer backends draw specialized mouth/gripper/sensor/photoreceptor glyphs
 
 ## Update Protocol
 

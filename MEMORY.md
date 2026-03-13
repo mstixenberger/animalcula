@@ -40,6 +40,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - `animalcula view` now defaults to a clearer nutrient-first field mode and higher steps-per-frame, and demo archetypes start with slightly higher energy for a better first watch
 - both debug viewer backends now support following the selected creature and zooming in, which should materially improve the “blob” first impression problem
 - both debug viewer backends now support ambient auto-cycling camera mode and stronger fast-forward controls, which better matches the long-run display plus tuning target
+- the shipped demo archetypes are now more legible and visibly specialized: a four-node worm grazer replaces the old two-node line, seeded bodies are slightly larger, and the viewers render dedicated glyphs for mouths, grippers, sensors, and photoreceptors
 
 ## Current Priority
 

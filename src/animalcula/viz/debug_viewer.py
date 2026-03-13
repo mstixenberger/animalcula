@@ -317,6 +317,7 @@ HTML_TEMPLATE = """<!doctype html>
         ctx.lineWidth = 2;
         ctx.strokeStyle = lineageColor;
         ctx.stroke();
+        drawNodeGlyph(node, cx, cy, radius);
       }}
 
       const selected = snapshot.creatures.find((creature) => creature.creature_id === selectedCreatureId);
@@ -354,6 +355,35 @@ HTML_TEMPLATE = """<!doctype html>
 
     function renderCurrent() {{
       draw(snapshots[frame]);
+    }}
+
+    function drawNodeGlyph(node, cx, cy, radius) {{
+      ctx.save();
+      ctx.strokeStyle = "rgba(16, 19, 23, 0.88)";
+      ctx.fillStyle = "rgba(16, 19, 23, 0.82)";
+      ctx.lineWidth = Math.max(1, radius * 0.28);
+      if (node.node_type === "mouth") {{
+        ctx.beginPath();
+        ctx.moveTo(cx - (radius * 0.8), cy + (radius * 0.12));
+        ctx.lineTo(cx + (radius * 0.8), cy + (radius * 0.12));
+        ctx.stroke();
+      }} else if (node.node_type === "gripper") {{
+        ctx.beginPath();
+        ctx.moveTo(cx - (radius * 0.15), cy - (radius * 0.15));
+        ctx.lineTo(cx + (radius * 0.95), cy - (radius * 0.95));
+        ctx.moveTo(cx - (radius * 0.15), cy + (radius * 0.15));
+        ctx.lineTo(cx + (radius * 0.95), cy + (radius * 0.95));
+        ctx.stroke();
+      }} else if (node.node_type === "sensor") {{
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(1.2, radius * 0.28), 0, Math.PI * 2);
+        ctx.fill();
+      }} else if (node.node_type === "photoreceptor") {{
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(1.4, radius * 0.52), 0, Math.PI * 2);
+        ctx.stroke();
+      }}
+      ctx.restore();
     }}
 
     function advanceFrame() {{
@@ -1035,6 +1065,52 @@ def _launch_tk_viewer(
                 outline=outline,
                 width=2,
             )
+            if node.node_type == "mouth":
+                canvas.create_line(
+                    cx - (radius * 0.8),
+                    cy + (radius * 0.12),
+                    cx + (radius * 0.8),
+                    cy + (radius * 0.12),
+                    fill="#101317",
+                    width=max(1.0, radius * 0.3),
+                )
+            elif node.node_type == "gripper":
+                canvas.create_line(
+                    cx - (radius * 0.15),
+                    cy - (radius * 0.15),
+                    cx + (radius * 0.95),
+                    cy - (radius * 0.95),
+                    fill="#101317",
+                    width=max(1.0, radius * 0.3),
+                )
+                canvas.create_line(
+                    cx - (radius * 0.15),
+                    cy + (radius * 0.15),
+                    cx + (radius * 0.95),
+                    cy + (radius * 0.95),
+                    fill="#101317",
+                    width=max(1.0, radius * 0.3),
+                )
+            elif node.node_type == "sensor":
+                glyph_radius = max(1.2, radius * 0.28)
+                canvas.create_oval(
+                    cx - glyph_radius,
+                    cy - glyph_radius,
+                    cx + glyph_radius,
+                    cy + glyph_radius,
+                    fill="#101317",
+                    outline="",
+                )
+            elif node.node_type == "photoreceptor":
+                glyph_radius = max(1.4, radius * 0.52)
+                canvas.create_oval(
+                    cx - glyph_radius,
+                    cy - glyph_radius,
+                    cx + glyph_radius,
+                    cy + glyph_radius,
+                    outline="#101317",
+                    width=max(1.0, radius * 0.22),
+                )
             if role is not None:
                 role_radius = max(1.0, radius * 0.35)
                 canvas.create_oval(

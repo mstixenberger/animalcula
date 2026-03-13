@@ -126,6 +126,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `animalcula view` now defaults to clearer first-run behavior with more motion per rendered frame, a nutrient-first field mode, and slightly more durable seeded demo archetypes
 - Both debug viewer backends now support following the selected creature and zooming in for much clearer local inspection
 - Both debug viewer backends now support an ambient auto-cycling camera mode plus stronger fast-forward controls for display and tuning workflows
+- The shipped demo seed set now uses a spec-aligned four-node worm grazer plus larger tripod/triangle archetypes, and both debug viewers now draw clearer mouth/gripper/sensor/photoreceptor glyphs
 - Headless runs now detect runaway species dominance from sustained >80% monoculture streaks and preserve that state across checkpoints
 - Shared interestingness scoring now penalizes peak-share and runaway-dominance signals so automated ranking deprioritizes monoculture lock-in
 - Headless runs now track peak population and population variance across the full run, preserving the population series summary across checkpoints

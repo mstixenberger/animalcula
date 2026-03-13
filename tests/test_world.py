@@ -1224,10 +1224,14 @@ def test_world_can_seed_demo_archetypes() -> None:
     world.seed_demo_archetypes()
 
     assert len(world.creatures) == 3
-    assert len(world.nodes) >= 5
-    assert len(world.edges) >= 2
+    assert len(world.nodes) >= 10
+    assert len(world.edges) >= 7
     assert sum(1 for creature in world.creatures if creature.brain is not None) >= 2
-    assert any(creature.brain is not None and creature.brain.output_size >= 3 for creature in world.creatures)
+    assert any(creature.brain is not None and creature.brain.output_size >= 4 for creature in world.creatures)
+    assert any(
+        any(world.nodes[node_index].node_type == NodeType.SENSOR for node_index in creature.node_indices)
+        for creature in world.creatures
+    )
 
 
 def test_world_can_seed_from_exported_genomes(tmp_path: Path) -> None:
@@ -1486,11 +1490,23 @@ def test_world_stats_report_population_nodes_and_total_energy() -> None:
     assert stats.predator_count >= 1
 
 
-def test_demo_seed_includes_spec_aligned_triangle_predator() -> None:
+def test_demo_seed_includes_spec_aligned_worm_grazer_and_triangle_predator() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
     world = World(config=config, seed=7)
     world.seed_demo_archetypes()
     primary_nutrient_source = world.nutrient_grid.position_for_cell(*world._nutrient_source_cells[0])
+
+    grazer = next(
+        creature
+        for creature in world.creatures
+        if any(world.nodes[node_index].node_type == NodeType.SENSOR for node_index in creature.node_indices)
+    )
+    grazer_nodes = [world.nodes[node_index] for node_index in grazer.node_indices]
+    grazer_edges = [
+        edge
+        for edge in world.edges
+        if edge.a in grazer.node_indices and edge.b in grazer.node_indices
+    ]
 
     predator = next(
         creature
@@ -1504,6 +1520,13 @@ def test_demo_seed_includes_spec_aligned_triangle_predator() -> None:
         for edge in world.edges
         if edge.a in predator.node_indices and edge.b in predator.node_indices
     ]
+
+    assert len(grazer_nodes) == 4
+    assert sum(1 for node in grazer_nodes if node.node_type == NodeType.MOUTH) == 1
+    assert sum(1 for node in grazer_nodes if node.node_type == NodeType.SENSOR) == 1
+    assert len(grazer_edges) == 3
+    assert all(edge.has_motor for edge in grazer_edges)
+    assert next(node.position for node in grazer_nodes if node.node_type == NodeType.MOUTH) == primary_nutrient_source
 
     assert len(predator_nodes) == 3
     assert sum(1 for node in predator_nodes if node.node_type == NodeType.MOUTH) == 1

@@ -41,6 +41,8 @@ def test_launch_viewer_falls_back_to_html_when_tk_is_unavailable(
     assert 'id="inspector"' in payload
     assert 'id="selectedSpecies"' in payload
     assert 'id="predatorStat"' in payload
+    assert 'function drawNodeGlyph' in payload
+    assert 'node.node_type === "gripper"' in payload
     assert '"color_rgb": [' in payload
     assert '"fields": {' in payload
     assert '"chemical_a": [[' in payload
@@ -88,3 +90,4 @@ def test_cli_view_can_write_html_viewer_without_tk(tmp_path: Path) -> None:
     assert 'followToggle.addEventListener("input"' in payload
     assert 'zoom.addEventListener("input"' in payload
     assert 'event.key === "4"' in payload
+    assert 'node.node_type === "photoreceptor"' in payload
