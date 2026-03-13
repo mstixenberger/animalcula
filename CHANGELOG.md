@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-03-13
+
 ### Added
 
 - Initial project operating documents: `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, and `CHANGELOG.md`
