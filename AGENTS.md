@@ -300,6 +300,7 @@ Current implementation baseline:
 - both debug viewer backends now support cycling/selecting nutrient, light, chemical A/B, and detritus overlays for fuller spec-aligned field inspection
 - render snapshots now carry species/lineage metadata for living creatures, and both debug viewer backends now support basic click-to-inspect creature metadata
 - the shipped demo/viewer experience is now tuned for clearer first impressions: nutrient-first field rendering, faster visible motion, and slightly more durable seeded archetypes
+- both debug viewer backends now support follow-and-zoom around the selected creature, making the local viewer materially more useful for real movement inspection
 
 ## Update Protocol
 

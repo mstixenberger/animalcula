@@ -184,6 +184,10 @@ HTML_TEMPLATE = """<!doctype html>
         <input id="scrub" type="range" min="0" max="0" value="0">
         <label class="meta" for="speed">speed</label>
         <input id="speed" type="range" min="0.25" max="4" step="0.25" value="1">
+        <label class="meta" for="followToggle">follow</label>
+        <input id="followToggle" type="checkbox" checked>
+        <label class="meta" for="zoom">zoom</label>
+        <input id="zoom" type="range" min="1" max="12" step="0.5" value="4">
         <label class="meta" for="fieldMode">field</label>
         <select id="fieldMode">
           <option value="combined">combined</option>
@@ -227,6 +231,8 @@ HTML_TEMPLATE = """<!doctype html>
     const step = document.getElementById("step");
     const scrub = document.getElementById("scrub");
     const speed = document.getElementById("speed");
+    const followToggle = document.getElementById("followToggle");
+    const zoom = document.getElementById("zoom");
     const fieldMode = document.getElementById("fieldMode");
     const status = document.getElementById("status");
     const populationStat = document.getElementById("populationStat");
@@ -245,6 +251,8 @@ HTML_TEMPLATE = """<!doctype html>
     let frame = 0;
     let running = true;
     let playbackRate = 1;
+    let followSelected = true;
+    let zoomLevel = 4;
     let activeFieldMode = "nutrient";
     let selectedCreatureId = null;
     let lastTimestamp = 0;
@@ -252,11 +260,24 @@ HTML_TEMPLATE = """<!doctype html>
 
     scrub.max = String(Math.max(0, snapshots.length - 1));
     fieldMode.value = activeFieldMode;
+    followToggle.checked = followSelected;
+    zoom.value = String(zoomLevel);
+
+    function cameraCenter(snapshot) {{
+      const selected = snapshot.creatures.find((creature) => creature.creature_id === selectedCreatureId);
+      if (followSelected && selected) {{
+        return [selected.center_x, selected.center_y];
+      }}
+      return [snapshot.world_width / 2, snapshot.world_height / 2];
+    }}
 
     function toCanvas(x, y, snapshot) {{
+      const [focusX, focusY] = cameraCenter(snapshot);
+      const scaleX = (canvas.width / Math.max(snapshot.world_width, 1.0)) * zoomLevel;
+      const scaleY = (canvas.height / Math.max(snapshot.world_height, 1.0)) * zoomLevel;
       return [
-        (x / Math.max(snapshot.world_width, 1.0)) * canvas.width,
-        (y / Math.max(snapshot.world_height, 1.0)) * canvas.height,
+        ((x - focusX) * scaleX) + (canvas.width / 2),
+        ((y - focusY) * scaleY) + (canvas.height / 2),
       ];
     }}
 
@@ -308,6 +329,8 @@ HTML_TEMPLATE = """<!doctype html>
         " population=" + snapshot.population +
         " total_energy=" + snapshot.total_energy.toFixed(2) +
         " speed=" + playbackRate.toFixed(2) + "x" +
+        " follow=" + (followSelected ? "on" : "off") +
+        " zoom=" + zoomLevel.toFixed(1) + "x" +
         " field=" + activeFieldMode;
       const roleCounts = snapshot.creatures.reduce((counts, creature) => {{
         counts[creature.trophic_role] = (counts[creature.trophic_role] || 0) + 1;
@@ -445,6 +468,16 @@ HTML_TEMPLATE = """<!doctype html>
       renderCurrent();
     }});
 
+    followToggle.addEventListener("input", (event) => {{
+      followSelected = Boolean(event.target.checked);
+      renderCurrent();
+    }});
+
+    zoom.addEventListener("input", (event) => {{
+      zoomLevel = Number(event.target.value);
+      renderCurrent();
+    }});
+
     fieldMode.addEventListener("input", (event) => {{
       activeFieldMode = event.target.value;
       renderCurrent();
@@ -469,6 +502,9 @@ HTML_TEMPLATE = """<!doctype html>
       }}
       if (best && bestDistance <= 28) {{
         selectedCreatureId = best.creature_id;
+        if (followSelected) {{
+          followToggle.checked = true;
+        }}
         renderCurrent();
       }}
     }});
@@ -482,11 +518,33 @@ HTML_TEMPLATE = """<!doctype html>
         step.click();
       }} else if (event.key.toLowerCase() === "f") {{
         event.preventDefault();
+        followSelected = !followSelected;
+        followToggle.checked = followSelected;
+        renderCurrent();
+      }} else if (event.key.toLowerCase() === "g") {{
+        event.preventDefault();
         cycleFieldMode();
       }} else if (event.key.toLowerCase() === "c") {{
         event.preventDefault();
         activeFieldMode = activeFieldMode === "chemical_a" ? "chemical_b" : "chemical_a";
         fieldMode.value = activeFieldMode;
+        renderCurrent();
+      }} else if (event.key === "=" || event.key === "+") {{
+        event.preventDefault();
+        zoomLevel = Math.min(12, zoomLevel + 0.5);
+        zoom.value = String(zoomLevel);
+        renderCurrent();
+      }} else if (event.key === "-") {{
+        event.preventDefault();
+        zoomLevel = Math.max(1, zoomLevel - 0.5);
+        zoom.value = String(zoomLevel);
+        renderCurrent();
+      }} else if (event.key === "Home") {{
+        event.preventDefault();
+        followSelected = false;
+        zoomLevel = 1;
+        followToggle.checked = false;
+        zoom.value = String(zoomLevel);
         renderCurrent();
       }}
     }});
@@ -684,6 +742,8 @@ def _launch_tk_viewer(
     pending_single_step = False
     field_mode_index = 1
     selected_creature_id: int | None = None
+    follow_selected = True
+    zoom_level = 4.0
 
     def _toggle_running(_: object | None = None) -> None:
         nonlocal running
@@ -697,6 +757,23 @@ def _launch_tk_viewer(
         nonlocal field_mode_index
         field_mode_index = (field_mode_index + 1) % len(FIELD_MODE_SEQUENCE)
 
+    def _toggle_follow(_: object | None = None) -> None:
+        nonlocal follow_selected
+        follow_selected = not follow_selected
+
+    def _zoom_in(_: object | None = None) -> None:
+        nonlocal zoom_level
+        zoom_level = min(12.0, zoom_level + 0.5)
+
+    def _zoom_out(_: object | None = None) -> None:
+        nonlocal zoom_level
+        zoom_level = max(1.0, zoom_level - 0.5)
+
+    def _reset_camera(_: object | None = None) -> None:
+        nonlocal follow_selected, zoom_level
+        follow_selected = False
+        zoom_level = 1.0
+
     def _select_creature(event: object) -> None:
         nonlocal selected_creature_id
         snapshot = world.snapshot()
@@ -705,16 +782,25 @@ def _launch_tk_viewer(
             return
         click_x = float(getattr(event, "x", 0.0))
         click_y = float(getattr(event, "y", 0.0))
+        selected = next(
+            (creature for creature in snapshot.creatures if creature.creature_id == selected_creature_id),
+            None,
+        )
+
+        def _project(x: float, y: float) -> tuple[float, float]:
+            focus_x = selected.center_x if (follow_selected and selected is not None) else (snapshot.world_width / 2)
+            focus_y = selected.center_y if (follow_selected and selected is not None) else (snapshot.world_height / 2)
+            scale_x = (canvas_width / max(snapshot.world_width, 1.0)) * zoom_level
+            scale_y = (canvas_height / max(snapshot.world_height, 1.0)) * zoom_level
+            return (
+                ((x - focus_x) * scale_x) + (canvas_width / 2),
+                ((y - focus_y) * scale_y) + (canvas_height / 2),
+            )
+
         best_creature = None
         best_distance = float("inf")
         for creature in snapshot.creatures:
-            cx, cy = _to_canvas(
-                creature.center_x,
-                creature.center_y,
-                snapshot,
-                canvas_width=canvas_width,
-                canvas_height=canvas_height,
-            )
+            cx, cy = _project(creature.center_x, creature.center_y)
             distance = math.hypot(click_x - cx, click_y - cy)
             if distance < best_distance:
                 best_distance = distance
@@ -724,8 +810,14 @@ def _launch_tk_viewer(
 
     root.bind("<space>", _toggle_running)
     root.bind("<Right>", _single_step)
-    root.bind("f", _cycle_field_mode)
-    root.bind("F", _cycle_field_mode)
+    root.bind("f", _toggle_follow)
+    root.bind("F", _toggle_follow)
+    root.bind("g", _cycle_field_mode)
+    root.bind("G", _cycle_field_mode)
+    root.bind("+", _zoom_in)
+    root.bind("=", _zoom_in)
+    root.bind("-", _zoom_out)
+    root.bind("<Home>", _reset_camera)
     canvas.bind("<Button-1>", _select_creature)
 
     def _draw(snapshot: Snapshot) -> None:
@@ -737,6 +829,20 @@ def _launch_tk_viewer(
         field_mode = FIELD_MODE_SEQUENCE[field_mode_index]
         if snapshot.creatures and not any(creature.creature_id == selected_creature_id for creature in snapshot.creatures):
             selected_creature_id = snapshot.creatures[0].creature_id
+        selected = next(
+            (creature for creature in snapshot.creatures if creature.creature_id == selected_creature_id),
+            None,
+        )
+
+        def _project(x: float, y: float) -> tuple[float, float]:
+            focus_x = selected.center_x if (follow_selected and selected is not None) else (snapshot.world_width / 2)
+            focus_y = selected.center_y if (follow_selected and selected is not None) else (snapshot.world_height / 2)
+            scale_x = (canvas_width / max(snapshot.world_width, 1.0)) * zoom_level
+            scale_y = (canvas_height / max(snapshot.world_height, 1.0)) * zoom_level
+            return (
+                ((x - focus_x) * scale_x) + (canvas_width / 2),
+                ((y - focus_y) * scale_y) + (canvas_height / 2),
+            )
 
         for row_index, rows in enumerate(
             zip(
@@ -772,20 +878,8 @@ def _launch_tk_viewer(
             for creature in snapshot.creatures
         }
         for edge in snapshot.edges:
-            ax, ay = _to_canvas(
-                edge.ax,
-                edge.ay,
-                snapshot,
-                canvas_width=canvas_width,
-                canvas_height=canvas_height,
-            )
-            bx, by = _to_canvas(
-                edge.bx,
-                edge.by,
-                snapshot,
-                canvas_width=canvas_width,
-                canvas_height=canvas_height,
-            )
+            ax, ay = _project(edge.ax, edge.ay)
+            bx, by = _project(edge.bx, edge.by)
             canvas.create_line(
                 ax,
                 ay,
@@ -796,13 +890,7 @@ def _launch_tk_viewer(
             )
 
         for node in snapshot.nodes:
-            cx, cy = _to_canvas(
-                node.x,
-                node.y,
-                snapshot,
-                canvas_width=canvas_width,
-                canvas_height=canvas_height,
-            )
+            cx, cy = _project(node.x, node.y)
             role = creature_roles.get(node.creature_id)
             outline = creature_colors.get(node.creature_id, "#cbd5e1")
             fill = NODE_COLORS.get(node.node_type, "#94a3b8")
@@ -827,18 +915,8 @@ def _launch_tk_viewer(
                     outline="",
                 )
 
-        selected = next(
-            (creature for creature in snapshot.creatures if creature.creature_id == selected_creature_id),
-            None,
-        )
         if selected is not None:
-            sx, sy = _to_canvas(
-                selected.center_x,
-                selected.center_y,
-                snapshot,
-                canvas_width=canvas_width,
-                canvas_height=canvas_height,
-            )
+            sx, sy = _project(selected.center_x, selected.center_y)
             canvas.create_oval(
                 sx - 14,
                 sy - 14,
@@ -858,7 +936,11 @@ def _launch_tk_viewer(
                         if selected is not None
                         else "selected=none"
                     ),
-                    f"space=play/pause right=step click=inspect f=field-mode({field_mode}) steps_per_frame={steps_per_frame} frame_delay_ms={frame_delay_ms}",
+                    (
+                        f"follow={'on' if follow_selected else 'off'} zoom={zoom_level:.1f}x "
+                        f"field={field_mode}"
+                    ),
+                    f"space=play/pause right=step click=inspect f=follow g=field +/-=zoom home=overview steps_per_frame={steps_per_frame} frame_delay_ms={frame_delay_ms}",
                 ]
             )
         )
