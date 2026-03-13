@@ -6,7 +6,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 
 - Branch state: working directly on `main` with frequent stable checkpoints
 - Product focus: spec-aligned headless simulation, logging, and tuning loop
-- Test status at last update: full `uv run pytest` passing after the edge-structure observability slice
+- Test status at last update: full `uv run pytest` passing after the control-topology observability slice
 - Recent completed slices:
   - direct trophic-balance weighting in shared interestingness scoring
   - deterministic nutrient epoch reseeding with source-strength multipliers
@@ -26,6 +26,7 @@ This file is a rolling handoff note for active implementation progress. Keep it 
 - mean mouth and gripper counts in headless stats/logs/sweeps/seed-bank summaries
 - mean sensor and photoreceptor counts in headless stats/logs/sweeps/seed-bank summaries
 - mean edge count and segment length in headless stats/logs/sweeps/seed-bank summaries
+- mean motor-edge count in headless stats/logs/sweeps/seed-bank summaries
 
 ## Current Priority
 

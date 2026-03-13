@@ -75,6 +75,7 @@ def test_cli_sweep_runs_parameter_grid_and_writes_results(tmp_path: Path) -> Non
     assert "mean_creature_energy" in records[0]
     assert "max_creature_energy" in records[0]
     assert "mean_edges_per_creature" in records[0]
+    assert "mean_motor_edges_per_creature" in records[0]
     assert "mean_segment_length_per_creature" in records[0]
     assert "mean_mouths_per_creature" in records[0]
     assert "mean_grippers_per_creature" in records[0]
@@ -131,6 +132,7 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "mean_creature_energy": 2.0,
             "max_creature_energy": 4.0,
             "mean_edges_per_creature": 1.5,
+            "mean_motor_edges_per_creature": 0.5,
             "mean_segment_length_per_creature": 2.5,
             "mean_mouths_per_creature": 1.0,
             "mean_grippers_per_creature": 0.5,
@@ -187,6 +189,7 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
             "mean_creature_energy": 1.5,
             "max_creature_energy": 3.0,
             "mean_edges_per_creature": 2.0,
+            "mean_motor_edges_per_creature": 1.0,
             "mean_segment_length_per_creature": 3.5,
             "mean_mouths_per_creature": 0.5,
             "mean_grippers_per_creature": 1.0,
@@ -239,6 +242,7 @@ def test_aggregate_sweep_records_groups_by_override_set() -> None:
     assert summaries[0]["avg_mean_creature_energy"] == 1.75
     assert summaries[0]["max_creature_energy_max"] == 4.0
     assert summaries[0]["avg_mean_edges_per_creature"] == 1.75
+    assert summaries[0]["avg_mean_motor_edges_per_creature"] == 0.75
     assert summaries[0]["avg_mean_segment_length_per_creature"] == 3.0
     assert summaries[0]["avg_mean_mouths_per_creature"] == 0.75
     assert summaries[0]["avg_mean_grippers_per_creature"] == 0.75

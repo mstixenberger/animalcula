@@ -43,6 +43,7 @@ def test_evaluate_seed_bank_ranks_candidates_by_aggregate_results(tmp_path: Path
     assert "avg_mean_creature_energy" in report["rankings"][0]
     assert "max_creature_energy_max" in report["rankings"][0]
     assert "avg_mean_edges_per_creature" in report["rankings"][0]
+    assert "avg_mean_motor_edges_per_creature" in report["rankings"][0]
     assert "avg_mean_segment_length_per_creature" in report["rankings"][0]
     assert "avg_mean_mouths_per_creature" in report["rankings"][0]
     assert "avg_mean_grippers_per_creature" in report["rankings"][0]

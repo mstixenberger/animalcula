@@ -112,6 +112,7 @@ class Stats:
     diversity_index: float
     mean_nodes_per_creature: float
     mean_edges_per_creature: float
+    mean_motor_edges_per_creature: float
     mean_segment_length_per_creature: float
     mean_mouths_per_creature: float
     mean_grippers_per_creature: float
@@ -270,6 +271,7 @@ class World:
                 edge for edge in self.edges if edge.a in creature_node_set and edge.b in creature_node_set
             ]
             edge_count = len(creature_edges)
+            motor_edges = sum(1 for edge in creature_edges if edge.has_motor)
             snapshots.append(
                 {
                     "tick": self.tick,
@@ -277,6 +279,7 @@ class World:
                     "species_id": species_labels.get(creature.id, coarse_species_signature(creature.genome)),
                     "num_nodes": len(creature.node_indices),
                     "num_edges": edge_count,
+                    "num_motor_edges": motor_edges,
                     "mean_segment_length": (
                         sum(edge.rest_length for edge in creature_edges) / edge_count if edge_count else 0.0
                     ),
@@ -461,6 +464,11 @@ class World:
             mean_nodes_per_creature=(len(self.nodes) / len(self.creatures)) if self.creatures else 0.0,
             mean_edges_per_creature=(
                 sum(snapshot["num_edges"] for snapshot in phenotype_snapshots) / len(phenotype_snapshots)
+                if phenotype_snapshots
+                else 0.0
+            ),
+            mean_motor_edges_per_creature=(
+                sum(snapshot["num_motor_edges"] for snapshot in phenotype_snapshots) / len(phenotype_snapshots)
                 if phenotype_snapshots
                 else 0.0
             ),

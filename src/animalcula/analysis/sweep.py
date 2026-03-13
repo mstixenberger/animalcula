@@ -100,6 +100,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
                 "species_sum": 0,
                 "diversity_sum": 0.0,
                 "edges_sum": 0.0,
+                "motor_edges_sum": 0.0,
                 "segment_length_sum": 0.0,
                 "mouths_sum": 0.0,
                 "grippers_sum": 0.0,
@@ -162,6 +163,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["species_sum"] += record["species_count"]
         bucket["diversity_sum"] += record["diversity_index"]
         bucket["edges_sum"] += record["mean_edges_per_creature"]
+        bucket["motor_edges_sum"] += record["mean_motor_edges_per_creature"]
         bucket["segment_length_sum"] += record["mean_segment_length_per_creature"]
         bucket["mouths_sum"] += record["mean_mouths_per_creature"]
         bucket["grippers_sum"] += record["mean_grippers_per_creature"]
@@ -226,6 +228,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_species_count": round(bucket["species_sum"] / bucket["runs"], 3),
             "avg_diversity_index": round(bucket["diversity_sum"] / bucket["runs"], 3),
             "avg_mean_edges_per_creature": round(bucket["edges_sum"] / bucket["runs"], 3),
+            "avg_mean_motor_edges_per_creature": round(bucket["motor_edges_sum"] / bucket["runs"], 3),
             "avg_mean_segment_length_per_creature": round(bucket["segment_length_sum"] / bucket["runs"], 3),
             "avg_mean_mouths_per_creature": round(bucket["mouths_sum"] / bucket["runs"], 3),
             "avg_mean_grippers_per_creature": round(bucket["grippers_sum"] / bucket["runs"], 3),
@@ -338,6 +341,7 @@ def _run_sweep_combination(
         "peak_species_fraction": stats.peak_species_fraction,
         "diversity_index": stats.diversity_index,
         "mean_edges_per_creature": stats.mean_edges_per_creature,
+        "mean_motor_edges_per_creature": stats.mean_motor_edges_per_creature,
         "mean_segment_length_per_creature": stats.mean_segment_length_per_creature,
         "mean_mouths_per_creature": stats.mean_mouths_per_creature,
         "mean_grippers_per_creature": stats.mean_grippers_per_creature,
