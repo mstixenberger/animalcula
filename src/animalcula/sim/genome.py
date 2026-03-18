@@ -5,7 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 import random
+from collections import defaultdict
 from typing import Any
 
 from animalcula.sim.types import (
@@ -429,6 +431,8 @@ def mutate_genome(
     structural_mutation_rate: float = 0.0,
     hidden_neuron_mutation_rate: float = 0.0,
     max_hidden_neurons: int = 24,
+    chain_extension_mutation_rate: float = 0.0,
+    max_nodes_per_creature: int = 16,
     color_sigma: float = 6.0,
 ) -> CreatureGenome:
     mutated_nodes = [
@@ -475,7 +479,7 @@ def mutate_genome(
         )
         for edge, original_edge in zip(mutated_edges, genome.edges, strict=True)
     ]
-    if mutated_nodes and rng.random() < structural_mutation_rate:
+    if mutated_nodes and len(mutated_nodes) < max_nodes_per_creature and rng.random() < structural_mutation_rate:
         parent_index = rng.randrange(len(mutated_nodes))
         parent_node = mutated_nodes[parent_index]
         offset = Vec2(rng.uniform(-3.0, 3.0), rng.uniform(-3.0, 3.0))
@@ -496,6 +500,64 @@ def mutate_genome(
                 motor_strength=0.0,
             )
         )
+    chain_extension_parent_motor_idx: int | None = None
+    chain_extension_new_motor_idx: int | None = None
+    if (
+        len(mutated_nodes) >= 2
+        and len(mutated_nodes) < max_nodes_per_creature
+        and rng.random() < chain_extension_mutation_rate
+    ):
+        degree: dict[int, int] = defaultdict(int)
+        for edge in mutated_edges:
+            degree[edge.a] += 1
+            degree[edge.b] += 1
+        terminals = [i for i in range(len(mutated_nodes)) if degree.get(i, 0) == 1]
+        if terminals:
+            terminal_idx = rng.choice(terminals)
+            terminal_edge = next(
+                edge for edge in mutated_edges if edge.a == terminal_idx or edge.b == terminal_idx
+            )
+            neighbor_idx = terminal_edge.b if terminal_edge.a == terminal_idx else terminal_edge.a
+            terminal_node = mutated_nodes[terminal_idx]
+            neighbor_node = mutated_nodes[neighbor_idx]
+            dx = terminal_node.position.x - neighbor_node.position.x
+            dy = terminal_node.position.y - neighbor_node.position.y
+            length = math.hypot(dx, dy)
+            if length < 1e-9:
+                dx, dy = rng.uniform(-1.0, 1.0), rng.uniform(-1.0, 1.0)
+                length = math.hypot(dx, dy) or 1.0
+            dx /= length
+            dy /= length
+            angle_noise = rng.gauss(0.0, 0.3)
+            cos_a, sin_a = math.cos(angle_noise), math.sin(angle_noise)
+            dx2 = dx * cos_a - dy * sin_a
+            dy2 = dx * sin_a + dy * cos_a
+            extend_length = max(0.5, terminal_edge.rest_length * rng.uniform(0.8, 1.2))
+            offset = Vec2(dx2 * extend_length, dy2 * extend_length)
+            new_node = GenomeNodeGene(
+                position=terminal_node.position + offset,
+                radius=terminal_node.radius,
+                node_type=terminal_node.node_type,
+            )
+            new_node_index = len(mutated_nodes)
+            mutated_nodes.append(new_node)
+            new_edge = GenomeEdgeGene(
+                a=terminal_idx,
+                b=new_node_index,
+                rest_length=max(offset.magnitude(), 0.1),
+                stiffness=1.0,
+                has_motor=True,
+                motor_strength=max(0.5, rng.gauss(1.5, 0.3)),
+            )
+            mutated_edges.append(new_edge)
+            # Find motor index of parent edge for brain warm-start
+            motor_count = 0
+            for edge in mutated_edges[:-1]:
+                if edge.has_motor:
+                    if edge is terminal_edge:
+                        chain_extension_parent_motor_idx = motor_count
+                    motor_count += 1
+            chain_extension_new_motor_idx = sum(1 for e in mutated_edges if e.has_motor) - 1
     mutated_genome_without_brain = CreatureGenome(
         nodes=tuple(mutated_nodes),
         edges=tuple(mutated_edges),
@@ -536,12 +598,50 @@ def mutate_genome(
                 mutated_brain,
                 target_hidden_neurons=min(max_hidden_neurons, max(0, target_hidden)),
             )
+        if (
+            chain_extension_parent_motor_idx is not None
+            and chain_extension_new_motor_idx is not None
+            and mutated_brain is not None
+        ):
+            mutated_brain = _warm_start_chain_neuron(
+                mutated_brain, chain_extension_parent_motor_idx, chain_extension_new_motor_idx, rng
+            )
     return CreatureGenome(
         nodes=tuple(mutated_nodes),
         edges=tuple(mutated_edges),
         brain=mutated_brain,
         color_rgb=_mutate_color_rgb(genome.color_rgb, rng=rng, sigma=color_sigma),
         visuals=_mutate_visuals(genome.visuals, rng=rng),
+    )
+
+
+def _warm_start_chain_neuron(
+    brain: GenomeBrainGene,
+    parent_motor_idx: int,
+    new_motor_idx: int,
+    rng: random.Random,
+) -> GenomeBrainGene:
+    """Bootstrap phase-shifted coordination for a chain-extension motor neuron."""
+    n = len(brain.biases)
+    hidden_count = max(0, n - brain.output_size)
+    parent_neuron_idx = hidden_count + parent_motor_idx
+    new_neuron_idx = hidden_count + new_motor_idx
+    if parent_neuron_idx >= n or new_neuron_idx >= n:
+        return brain
+    coupling_weight = rng.uniform(0.2, 0.6)
+    recurrent = [list(row) for row in brain.recurrent_weights]
+    recurrent[new_neuron_idx][parent_neuron_idx] = coupling_weight
+    parent_tau = brain.time_constants[parent_neuron_idx]
+    new_tau = parent_tau * rng.uniform(1.1, 1.5)
+    time_constants = list(brain.time_constants)
+    time_constants[new_neuron_idx] = new_tau
+    return GenomeBrainGene(
+        input_weights=brain.input_weights,
+        recurrent_weights=tuple(tuple(row) for row in recurrent),
+        biases=brain.biases,
+        time_constants=tuple(time_constants),
+        output_size=brain.output_size,
+        states=brain.states,
     )
 
 

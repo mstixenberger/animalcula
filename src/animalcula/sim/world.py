@@ -14,7 +14,7 @@ from typing import Callable
 from animalcula.analysis.metrics import shannon_diversity
 from animalcula.config import Config
 from animalcula.sim.brain import step_brain
-from animalcula.sim.energy import basal_cost, motor_cost, photosynthesis_gain
+from animalcula.sim.energy import basal_cost, motor_cost, photosynthesis_gain, reach_multiplier
 from animalcula.sim.fields import Grid2D
 from animalcula.sim.genome import (
     cluster_species,
@@ -154,6 +154,7 @@ class Stats:
     nutrient_source_strength_multiplier: float
     light_intensity: float
     light_direction_degrees: float
+    mean_chain_length: float
     peak_species_fraction: float
     runaway_dominance_detected: bool
 
@@ -756,6 +757,7 @@ class World:
             nutrient_source_strength_multiplier=self.current_nutrient_source_strength_multiplier(),
             light_intensity=light_intensity,
             light_direction_degrees=self.current_light_direction_degrees(),
+            mean_chain_length=self._mean_chain_length(),
             peak_species_fraction=self._peak_species_fraction,
             runaway_dominance_detected=self._runaway_dominance_detected,
         )
@@ -1249,20 +1251,28 @@ class World:
                 receptor_count=len(receptor_nodes),
                 photosynthesis_rate=self.config.energy.photosynthesis_rate,
             )
-            gain += sum(
-                self.nutrient_grid.consume_at_position(
+            mouth_reach_bonus = self.config.energy.mouth_reach_bonus
+            if mouth_reach_bonus > 0.0 and len(creature_nodes) > 1:
+                com = Vec2(
+                    sum(n.position.x for n in creature_nodes) / len(creature_nodes),
+                    sum(n.position.y for n in creature_nodes) / len(creature_nodes),
+                )
+                max_extent = max((n.position - com).magnitude() for n in creature_nodes)
+            else:
+                com = Vec2.zero()
+                max_extent = 0.0
+            for node in mouth_nodes:
+                rm = reach_multiplier(node.position, com, max_extent, mouth_reach_bonus)
+                gain += self.nutrient_grid.consume_at_position(
                     position=node.position,
                     amount=self.config.energy.feed_rate * self.nutrient_grid.sample(node.position),
-                )
-                for node in mouth_nodes
-            )
-            gain += sum(
-                self.detritus_grid.consume_at_position(
+                ) * rm
+            for node in mouth_nodes:
+                rm = reach_multiplier(node.position, com, max_extent, mouth_reach_bonus)
+                gain += self.detritus_grid.consume_at_position(
                     position=node.position,
                     amount=self.config.energy.scavenging_rate * self.detritus_grid.sample(node.position),
-                )
-                for node in mouth_nodes
-            )
+                ) * rm
             cost = basal_cost(
                 node_count=len(creature_nodes),
                 basal_cost_per_node=self.config.energy.basal_cost_per_node,
@@ -1405,6 +1415,8 @@ class World:
                 structural_mutation_rate=self.config.evolution.structural_mutation_rate,
                 hidden_neuron_mutation_rate=self.config.evolution.hidden_neuron_mutation_rate,
                 max_hidden_neurons=self.config.evolution.max_hidden_neurons,
+                chain_extension_mutation_rate=self.config.evolution.chain_extension_mutation_rate,
+                max_nodes_per_creature=self.config.evolution.max_nodes_per_creature,
             )
             child_offset = Vec2(2.0 * (creature_index + 1), 2.0 * (creature_index + 1))
             child_anchor = self.nodes[creature.node_indices[0]].position + child_offset
@@ -1639,6 +1651,34 @@ class World:
             for species_id, first_seen in self._species_first_seen_tick.items()
         )
 
+    def _mean_chain_length(self) -> float:
+        if not self.creatures:
+            return 0.0
+        total = 0.0
+        for creature in self.creatures:
+            creature_node_set = set(creature.node_indices)
+            adj: dict[int, list[int]] = {i: [] for i in creature.node_indices}
+            for edge in self.edges:
+                if edge.a in creature_node_set and edge.b in creature_node_set:
+                    adj[edge.a].append(edge.b)
+                    adj[edge.b].append(edge.a)
+            diameter = 0
+            for start in creature.node_indices:
+                visited = {start}
+                queue = [start]
+                depth_map = {start: 0}
+                while queue:
+                    current = queue.pop(0)
+                    for neighbor in adj[current]:
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            depth_map[neighbor] = depth_map[current] + 1
+                            queue.append(neighbor)
+                max_depth = max(depth_map.values()) if depth_map else 0
+                diameter = max(diameter, max_depth)
+            total += diameter
+        return total / len(self.creatures)
+
     def _mean_extinct_species_lifespan(self) -> float:
         if not self._extinct_species_ids:
             return 0.0
@@ -1845,7 +1885,7 @@ class World:
             if any(
                 other_creature.id != creature.id
                 and any(
-                    self._nodes_within_grip_range(gripper_node, self.nodes[node_index])
+                    self._nodes_within_grip_range(gripper_node, self.nodes[node_index], gripper_creature=creature)
                     for node_index in other_creature.node_indices
                 )
                 for other_creature in self.creatures
@@ -1914,7 +1954,7 @@ class World:
                             for latch in refreshed
                         ):
                             continue
-                        if not self._nodes_within_grip_range(self.nodes[node_index], self.nodes[other_node_index]):
+                        if not self._nodes_within_grip_range(self.nodes[node_index], self.nodes[other_node_index], gripper_creature=creature):
                             continue
                         refreshed.append(
                             GripLatch(
@@ -1958,9 +1998,26 @@ class World:
     def _nodes_overlap(self, a: NodeState, b: NodeState) -> bool:
         return (a.position - b.position).magnitude() < (a.radius + b.radius)
 
-    def _nodes_within_grip_range(self, gripper: NodeState, target: NodeState) -> bool:
-        capture_distance = (gripper.radius + target.radius) * 1.5
-        return (gripper.position - target.position).magnitude() < capture_distance
+    def _nodes_within_grip_range(
+        self,
+        gripper: NodeState,
+        target: NodeState,
+        gripper_creature: CreatureState | None = None,
+    ) -> bool:
+        base_capture = (gripper.radius + target.radius) * 1.5
+        if gripper_creature is not None and self.config.energy.gripper_reach_bonus > 0.0:
+            creature_nodes = [self.nodes[i] for i in gripper_creature.node_indices]
+            if len(creature_nodes) > 1:
+                com = Vec2(
+                    sum(n.position.x for n in creature_nodes) / len(creature_nodes),
+                    sum(n.position.y for n in creature_nodes) / len(creature_nodes),
+                )
+                max_extent = max((n.position - com).magnitude() for n in creature_nodes)
+                rm = reach_multiplier(
+                    gripper.position, com, max_extent, self.config.energy.gripper_reach_bonus
+                )
+                base_capture *= rm
+        return (gripper.position - target.position).magnitude() < base_capture
 
     def _trophic_role(self, creature: CreatureState) -> str:
         has_mouth = any(self.nodes[node_index].node_type == NodeType.MOUTH for node_index in creature.node_indices)

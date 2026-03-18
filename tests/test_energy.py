@@ -1,6 +1,7 @@
 import math
 
-from animalcula.sim.energy import basal_cost, feeding_gain, motor_cost, photosynthesis_gain
+from animalcula.sim.energy import basal_cost, feeding_gain, motor_cost, photosynthesis_gain, reach_multiplier
+from animalcula.sim.types import Vec2
 
 
 def test_basal_cost_scales_with_node_count() -> None:
@@ -31,3 +32,28 @@ def test_motor_cost_scales_with_applied_actuation() -> None:
     cost = motor_cost(total_actuation=3.0, motor_cost_per_unit=0.25)
 
     assert math.isclose(cost, 0.75)
+
+
+def test_reach_multiplier_at_com() -> None:
+    result = reach_multiplier(Vec2(5.0, 5.0), Vec2(5.0, 5.0), 10.0, 0.5)
+    assert math.isclose(result, 1.0)
+
+
+def test_reach_multiplier_at_max_extent() -> None:
+    result = reach_multiplier(Vec2(15.0, 5.0), Vec2(5.0, 5.0), 10.0, 0.5)
+    assert math.isclose(result, 1.5)
+
+
+def test_reach_multiplier_halfway() -> None:
+    result = reach_multiplier(Vec2(10.0, 5.0), Vec2(5.0, 5.0), 10.0, 0.5)
+    assert math.isclose(result, 1.25)
+
+
+def test_reach_multiplier_zero_bonus() -> None:
+    result = reach_multiplier(Vec2(15.0, 5.0), Vec2(5.0, 5.0), 10.0, 0.0)
+    assert math.isclose(result, 1.0)
+
+
+def test_reach_multiplier_zero_extent() -> None:
+    result = reach_multiplier(Vec2(15.0, 5.0), Vec2(5.0, 5.0), 0.0, 0.5)
+    assert math.isclose(result, 1.0)

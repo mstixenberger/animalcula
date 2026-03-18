@@ -293,6 +293,10 @@ Current implementation baseline:
 - shared interestingness scoring now also rewards trophic balance directly, so automated ranking favors actual mixed food webs rather than treating role balance as a passive side metric
 - sweep and seed-bank analysis now expose a trophic-balance score so headless selection loops can reward viable mixed ecologies, not just high population
 - initial passing pytest suite
+- chain-extension mutation can grow linear appendages from terminal nodes in a single step, with motorized joints, inherited node types, and brain warm-start for phase-shifted coordination
+- reach bonus config makes peripheral mouths and grippers more effective, creating selective pressure for stalk/arm morphologies
+- both structural and chain-extension mutations are gated by `max_nodes_per_creature` (default 16)
+- `mean_chain_length` stat tracks average BFS diameter per creature, exposed through all reporting paths
 - genomes now carry inherited RGB color genes for cosmetic lineage tracking without changing species clustering behavior
 - checkpoint payloads, phenotype snapshots, and both debug viewer backends now preserve and render lineage colors so evolving families are visually trackable
 - saved lifecycle events now preserve lineage colors too, and the CLI can export checkpoint phylogeny graphs as JSON or Newick from the recorded parent pointers

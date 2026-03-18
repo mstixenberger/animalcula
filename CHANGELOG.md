@@ -6,9 +6,19 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 
 ## [Unreleased]
 
+### Added
+
+- Chain-extension mutation operator that can grow linear appendages (flagella, arms, stalks) from terminal nodes in a single mutation step, with motorized joints and inherited node types
+- Brain warm-start for chain extensions that bootstraps phase-shifted recurrent coupling between parent and new motor neurons, so coordinated wave motion doesn't require discovery from scratch
+- Reach bonus for peripheral mouth and gripper nodes: mouths farther from center-of-mass consume more nutrients/detritus, and grippers farther from COM have extended capture range
+- `mean_chain_length` stat tracking the average longest linear path (BFS diameter) per creature's edge graph, exposed in CLI output, stats logs, sweeps, and seed-bank reports
+- `max_nodes_per_creature` config limit (default 16) that gates both structural and chain-extension mutations to prevent unbounded morphology growth
+- New config fields: `chain_extension_mutation_rate`, `max_nodes_per_creature` (evolution), `mouth_reach_bonus`, `gripper_reach_bonus` (energy), all with backward-compatible defaults
+
 ### Changed
 
 - The README landing section is now much more compact and scan-friendly, with grouped capabilities, clearer viewer-path guidance, and shorter runnable examples
+- Existing structural mutation is now also gated by `max_nodes_per_creature`
 
 ## [0.1.0] - 2026-03-13
 

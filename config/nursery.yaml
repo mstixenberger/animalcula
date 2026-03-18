@@ -44,6 +44,8 @@ energy:
   predation_rate: 0.0
   predation_transfer_efficiency: 0.6
   reproduction_threshold: 60.0
+  mouth_reach_bonus: 0.15
+  gripper_reach_bonus: 0.15
 
 evolution:
   position_mutation_sigma: 0.5
@@ -57,6 +59,8 @@ evolution:
   structural_mutation_rate: 0.05
   hidden_neuron_mutation_rate: 0.05
   max_hidden_neurons: 24
+  chain_extension_mutation_rate: 0.05
+  max_nodes_per_creature: 16
 
 brain:
   default_input_size: 16

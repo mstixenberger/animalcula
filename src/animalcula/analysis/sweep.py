@@ -165,6 +165,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
         bucket["edges_sum"] += record["mean_edges_per_creature"]
         bucket["motor_edges_sum"] += record["mean_motor_edges_per_creature"]
         bucket["segment_length_sum"] += record["mean_segment_length_per_creature"]
+        bucket["chain_length_sum"] = bucket.get("chain_length_sum", 0.0) + record.get("mean_chain_length", 0.0)
         bucket["mouths_sum"] += record["mean_mouths_per_creature"]
         bucket["grippers_sum"] += record["mean_grippers_per_creature"]
         bucket["sensors_sum"] += record["mean_sensors_per_creature"]
@@ -230,6 +231,7 @@ def aggregate_sweep_records(records: list[dict[str, Any]]) -> list[dict[str, Any
             "avg_mean_edges_per_creature": round(bucket["edges_sum"] / bucket["runs"], 3),
             "avg_mean_motor_edges_per_creature": round(bucket["motor_edges_sum"] / bucket["runs"], 3),
             "avg_mean_segment_length_per_creature": round(bucket["segment_length_sum"] / bucket["runs"], 3),
+            "avg_mean_chain_length": round(bucket.get("chain_length_sum", 0.0) / bucket["runs"], 3),
             "avg_mean_mouths_per_creature": round(bucket["mouths_sum"] / bucket["runs"], 3),
             "avg_mean_grippers_per_creature": round(bucket["grippers_sum"] / bucket["runs"], 3),
             "avg_mean_sensors_per_creature": round(bucket["sensors_sum"] / bucket["runs"], 3),
@@ -343,6 +345,7 @@ def _run_sweep_combination(
         "mean_edges_per_creature": stats.mean_edges_per_creature,
         "mean_motor_edges_per_creature": stats.mean_motor_edges_per_creature,
         "mean_segment_length_per_creature": stats.mean_segment_length_per_creature,
+        "mean_chain_length": stats.mean_chain_length,
         "mean_mouths_per_creature": stats.mean_mouths_per_creature,
         "mean_grippers_per_creature": stats.mean_grippers_per_creature,
         "mean_sensors_per_creature": stats.mean_sensors_per_creature,

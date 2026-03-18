@@ -507,3 +507,197 @@ def test_cluster_species_groups_similar_genomes() -> None:
 
     assert labels[0] == labels[1]
     assert labels[0] != labels[2]
+
+
+def _make_chain_genome(n: int, *, node_type: NodeType = NodeType.MOUTH) -> CreatureGenome:
+    """Build a linear chain of n nodes connected end-to-end."""
+    nodes = tuple(
+        CreatureGenome.NodeGene(
+            position=Vec2(float(i) * 3.0, 0.0),
+            radius=1.0,
+            node_type=node_type if i == n - 1 else NodeType.BODY,
+        )
+        for i in range(n)
+    )
+    edges = tuple(
+        CreatureGenome.EdgeGene(
+            a=i, b=i + 1, rest_length=3.0, stiffness=1.0, has_motor=True, motor_strength=1.0
+        )
+        for i in range(n - 1)
+    )
+    brain = CreatureGenome.BrainGene(
+        input_weights=tuple((0.0,) * 16 for _ in range(n - 1)),
+        recurrent_weights=tuple(tuple(0.0 for _ in range(n - 1)) for _ in range(n - 1)),
+        biases=tuple(0.0 for _ in range(n - 1)),
+        time_constants=tuple(1.0 for _ in range(n - 1)),
+        output_size=n - 1,
+    )
+    return CreatureGenome(nodes=nodes, edges=edges, brain=brain)
+
+
+def test_chain_extension_extends_terminal_node() -> None:
+    rng = random.Random(42)
+    genome = _make_chain_genome(3)
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        chain_extension_mutation_rate=1.0,
+    )
+
+    assert len(mutated.nodes) == 4
+    assert len(mutated.edges) == 3
+    new_edge = mutated.edges[-1]
+    assert new_edge.has_motor is True
+    assert new_edge.motor_strength >= 0.5
+
+
+def test_chain_extension_inherits_node_type() -> None:
+    rng = random.Random(42)
+    genome = _make_chain_genome(3, node_type=NodeType.GRIPPER)
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        chain_extension_mutation_rate=1.0,
+    )
+
+    terminal_types = [
+        mutated.nodes[i].node_type
+        for i in range(len(mutated.nodes))
+        if i == len(mutated.nodes) - 1 or i == len(mutated.nodes) - 2
+    ]
+    assert NodeType.GRIPPER in terminal_types
+
+
+def test_chain_extension_respects_max_nodes() -> None:
+    rng = random.Random(42)
+    genome = _make_chain_genome(4)
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        chain_extension_mutation_rate=1.0,
+        max_nodes_per_creature=4,
+    )
+
+    assert len(mutated.nodes) == 4
+
+
+def test_chain_extension_skips_without_terminals() -> None:
+    """A fully triangulated graph has no terminal (degree-1) nodes."""
+    rng = random.Random(42)
+    genome = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(position=Vec2(0.0, 0.0), radius=1.0, node_type=NodeType.BODY),
+            CreatureGenome.NodeGene(position=Vec2(3.0, 0.0), radius=1.0, node_type=NodeType.BODY),
+            CreatureGenome.NodeGene(position=Vec2(1.5, 2.6), radius=1.0, node_type=NodeType.BODY),
+        ),
+        edges=(
+            CreatureGenome.EdgeGene(a=0, b=1, rest_length=3.0, stiffness=1.0),
+            CreatureGenome.EdgeGene(a=1, b=2, rest_length=3.0, stiffness=1.0),
+            CreatureGenome.EdgeGene(a=2, b=0, rest_length=3.0, stiffness=1.0),
+        ),
+        brain=None,
+    )
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        chain_extension_mutation_rate=1.0,
+    )
+
+    assert len(mutated.nodes) == 3
+
+
+def test_structural_mutation_respects_max_nodes() -> None:
+    rng = random.Random(42)
+    genome = _make_chain_genome(4)
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        structural_mutation_rate=1.0,
+        max_nodes_per_creature=4,
+    )
+
+    assert len(mutated.nodes) == 4
+
+
+def test_chain_extension_warm_starts_recurrent_coupling() -> None:
+    rng = random.Random(42)
+    genome = _make_chain_genome(3)
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        chain_extension_mutation_rate=1.0,
+    )
+
+    assert mutated.brain is not None
+    # At least one neuron should have nonzero recurrent coupling from another
+    # (the warm-start sets recurrent_weights[new_motor][parent_motor])
+    found_coupling = False
+    for row in mutated.brain.recurrent_weights:
+        if any(w != 0.0 for w in row):
+            found_coupling = True
+            break
+    assert found_coupling, "Expected nonzero recurrent coupling from warm-start"
+
+
+def test_chain_extension_offsets_time_constant() -> None:
+    rng = random.Random(42)
+    genome = _make_chain_genome(3)
+
+    mutated = mutate_genome(
+        genome=genome,
+        rng=rng,
+        position_sigma=0.0,
+        radius_sigma=0.0,
+        weight_sigma=0.0,
+        bias_sigma=0.0,
+        tau_sigma=0.0,
+        motor_strength_sigma=0.0,
+        chain_extension_mutation_rate=1.0,
+    )
+
+    assert mutated.brain is not None
+    # The new motor's time constant should differ from 1.0 (the default)
+    taus = mutated.brain.time_constants
+    assert any(tau != 1.0 for tau in taus), "Expected at least one offset time constant from warm-start"

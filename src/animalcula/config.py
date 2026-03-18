@@ -63,6 +63,8 @@ class EnergyConfig:
     predation_rate: float
     predation_transfer_efficiency: float
     reproduction_threshold: float
+    mouth_reach_bonus: float
+    gripper_reach_bonus: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -78,6 +80,8 @@ class EvolutionConfig:
     structural_mutation_rate: float
     hidden_neuron_mutation_rate: float
     max_hidden_neurons: int
+    chain_extension_mutation_rate: float
+    max_nodes_per_creature: int
 
 
 @dataclass(slots=True, frozen=True)
@@ -118,6 +122,8 @@ class Config:
         evolution_raw = {
             "hidden_neuron_mutation_rate": 0.0,
             "max_hidden_neurons": 24,
+            "chain_extension_mutation_rate": 0.0,
+            "max_nodes_per_creature": 16,
             **raw["evolution"],
         }
         environment_raw = {
@@ -147,7 +153,13 @@ class Config:
                     "drag_shift_multipliers": tuple(environment_raw["drag_shift_multipliers"]),
                 }
             ),
-            energy=EnergyConfig(**raw["energy"]),
+            energy=EnergyConfig(
+                **{
+                    "mouth_reach_bonus": 0.0,
+                    "gripper_reach_bonus": 0.0,
+                    **raw["energy"],
+                }
+            ),
             evolution=EvolutionConfig(**evolution_raw),
             brain=BrainConfig(**raw["brain"]),
             creatures=CreaturesConfig(**raw["creatures"]),

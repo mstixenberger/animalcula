@@ -58,6 +58,7 @@ def test_world_step_advances_tick_and_returns_snapshot() -> None:
     assert world.stats().peak_grip_latch_count == 0
     assert world.stats().mean_gripper_contact_signal == 0.0
     assert world.stats().mean_gripper_active_signal == 0.0
+    assert world.stats().mean_chain_length == 0.0
     assert snapshot.phase_trace == [
         "environment",
         "sensing",
@@ -1609,7 +1610,7 @@ def test_cli_run_command_advances_the_world() -> None:
 
     assert (
         result.stdout.strip()
-        == "tick=3 seed=11 drag_multiplier=1.00 nutrient_strength_multiplier=1.00 light_intensity=1.00 light_direction_degrees=0.0 population=0 peak_population=0 population_variance=0.000 population_capacity_fraction=0.000 peak_population_capacity_fraction=0.000 crowding_multiplier=1.000 peak_crowding_multiplier=1.000 nodes=0 total_energy=0.000 mean_creature_energy=0.000 max_creature_energy=0.000 nutrient_total=12.922 detritus_total=0.000 chemical_a_total=0.000 chemical_b_total=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 environment_perturbations=0 species=0 observed_species=0 peak_species=0 peak_species_fraction=0.000 lineages=0 runaway_dominance=false diversity=0.000 complexity=0.00 mean_edges_per_creature=0.00 mean_motor_edges_per_creature=0.00 mean_segment_length_per_creature=0.00 mean_mouths_per_creature=0.00 mean_grippers_per_creature=0.00 mean_sensors_per_creature=0.00 mean_photoreceptors_per_creature=0.00 mean_speed_recent=0.000 mean_age_ticks=0.00 max_age_ticks=0 active_grip_latches=0 peak_grip_latches=0 mean_gripper_contact_signal=0.000 mean_gripper_active_signal=0.000 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0 trophic_balance=0.000"
+        == "tick=3 seed=11 drag_multiplier=1.00 nutrient_strength_multiplier=1.00 light_intensity=1.00 light_direction_degrees=0.0 population=0 peak_population=0 population_variance=0.000 population_capacity_fraction=0.000 peak_population_capacity_fraction=0.000 crowding_multiplier=1.000 peak_crowding_multiplier=1.000 nodes=0 total_energy=0.000 mean_creature_energy=0.000 max_creature_energy=0.000 nutrient_total=12.922 detritus_total=0.000 chemical_a_total=0.000 chemical_b_total=0.000 births=0 deaths=0 reproductions=0 speciations=0 species_extinctions=0 species_turnover=0 predation_kills=0 environment_perturbations=0 species=0 observed_species=0 peak_species=0 peak_species_fraction=0.000 lineages=0 runaway_dominance=false diversity=0.000 complexity=0.00 mean_edges_per_creature=0.00 mean_motor_edges_per_creature=0.00 mean_segment_length_per_creature=0.00 mean_chain_length=0.00 mean_mouths_per_creature=0.00 mean_grippers_per_creature=0.00 mean_sensors_per_creature=0.00 mean_photoreceptors_per_creature=0.00 mean_speed_recent=0.000 mean_age_ticks=0.00 max_age_ticks=0 active_grip_latches=0 peak_grip_latches=0 mean_gripper_contact_signal=0.000 mean_gripper_active_signal=0.000 longest_species_lifespan=0 mean_extinct_species_lifespan=0.00 autotrophs=0 herbivores=0 predators=0 trophic_balance=0.000"
     )
 
 
@@ -2404,3 +2405,83 @@ def test_cli_run_command_accepts_turbo_mode() -> None:
     )
 
     assert "tick=1" in result.stdout
+
+
+def test_mouth_reach_bonus_increases_feeding() -> None:
+    """A mouth on the periphery should consume more than one near COM with reach bonus."""
+    config = Config.from_yaml(Path("config/default.yaml"))
+    # Creature A: 3-node with mouth near COM (mouth at center between two body nodes)
+    # Creature B: 3-node with mouth on stalk tip (mouth far from COM)
+    center_mouth_nodes = [
+        NodeState(position=Vec2(500.0, 495.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.BODY),
+        NodeState(position=Vec2(500.0, 500.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.MOUTH),
+        NodeState(position=Vec2(500.0, 505.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.BODY),
+    ]
+    stalk_mouth_nodes = [
+        NodeState(position=Vec2(520.0, 495.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.BODY),
+        NodeState(position=Vec2(520.0, 500.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.BODY),
+        NodeState(position=Vec2(520.0, 510.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.MOUTH),
+    ]
+    edges = [
+        EdgeState(a=0, b=1, rest_length=5.0, stiffness=1.0),
+        EdgeState(a=1, b=2, rest_length=5.0, stiffness=1.0),
+        EdgeState(a=3, b=4, rest_length=5.0, stiffness=1.0),
+        EdgeState(a=4, b=5, rest_length=10.0, stiffness=1.0),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0, 1, 2), energy=50.0),
+        CreatureState(node_indices=(3, 4, 5), energy=50.0),
+    ]
+    config_with = config.with_overrides(["energy.mouth_reach_bonus=0.5"])
+    world_with = World(config=config_with, seed=1, nodes=center_mouth_nodes + stalk_mouth_nodes, edges=edges, creatures=creatures)
+    # Deposit equal nutrients near each mouth
+    world_with.nutrient_grid.add_value_at_position(Vec2(500.0, 500.0), 100.0)
+    world_with.nutrient_grid.add_value_at_position(Vec2(520.0, 510.0), 100.0)
+    world_with.step(1)
+    stalk_energy = world_with.creatures[1].energy
+    center_energy = world_with.creatures[0].energy
+    assert stalk_energy > center_energy
+
+
+def test_reach_bonus_zero_no_effect() -> None:
+    """With zero reach bonus, both creatures should gain similar energy from identical nutrient."""
+    config = Config.from_yaml(Path("config/default.yaml"))
+    nodes = [
+        NodeState(position=Vec2(500.0, 500.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.MOUTH),
+        NodeState(position=Vec2(503.0, 500.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.BODY),
+        NodeState(position=Vec2(510.0, 500.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.BODY),
+        NodeState(position=Vec2(520.0, 500.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.MOUTH),
+    ]
+    edges = [
+        EdgeState(a=0, b=1, rest_length=3.0, stiffness=1.0),
+        EdgeState(a=2, b=3, rest_length=10.0, stiffness=1.0),
+    ]
+    creatures = [
+        CreatureState(node_indices=(0, 1), energy=50.0),
+        CreatureState(node_indices=(2, 3), energy=50.0),
+    ]
+    config_zero = config.with_overrides(["energy.mouth_reach_bonus=0.0"])
+    world = World(config=config_zero, seed=1, nodes=nodes, edges=edges, creatures=creatures)
+    world.nutrient_grid.add_value_at_position(Vec2(500.0, 500.0), 100.0)
+    world.nutrient_grid.add_value_at_position(Vec2(520.0, 500.0), 100.0)
+    world.step(1)
+    diff = abs(world.creatures[0].energy - world.creatures[1].energy)
+    avg = (world.creatures[0].energy + world.creatures[1].energy) / 2.0
+    assert diff < avg * 0.01 or diff < 0.1
+
+
+def test_stats_chain_length() -> None:
+    """A known chain creature should produce the correct mean_chain_length stat."""
+    config = Config.from_yaml(Path("config/default.yaml"))
+    nodes = [
+        NodeState(position=Vec2(100.0 + i * 3.0, 100.0), velocity=Vec2.zero(), accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0, node_type=NodeType.BODY)
+        for i in range(4)
+    ]
+    edges = [
+        EdgeState(a=i, b=i + 1, rest_length=3.0, stiffness=1.0)
+        for i in range(3)
+    ]
+    creatures = [CreatureState(node_indices=(0, 1, 2, 3), energy=50.0)]
+    world = World(config=config, seed=1, nodes=nodes, edges=edges, creatures=creatures)
+    stats = world.stats()
+    assert stats.mean_chain_length == 3.0
