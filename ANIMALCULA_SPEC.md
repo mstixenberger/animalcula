@@ -18,7 +18,9 @@ microscope — translucent bodies, visible internal structure, caustic light, or
 
 ### 1.1 Domain
 
-- **2D continuous space**, toroidal (wraps around) or bounded with soft walls.
+- **2D continuous space**, bounded with **soft repulsive walls** (1/r² force near edges).
+  Toroidal wrapping was considered but rejected — bounded worlds avoid minimum-image
+  physics complications and add wall-hugging as an ecological niche.
 - Recommended world size: 1000×1000 units (tunable).
 - Spatial grid overlay for field quantities (nutrients, light, chemicals) at ~5 unit
   resolution → 200×200 grid cells.
@@ -41,6 +43,10 @@ velocity is directly proportional to force at every instant. This is:
 - **Evolutionarily interesting** (reciprocal motion produces zero displacement — creatures
   must evolve non-reciprocal gaits to move, exactly like real microswimmers)
 
+**Validation requirement:** A 2-node, 1-motor creature with identical drag coefficients
+must produce zero net displacement under symmetric oscillation. This is a correctness test
+for the overdamped regime — if it drifts, the physics has a symmetry-breaking bug.
+
 ### 1.3 Environment Fields (on spatial grid)
 
 | Field         | Dynamics                          | Role                            |
@@ -53,6 +59,21 @@ velocity is directly proportional to force at every instant. This is:
 
 Nutrient sources should be **spatially heterogeneous and time-varying**: pulsing vents,
 moving patches, seasonal cycles. This prevents monoculture equilibria.
+
+**Nutrient throughput is finite.** Sources emit nutrients at a configured rate per tick
+(not a hard set), and each grid cell has a maximum nutrient density cap
+(`nutrient_max_density`). This ensures that:
+- Food scarcity is genuine when population is high (creatures consume faster than sources emit)
+- Resource competition drives niche differentiation rather than an artificial crowding multiplier
+- Predation becomes a real alternative strategy when the nutrient floor drops
+
+### 1.3.1 Obstacles
+
+The world can contain **static obstacles** — circles or rectangles placed at world
+initialization and during long-cycle epoch events. Obstacles use the same soft repulsion
+as node-node contact. They create sheltered zones, chokepoints, and spatial heterogeneity
+that drives niche differentiation. Obstacle placement is configurable and can change at
+epoch boundaries.
 
 ### 1.4 Environmental Variation (Seasons / Epochs)
 
@@ -78,7 +99,8 @@ Node:
   - velocity: (x, y)       — derived from forces (overdamped)
   - radius: float           — collision radius, visual size
   - type: enum {body, mouth, gripper, sensor, photoreceptor}
-  - drag_coeff: float       — can vary per node (e.g., flagella have lower drag)
+  - drag_coeff: float       — evolvable per node (e.g., flagella have lower drag)
+  - heading_node: bool      — node index 0 is the "head" by genome convention
 
 Edge (Segment):
   - connects: (node_a, node_b)
@@ -95,6 +117,15 @@ Edge (Segment):
 - Minimum 2 nodes, maximum 12 nodes (tunable, but >12 gets expensive).
 - Graph must be connected.
 - Typical creature: 3–8 nodes.
+
+**Heading convention:** Node 0 in the genome is the "head." The creature's facing direction
+is defined as the vector from center-of-mass to the head node. Directional sensors use this
+vector. Rendering draws head-first.
+
+**Per-node drag is evolvable.** `drag_coeff` is part of the genome and subject to mutation.
+This is a key locomotion mechanism: a node with low drag moves more for the same force,
+breaking reciprocal symmetry (see scallop theorem in §1.2). Flagella-like structures
+emerge naturally when terminal nodes evolve lower drag than body nodes.
 
 ### 2.2 Body Node Types and Their Physics
 
@@ -137,7 +168,9 @@ Position update: `x_new = x_old + v * dt`
 
 ### 2.4 Energy Budget
 
-Each creature carries an **energy** scalar (float, starts at birth energy).
+Each creature carries two state scalars:
+- **energy** (float, starts at birth energy) — fuel for metabolism, movement, reproduction
+- **health** (float, starts at max health) — structural integrity, reduced by damage
 
 | Activity             | Energy cost per timestep               |
 |----------------------|----------------------------------------|
@@ -145,6 +178,7 @@ Each creature carries an **energy** scalar (float, starts at birth energy).
 | Motor actuation      | `E_motor * |torque_applied|` per motor |
 | Gripping (holding)   | `E_grip * num_active_latches`          |
 | Chemical emission    | `E_chem * emission_rate`               |
+| Health regeneration  | `E_regen` per tick while health < max  |
 
 | Activity             | Energy gain                            |
 |----------------------|----------------------------------------|
@@ -153,8 +187,25 @@ Each creature carries an **energy** scalar (float, starts at birth energy).
 | Predation            | `victim.energy * transfer_efficiency` on kill |
 | Scavenging           | Absorb from detritus grid cells        |
 
-**Death** occurs when energy ≤ 0. The creature's remaining structural energy becomes a
-detritus patch on the grid.
+### 2.4.1 Health
+
+Health is a separate axis from energy. Energy is fuel; health is structural integrity.
+
+**Health is reduced by:**
+- Bite damage from predators (primary source)
+- Environmental stress (extreme drag shifts, prolonged starvation)
+
+**Health is restored by:**
+- Passive regeneration at a constant energy cost (`E_regen` per tick while health < max)
+
+**Effect of low health:**
+- Motor output is scaled by `0.5 + 0.5 * (health / max_health)` — injured creatures are
+  sluggish but not helpless. A creature at 50% health has 75% motor effectiveness.
+- This creates a "wounded gazelle" dynamic: injured prey are easier to catch, rewarding
+  predators that wound-and-pursue rather than needing sustained contact for a kill.
+
+**Death** occurs when health ≤ 0 OR energy ≤ 0. The creature's remaining structural energy
+becomes a detritus patch on the grid.
 
 **Critical design parameter:** The energy economics **must** make pure photosynthesis barely
 viable and predation risky but rewarding. Suggested starting ratio: a predator needs to
@@ -194,24 +245,32 @@ Discretized with Euler: `s_i(t+dt) = s_i(t) + dt/τ_i * [-s_i(t) + Σ_j(...) + I
 ### 3.3 Network Topology
 
 ```
-INPUTS (variable per morphology):
+INPUTS (dynamic, scales with morphology):
   - Per sensor node: local nutrient gradient (dx, dy), chemical A, chemical B
   - Per photoreceptor: light intensity, light direction (dx, dy)
-  - Per joint: current angle, angular velocity
+  - Per motor joint: current angle, angular velocity
   - Per gripper: contact (0/1), grip active (0/1)
-  - Global: own energy level (normalized), own age (normalized)
+  - Global: own energy level (normalized), own age (normalized),
+            own health (normalized)
 
 HIDDEN LAYER:
   - N_hidden neurons (evolvable, range [4, 24])
   - Fully connected recurrent (all-to-all within hidden + self-connections)
 
-OUTPUTS (variable per morphology):
+OUTPUTS (dynamic, scales with morphology):
   - Per motor joint: desired torque [-1, 1] scaled by motor_torque_max
   - Per gripper: grip/release (thresholded at 0.5)
   - Per mouth: bite force [0, 1]
   - Chemical emission rate [0, 1]
   - Reproduce signal (thresholded, only acts if energy > reproduction_threshold)
 ```
+
+**Critical implementation note:** Both input and output vector sizes are determined by the
+creature's morphology (number of sensors, photoreceptors, motors, grippers, mouths). The
+CTRNN input weight matrix must resize when structural mutations add or remove sensing/motor
+nodes. This mirrors the existing output-resize logic. A creature with 3 sensor nodes gets
+3× the sensor input channels of a creature with 1 sensor node, enabling spatial resolution
+from distributed sensing and multi-photoreceptor triangulation.
 
 ### 3.4 Genome Encoding
 
@@ -234,7 +293,9 @@ The genome is a flat float vector encoding, in order:
 - All τ_i time constants
 
 **Meta genes:**
-- Mutation rate (self-adaptive)
+- Mutation rate (self-adaptive, clamped to [0.001, 0.2]) — replaces global mutation rate
+  for weight/bias/tau perturbations. Mutates itself each reproduction. Structural mutation
+  rates (add/remove node/edge) remain global config parameters.
 - Mutation step size
 - Preferred reproduction mode (asexual bias vs. sexual bias)
 - Color (RGB — purely cosmetic but allows visual lineage tracking)
@@ -263,28 +324,45 @@ preconceptions. Natural selection from energy dynamics produces surprising strat
 - Offspring spawns adjacent to parent.
 
 **Sexual (conjugation):**
-- Two creatures with energy > threshold come into physical contact.
+- Two creatures **of the same species** (low genome distance) with energy > threshold come
+  into physical contact.
 - Both signal reproduce simultaneously.
 - Offspring genome = crossover of both parents + mutations.
 - Energy cost split among both parents.
 - Requires **evolved coordination** — this is hard, so it should be rewarding (crossover
   explores the fitness landscape faster).
+- **Same-species restriction** avoids the structural alignment problem: crossover between
+  creatures with different node/edge/neuron counts produces broken offspring. By restricting
+  to same-species (similar topology), gene alignment is straightforward. NEAT-style
+  historical innovation markings are deferred unless this proves too limiting.
 
 ### 4.3 Mutation Operators
 
 | Operator              | Rate (self-adaptive) | Effect                         |
 |-----------------------|---------------------|--------------------------------|
-| Weight perturbation   | ~0.05 per weight    | Gaussian noise, σ from meta-gene |
-| Bias perturbation     | ~0.05 per bias      | Same                           |
-| Time constant perturb | ~0.02 per τ         | Log-normal noise               |
+| Weight perturbation   | from meta-gene      | Gaussian noise, σ from meta-gene |
+| Bias perturbation     | from meta-gene      | Same                           |
+| Time constant perturb | from meta-gene      | Log-normal noise               |
 | Add node              | ~0.005 per birth    | Insert node, random connections |
-| Remove node           | ~0.003 per birth    | Remove least-connected node    |
+| Remove node           | ~0.003 per birth    | Remove least-connected non-bridge node |
 | Add edge              | ~0.01 per birth     | Connect two unconnected nodes  |
 | Remove edge           | ~0.005 per birth    | Remove random non-bridge edge  |
+| Chain extension       | ~0.05 per birth     | Extend terminal node linearly with motor + inherited type |
 | Node type change      | ~0.002 per birth    | Mutate node type               |
+| Motor toggle          | ~0.05 per birth     | Flip motorized ↔ passive on random edge |
 | Hidden neuron add     | ~0.005 per birth    | Add neuron to hidden layer     |
 | Hidden neuron remove  | ~0.003 per birth    | Remove neuron                  |
-| Duplication           | ~0.001 per birth    | Duplicate a subgraph           |
+| Drag coefficient      | from meta-gene      | Per-node drag perturbation     |
+| Duplication           | ~0.001 per birth    | Duplicate a subgraph (deferred) |
+
+**Bidirectional morphology is essential.** Remove-node and remove-edge operators prevent
+a one-way complexity ratchet where creatures can only grow. Remove operators must preserve
+graph connectivity — never remove bridge edges or bridge nodes. Without removal, creatures
+accumulate useless nodes that cost basal energy but can never be shed.
+
+Weight, bias, time constant, and drag perturbation rates are governed by the per-genome
+self-adaptive mutation rate meta-gene. Structural mutation rates (add/remove node/edge,
+chain extension, motor toggle, node type, hidden neuron) remain global config parameters.
 
 ### 4.4 Speciation Tracking
 
@@ -418,6 +496,11 @@ Divide world into cells of size `2 * max_creature_radius`. Each node registers i
 Contact checks only occur between nodes in the same or adjacent cells. This brings contact
 detection from O(N²) to approximately O(N) for uniformly distributed creatures.
 
+**Implementation note:** Spatial hashing is deferred to the Rust port. The naive O(N²)
+approach is acceptable in the Python prototype at current population scales (~300 creatures,
+~1500 nodes). The Rust port is where O(N²) becomes a real bottleneck (2400 nodes ×
+10,000 ticks/sec = 28.8 billion checks/sec).
+
 ### 5.5 PyO3 Bindings
 
 Expose to Python:
@@ -445,31 +528,36 @@ world.save("checkpoint.bin")
 world.load("checkpoint.bin")
 ```
 
-### 5.6 Alternative: Numba/NumPy First, Rust Later
+### 5.6 Performance Strategy: Numba Now, Rust When Stable
 
-If you want to prototype faster before committing to Rust:
+The design is still actively evolving (dynamic brain inputs, health system, remove
+mutations, nutrient caps, per-node drag, obstacles, etc.). Porting a moving target to Rust
+wastes effort. The current strategy:
 
-1. **Phase 1:** Pure Python + NumPy for structure. Use **Numba @njit** for the force
-   computation inner loop and CTRNN update. This gets you ~50-100× over pure Python.
-   Good enough for ~100 creatures during development.
+1. **Now:** Pure Python + **Numba @njit** for the three hot inner loops: node repulsion
+   (`apply_node_repulsion`), edge spring forces (`apply_edge_springs`), and CTRNN step
+   (`step_brain`). This gets ~50-100× over pure Python, enough for ~200 creatures.
 
-2. **Phase 2:** Once the design stabilizes, port the hot path to Rust via PyO3. Keep
-   Python for orchestration and analytics.
+2. **When the design stabilizes:** Port the hot path to Rust via PyO3. Keep Python for
+   orchestration and analytics. "Stable" means: the core data structures (creature state,
+   genome, brain I/O) stop changing between features.
 
-This avoids premature optimization while still being playable during development.
+3. **Stabilize the WebSocket snapshot format now.** This is the contract between the
+   Python/Rust backend and the PixiJS frontend. Design it once so the frontend doesn't
+   need to change when the backend language does.
 
 ---
 
 ## 6. Visualization and Display
 
-### 6.1 Option A: Browser Frontend (Recommended)
+### 6.1 Browser Frontend (Committed Path)
 
-**Stack:** Python backend (FastAPI + uvicorn) → WebSocket → Browser (PixiJS or raw WebGL)
+**Stack:** Python backend (FastAPI + uvicorn) → WebSocket → Browser (**PixiJS** / WebGL)
 
-**Implementation policy:** this is the product-facing frontend path and should begin as soon as
-the simulation can emit stable live snapshots. Local Tk/Pygame-style viewers remain useful
-debug fallbacks, but they are not the long-term UI target and should not receive major product
-features that would later be reimplemented in the browser.
+**This is the only product-facing frontend.** Local Tk/HTML viewers are debug fallbacks
+only — no new features go there. The current inline-HTML canvas approach in `animalcula web`
+should be replaced with a proper PixiJS/WebGL renderer to enable the microscope aesthetic
+(shaders, glow, translucency) and handle thousands of sprites at 60fps.
 
 **Why browser:**
 - PixiJS makes 2D rendering with thousands of sprites trivial and GPU-accelerated.
@@ -541,17 +629,17 @@ cover more than 40% of screen width. Dark theme throughout (matches microscope a
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ ▶ ⏸ ⏩ x1 x10 x100 x1000  │ Tick: 142,857  Pop: 287  Species: 6  │ ⚙ 🔬 📊 │
+│ ▶ ⏸ ⏩ x1 x10 x100 x1000  │ Tick: 142,857  Pop: 287  Species: 6  │ 🔬 📊 │
 ├──────────────────────────────────────────────────┬──────────────────────────┤
 │                                                  │ ┌──────────────────────┐ │
 │                                                  │ │   ACTIVE PANEL       │ │
 │                                                  │ │   (one of):          │ │
 │                                                  │ │                      │ │
 │              WORLD VIEWPORT                      │ │   🔬 Inspector       │ │
-│              (WebGL canvas)                      │ │   ⚙  Tuning         │ │
-│                                                  │ │   📊 Analytics       │ │
-│              click creature = select             │ │   🧬 Genome         │ │
-│              scroll = zoom                       │ │   🧠 Brain          │ │
+│              (WebGL canvas)                      │ │   📊 Analytics       │ │
+│                                                  │ │   🧬 Genome         │ │
+│              click creature = select             │ │   🧠 Brain          │ │
+│              scroll = zoom                       │ │                      │ │
 │              drag = pan                          │ │                      │ │
 │              double-click = follow               │ │                      │ │
 │                                                  │ │                      │ │
@@ -568,7 +656,7 @@ cover more than 40% of screen width. Dark theme throughout (matches microscope a
 [⏮ Step Back] [⏭ Step Forward]   ← when paused, single-step through ticks
 
 Tick: 142,857 | Pop: 287 | Births: 12/s | Deaths: 9/s | Species: 6
-FPS: 60 | Sim rate: 4,200 ticks/s | [⚙] [🔬] [📊]
+FPS: 60 | Sim rate: 4,200 ticks/s | [🔬] [📊]
 ```
 
 - **Speed slider** is continuous, not just preset steps. Drag from x1 to xMAX.
@@ -576,7 +664,7 @@ FPS: 60 | Sim rate: 4,200 ticks/s | [⚙] [🔬] [📊]
 - **Step forward/back** when paused: advance exactly 1 physics tick. Essential for
   debugging creature behavior. "Step back" requires checkpoint buffering (keep last
   ~100 ticks in memory as ring buffer).
-- The three icons toggle the right-side panels.
+- The two icons toggle the right-side panels (Inspector, Analytics).
 
 ### 6.6 🔬 Creature Inspector Panel
 
@@ -640,13 +728,14 @@ highlight ring. The panel shows everything about it:
 
 ### 6.7 🧠 Brain Viewer Panel
 
-Opened from the Inspector's "View Brain" button. Shows the CTRNN in real-time:
+Opened from the Inspector's "View Brain" button. Shows a **static inspection** of the
+selected creature's CTRNN structure and weights (not live streaming traces).
 
 ```
 ┌─ 🧠 BRAIN: Creature #4201 ───────────────────┐
 │                                                │
 │  ┌──────────────────────────────────────────┐  │
-│  │         NETWORK GRAPH (live)              │  │
+│  │         NETWORK GRAPH (static)            │  │
 │  │                                           │  │
 │  │    [S1]─┐    ┌─[H1]──[H2]─┐    ┌─[M1]   │  │
 │  │    [S2]─┼────┤  ↕  ↗  ↕   ├────┤ [M2]   │  │
@@ -654,46 +743,25 @@ Opened from the Inspector's "View Brain" button. Shows the CTRNN in real-time:
 │  │    [S4]─┘       ↕    ↕         └─[M4]   │  │
 │  │              [H5]──[H6]           [G1]   │  │
 │  │                                           │  │
-│  │  ● node size = activation (σ(s+θ))        │  │
-│  │  ● node color = blue(low) → red(high)     │  │
+│  │  ● node size = current activation         │  │
 │  │  ● edge width = |weight|                  │  │
-│  │  ● edge color = green(excitatory)          │  │
-│  │                  red(inhibitory)           │  │
-│  │  ● edge pulse = current signal flow       │  │
+│  │  ● edge color = green(+) / red(-)        │  │
 │  └──────────────────────────────────────────┘  │
 │                                                │
 │  ── NEURON DETAIL (hover any node) ────────   │
 │  Neuron H3:                                    │
-│  State s = -1.42  │  Output σ = 0.19          │
 │  Bias θ = 0.83    │  Time const τ = 2.40      │
 │  Inputs: S2(w=1.3), H1(w=-0.7), H4(w=0.9)   │
 │                                                │
-│  ── INPUT/OUTPUT TRACES ───────────────────   │
-│  [scrolling time-series chart, last 200 ticks] │
-│                                                │
-│  Inputs:  S1 ~~~∿∿∿~~~  S2 ──∿──∿──          │
-│  Hidden:  H1 ∿∿∿∿∿∿∿∿  H3 ──────∿∿          │
-│  Outputs: M1 ∿∿∿∿∿∿∿∿  M2 ∿∿∿∿∿∿∿∿          │
-│           G1 ▁▁▁▁█▁▁▁▁  (grip fired!)        │
-│                                                │
-│  ── OSCILLATION ANALYSIS ──────────────────   │
-│  Dominant frequency: 0.23 Hz (locomotion gait) │
-│  Motor phase diagram: [polar plot]             │
-│                                                │
 │  [📊 Weight Matrix Heatmap]                    │
-│  [📈 Full Trace Export (CSV)]                  │
 └────────────────────────────────────────────────┘
 ```
 
-**What makes this useful, not just pretty:**
-- The **scrolling traces** let you see rhythmic motor patterns (locomotion gaits show
-  as clean oscillations, feeding shows as bursts).
-- The **oscillation analysis** auto-detects the dominant frequency — if a creature has
-  evolved rhythmic swimming, you'll see a clear peak.
-- The **weight matrix heatmap** shows the full connectivity at a glance — dense
-  clusters suggest functional modules.
-- The live animation of **signal flow** (edges pulse when a signal propagates) makes
-  it intuitive to see how sensory input drives motor output.
+**MVP scope:** Network graph showing topology, weight magnitudes, and excitatory/inhibitory
+coloring. Hover for per-neuron detail (bias, tau, input connections). Weight matrix heatmap
+for full connectivity overview. **Deferred:** scrolling neuron traces, oscillation analysis,
+signal flow animation, trace export. These require per-neuron time series buffering on the
+backend and are not needed for initial brain inspection.
 
 ### 6.8 🧬 Genome Viewer Panel
 
@@ -734,77 +802,18 @@ Opened from the Inspector's "View Brain" button. Shows the CTRNN in real-time:
 └────────────────────────────────────────────────┘
 ```
 
-### 6.9 ⚙ Live Tuning Panel
+### 6.9 ⚙ Live Tuning Panel (Deferred)
 
-This is the parameter control room. **Changes apply immediately** to the running
-simulation — no restart needed. This is how you interactively find interesting regimes.
+**Deferred.** Parameter tuning happens through headless sweeps and config file iteration,
+not browser sliders. Building a live tuning panel requires a full command protocol from
+frontend to backend for every parameter, plus undo/logging. The ROI is low while headless
+sweeps exist.
 
-```
-┌─ ⚙ LIVE TUNING ──────────────────────────────┐
-│                                                │
-│  ── ENERGY ECONOMICS ──────────────────────   │
-│  Basal cost/node:     ●───────○──── 0.001     │
-│  Motor cost/torque:   ●────○─────── 0.0005    │
-│  Feed rate:           ●─────────○── 0.01      │
-│  Photosynthesis rate: ●──────○───── 0.005     │
-│  Predation transfer:  ●────────○─── 0.6       │
-│  Repro threshold:     ●───────○──── 100       │
-│  Birth energy:        ●─────○────── 50        │
-│                                                │
-│  ── ENVIRONMENT ───────────────────────────   │
-│  Nutrient source strength: ●──────○── 2.0     │
-│  Nutrient diffusion:       ●───○───── 0.1     │
-│  Light intensity:          ●────────○ 1.0     │
-│  Light direction:          [compass dial]      │
-│  Chemical decay:           ●──○────── 0.05    │
-│                                                │
-│  ── PHYSICS ───────────────────────────────   │
-│  Global drag:          ●──────○────── 1.0     │
-│  Contact stiffness:    ●─────○─────── 500     │
-│  Grip yield force:     ●───────○───── 50      │
-│                                                │
-│  ── EVOLUTION ─────────────────────────────   │
-│  Base mutation rate:   ●─────○─────── 0.05    │
-│  Structural mut rate:  ●──○────────── 0.005   │
-│                                                │
-│  ── POPULATION ────────────────────────────   │
-│  Min population:       ●─○──────────── 20     │
-│  Max population:       ●─────────○──── 500    │
-│  [  ] Runaway protection (auto-perturb)        │
-│                                                │
-│  ── GOD MODE ──────────────────────────────   │
-│  [☄ Meteor event] — kill 50% random            │
-│  [🌊 Flood nutrients] — 10x nutrients 1000t    │
-│  [🌑 Eclipse] — light → 0 for 5000 ticks      │
-│  [🧬 Inject species] — load genome from file   │
-│  [🏗 Add obstacle] — click to place wall       │
-│  [🦠 Plague] — random energy drain event       │
-│                                                │
-│  ── PRESETS ───────────────────────────────   │
-│  [Load preset ▼] [Save current as preset]      │
-│  • Default balanced                            │
-│  • Predator paradise (high transfer, low cost) │
-│  • Harsh world (low nutrients, high cost)      │
-│  • Cambrian explosion (high mutation, many     │
-│    nutrients)                                  │
-│                                                │
-│  ── PARAMETER HISTORY ─────────────────────   │
-│  [scrollable log of all changes with tick#]    │
-│  tick 140,200: feed_rate 0.01 → 0.015          │
-│  tick 138,500: light_intensity 1.0 → 0.3       │
-│  [↩ Undo last] [📋 Export change log]          │
-└────────────────────────────────────────────────┘
-```
-
-**Design principles for live tuning:**
-- Every slider has a **sensible range** with soft limits (drag beyond for extreme
-  values) and a **reset-to-default** button (double-click the label).
-- Changes are **logged with timestamps** so you can correlate parameter tweaks with
-  population events later in analysis.
-- **Presets** let you instantly jump between known-interesting parameter regimes.
-- **God mode events** let you stress-test the ecosystem: does it recover from a
-  mass extinction? What happens if you flood nutrients? These are the most fun
-  interactive moments and drive real insight into ecosystem resilience.
+When/if live tuning is added later, the key design principles are:
+- Every slider has a sensible range with reset-to-default.
+- Changes are logged with tick timestamps for post-hoc correlation.
+- Presets let you jump between known-interesting parameter regimes.
+- God mode events (meteor, flood, eclipse, inject species) stress-test ecosystem resilience.
 
 ### 6.10 📊 Analytics Panel
 
@@ -828,7 +837,6 @@ whether something interesting is happening without staring at the viewport.
 │  [line chart: mean energy by species]          │
 │  [line chart: total energy in system           │
 │   (creatures + fields + detritus)]             │
-│  Energy conservation check: ✓ (±0.01%)         │
 │                                                │
 │  ── PHYLOGENY TAB ─────────────────────────   │
 │  [horizontal dendrogram: time on x-axis        │
@@ -1110,7 +1118,8 @@ physics:
 environment:
   nutrient_diffusion_rate: 0.1
   nutrient_source_count: 5
-  nutrient_source_strength: 2.0
+  nutrient_source_rate: 0.5          # emission per tick (not hard-set)
+  nutrient_max_density: 5.0          # per-cell cap
   nutrient_decay_rate: 0.001
   light_intensity_max: 1.0
   light_direction: [1.0, 0.0]
@@ -1118,6 +1127,9 @@ environment:
   chemical_decay_rate: 0.05
   season_cycle_ticks: 10000
   epoch_cycle_ticks: 100000
+  wall_repulsion_strength: 50.0      # 1/r² soft wall force
+  obstacle_count: 0                  # static obstacles (circles)
+  obstacle_radius: 20.0
 
 energy:
   basal_cost_per_node: 0.001
@@ -1128,11 +1140,16 @@ energy:
   predation_transfer_efficiency: 0.6
   reproduction_threshold: 100.0
   birth_energy: 50.0
+  health_max: 100.0
+  health_regen_rate: 0.1             # health restored per tick
+  health_regen_cost: 0.002           # energy cost per tick of regen
+  bite_health_damage: 5.0            # health lost per bite
 
 creatures:
   max_nodes: 12
   max_population: 500
   min_population: 20
+  drag_coeff_range: [0.3, 3.0]       # evolvable per-node drag bounds
 
 brain:
   hidden_neurons_range: [4, 24]
@@ -1330,80 +1347,69 @@ animalcula extract-genomes results/ --top 20 --out seeds.bin
 
 ## 12. Project Roadmap
 
-### Phase 1: Physics Sandbox (Week 1-2)
-- [ ] Implement spring-mass creature in Python (NumPy + Numba).
-- [ ] Overdamped integration, basic forces.
-- [ ] Hand-coded 3-4 morphologies.
-- [ ] Simple pygame visualization.
-- [ ] Verify creatures can swim when motors oscillate.
+### Phase 1–4: Core Simulation (COMPLETE)
+- [x] Spring-mass overdamped physics, CTRNN brains, genome encoding
+- [x] Energy model, feeding, photosynthesis, detritus recycling
+- [x] Asexual reproduction, death, population safeguards
+- [x] Headless mode, turbo, parameter sweeps, seed-bank promotion
+- [x] Gripper mechanics, predation, chemical emission/sensing
+- [x] Environmental variation (nutrient shifts, light seasons, drag cycles, epochs)
+- [x] Speciation/extinction tracking, phylogeny export
+- [x] Structural, node-type, motor-topology, chain-extension, hidden-neuron mutations
+- [x] Debug viewers (Tk, HTML), basic browser frontend (`animalcula web`)
+- [x] SQLite/JSONL logging, interestingness scoring, dominance detection
 
-### Phase 2: Brains (Week 3)
-- [ ] CTRNN implementation.
-- [ ] Wire sensors → brain → motors.
-- [ ] Verify: random brain occasionally produces locomotion.
-- [ ] Implement energy model, feeding from nutrient grid.
+### Phase 5: Design Completion (CURRENT)
+Implement spec gaps identified in the 2026-03-18 design review:
+- [ ] Finite nutrient throughput (rate-based emission + per-cell cap)
+- [ ] Bounded world with soft 1/r² repulsive walls (replace toroidal)
+- [ ] Health axis separate from energy (bite/environment damage, regen, motor impairment)
+- [ ] Dynamic per-morphology brain inputs (resize input weights on mutation)
+- [ ] Per-node evolvable drag coefficients
+- [ ] Remove-node and remove-edge mutation operators
+- [ ] Add-edge mutation operator
+- [ ] Self-adaptive mutation rate meta-gene (clamped [0.001, 0.2])
+- [ ] Creature heading convention (node 0 = head)
+- [ ] Static obstacles with soft repulsion
+- [ ] Same-species sexual reproduction (conjugation with crossover)
+- [ ] Scallop theorem validation test
+- [ ] Numba @njit on hot loops (repulsion, springs, CTRNN step)
 
-### Phase 3: Evolution + Headless Tuning (Week 4-5)
-- [ ] Genome encoding, mutation operators.
-- [ ] Asexual reproduction.
-- [ ] Death from energy depletion.
-- [ ] **Headless mode with turbo flag (no rendering deps in core loop).**
-- [ ] **Parameter sweep script (multiprocessing over config grid).**
-- [ ] **Automated health metrics (interestingness scoring).**
-- [ ] **Nursery mode: pre-evolve viable seed genomes.**
-- [ ] Run first evolutionary experiment (~10k generations).
-- [ ] Basic population tracking and logging (Parquet/SQLite).
+### Phase 6: Browser Frontend (PixiJS)
+- [ ] Replace inline-HTML canvas with PixiJS/WebGL renderer
+- [ ] Microscope aesthetic (shaders, glow, translucency, dark-field background)
+- [ ] Creature inspector panel
+- [ ] Static brain viewer (network graph, weight heatmap)
+- [ ] Genome viewer (structure, diff from parent)
+- [ ] Analytics panel (population, energy, phylogeny, trophic charts)
+- [ ] Timeline bar with event markers
+- [ ] Stabilize WebSocket snapshot format as frontend/backend contract
 
-### Phase 4: Predation and Complexity (Week 6-7)
-- [ ] Gripper mechanics, latch springs.
-- [ ] Mouth damage model, energy transfer.
-- [ ] Chemical emission and sensing.
-- [ ] Sexual reproduction.
-- [ ] Environmental variation (seasons, epochs).
+### Phase 7: Rust Port (when design is stable)
+- [ ] Port force computation, CTRNN, spatial hash to Rust
+- [ ] PyO3 bindings producing same WebSocket snapshot format
+- [ ] Benchmark: target 1000 steps/sec with 300 creatures
+- [ ] Checkpoint save/load
 
-### Phase 5: Rust Port (Week 8-10)
-- [ ] Port force computation, CTRNN, spatial hash to Rust.
-- [ ] PyO3 bindings.
-- [ ] Benchmark: target 1000 steps/sec with 300 creatures (10k+ headless).
-- [ ] Checkpoint save/load.
-- [ ] CLI (`animalcula run`, `animalcula sweep`, `animalcula report`).
-
-### Phase 6: Visualization (Week 10-12)
-- [ ] Browser frontend with PixiJS/WebGL.
-- [ ] WebSocket data pipeline.
-- [ ] Creature rendering with microscope aesthetic.
-- [ ] Field visualization (nutrients, light, chemicals).
-- [ ] UI controls (speed, pause, inspect).
-
-Implementation note:
-Begin the browser/frontend path as soon as live snapshot transport exists; do not wait for the
-entire Rust port or all analytics work to finish before starting the permanent UI.
-
-### Phase 7: Analytics (Week 12-14)
-- [ ] Phylogenetic tree construction and visualization.
-- [ ] Species clustering (DBSCAN on genomes).
-- [ ] UMAP phenotype space.
-- [ ] Live dashboard with population plots.
-- [ ] Time machine replay from checkpoints.
-
-### Phase 8: Polish and Experiments (Ongoing)
-- [ ] Parameter sweeps for interesting regimes.
-- [ ] Shader effects (caustics, depth of field, glow).
-- [ ] Sound design? (Map population dynamics to ambient audio.)
-- [ ] Record and share particularly interesting evolutionary runs.
+### Phase 8: Analytics and Polish (Ongoing)
+- [ ] UMAP phenotype space visualization
+- [ ] Time machine replay from checkpoints
+- [ ] Shader effects (caustics, depth of field)
+- [ ] Sound design (map population dynamics to ambient audio)
+- [ ] Record and share interesting evolutionary runs
 
 ---
 
 ## 13. Technology Stack Summary
 
-| Component             | Technology                   | Rationale                        |
+| Component             | Technology (now)             | Technology (Rust port)           |
 |-----------------------|------------------------------|----------------------------------|
-| Physics engine        | Rust (+ rayon for threading) | Performance critical inner loop  |
-| Neural nets (CTRNN)   | Rust                         | Called millions of times/sec     |
-| Spatial indexing       | Rust (custom spatial hash)   | Performance critical             |
-| Python bindings        | PyO3 / maturin              | Seamless Python ↔ Rust           |
-| Orchestration          | Python (FastAPI)             | Flexibility, rapid iteration     |
-| Analytics              | Python (NumPy, SciPy, UMAP) | Ecosystem strength               |
+| Physics engine        | Python + Numba @njit         | Rust (+ rayon for threading)     |
+| Neural nets (CTRNN)   | Python + Numba @njit         | Rust                             |
+| Spatial indexing       | Naive O(N²) (adequate now)   | Rust (custom spatial hash)       |
+| Python bindings        | N/A (pure Python)           | PyO3 / maturin                   |
+| Orchestration          | Python (FastAPI)             | Python (FastAPI)                 |
+| Analytics              | Python (NumPy, SciPy, UMAP) | Python (NumPy, SciPy, UMAP)     |
 | Data storage           | SQLite + Parquet             | Events + time series             |
 | Frontend rendering     | PixiJS (WebGL)               | GPU-accelerated 2D, beautiful    |
 | Frontend UI            | HTML/JS (vanilla or Svelte)  | Lightweight, fast                |
@@ -1417,27 +1423,35 @@ entire Rust port or all analytics work to finish before starting the permanent U
 
 ## 14. Open Design Questions
 
-These are decisions to make during implementation, informed by experimentation:
+### Resolved (2026-03-18 design review)
 
-1. **Toroidal vs. walled world?** Toroidal avoids edge effects but removes wall-hugging
-   as an ecological niche. Walls add complexity but more interesting spatial dynamics.
+1. **Toroidal vs. walled world?** → **Walled.** Bounded with soft 1/r² repulsive walls.
+   Avoids minimum-image physics complications, adds wall-hugging niche.
+2. **Brain inputs: fixed or per-morphology?** → **Per-morphology.** Dynamic input vector
+   scales with sensor/photoreceptor/joint/gripper count. Input weight matrix resizes on
+   structural mutation.
+3. **Health separate from energy?** → **Yes.** Health reduced by bites + environment stress,
+   passive regen at energy cost, mild motor impairment at low health.
+4. **Sexual reproduction alignment?** → **Same-species only.** Crossover restricted to low
+   genome-distance pairs. NEAT-style innovation markings deferred.
+5. **Rust port timing?** → **Deferred.** Numba for hot loops now. Rust when design stabilizes.
+6. **Per-node drag evolvable?** → **Yes.** In genome, subject to mutation, clamped range.
+7. **Self-adaptive mutation rates?** → **Yes.** Per-genome meta-gene, clamped [0.001, 0.2].
+8. **Live tuning in browser?** → **Deferred.** Headless sweeps + config files for now.
 
-2. **Continuous vs. discrete node types?** Current spec has discrete types (mouth, gripper,
-   sensor). Alternative: each node has continuous "capability weights" for each function,
-   all evolvable. More flexible but harder to visualize.
+### Still Open
 
-3. **Genome encoding: direct vs. developmental?** Current spec uses direct encoding
-   (genome → body plan directly). Alternative: L-system or developmental encoding where
-   the genome encodes growth rules. Much more powerful for producing complex symmetric
-   body plans, but significantly more complex to implement.
+1. **Continuous vs. discrete node types?** Current spec has discrete types (mouth, gripper,
+   sensor). Alternative: continuous capability weights per node. More flexible but harder
+   to visualize.
 
-4. **2D vs. 2.5D?** Could add a depth layer (creatures can be "above" or "below" each
-   other) without full 3D physics. Adds predator evasion dimension. Worth exploring in
-   Phase 8.
+2. **Genome encoding: direct vs. developmental?** Current spec uses direct encoding.
+   Alternative: L-system or developmental encoding for complex symmetric body plans.
+   Significantly more complex to implement.
 
-5. **Sound?** Mapping ecological dynamics to ambient sound (population = drone volume,
-   predation events = clicks, reproduction = chimes) could make long observation sessions
-   more engaging. Low priority but high coolness factor.
+3. **2D vs. 2.5D?** Depth layer for predator evasion. Worth exploring later.
+
+4. **Sound?** Mapping ecological dynamics to ambient sound. Low priority, high coolness.
 
 ---
 
