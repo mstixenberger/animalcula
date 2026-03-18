@@ -2485,3 +2485,24 @@ def test_stats_chain_length() -> None:
     world = World(config=config, seed=1, nodes=nodes, edges=edges, creatures=creatures)
     stats = world.stats()
     assert stats.mean_chain_length == 3.0
+
+
+def test_gripper_reach_bonus_extends_capture() -> None:
+    """A gripper on a stalk should have extended capture range with reach bonus."""
+    from animalcula.sim.energy import reach_multiplier
+    # Creature with gripper far from COM should get a larger capture distance
+    # than one with gripper near COM
+    com = Vec2(100.0, 100.0)
+    max_extent = 10.0
+    bonus = 0.5
+
+    # Gripper at COM: multiplier = 1.0
+    near_rm = reach_multiplier(Vec2(100.0, 100.0), com, max_extent, bonus)
+    assert near_rm == 1.0
+
+    # Gripper at max extent: multiplier = 1.5
+    far_rm = reach_multiplier(Vec2(110.0, 100.0), com, max_extent, bonus)
+    assert far_rm == 1.5
+
+    # Far gripper has 50% more capture range
+    assert far_rm > near_rm
