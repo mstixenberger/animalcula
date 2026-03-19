@@ -14,6 +14,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `mean_chain_length` stat tracking the average longest linear path (BFS diameter) per creature's edge graph, exposed in CLI output, stats logs, sweeps, and seed-bank reports
 - `max_nodes_per_creature` config limit (default 16) that gates both structural and chain-extension mutations to prevent unbounded morphology growth
 - New config fields: `chain_extension_mutation_rate`, `max_nodes_per_creature` (evolution), `mouth_reach_bonus`, `gripper_reach_bonus` (energy), all with backward-compatible defaults
+- Scallop theorem validation tests: confirms 1-DOF swimmers produce zero net displacement (even with asymmetric drag), and that multi-DOF + asymmetric drag enables locomotion
 
 ### Changed
 

@@ -37,3 +37,14 @@ Four-part fix without new physics:
 - Angular joint constraints (floppy chains are biologically plausible)
 - Per-node mass variation
 - Specialized FLAGELLUM node type (BODY + motors already function as flagella)
+
+## Phase 5: Design Completion (2026-03-19)
+
+### Scallop Theorem Validation
+
+Validated the physics engine against the scallop theorem (Purcell 1977):
+- **1-DOF (2-node) swimmer with equal drag**: zero net COM displacement — trivially true since internal forces cancel
+- **1-DOF (2-node) swimmer with unequal drag**: still zero net displacement — the plan originally expected nonzero, but in our overdamped model with purely internal forces, `dx_com ∝ d(separation)` over a cycle returns to zero regardless of drag asymmetry
+- **Multi-DOF (3-node) + asymmetric drag**: nonzero displacement — both conditions (>1 DOF shape space AND drag asymmetry) are needed in our simplified model
+
+Key insight: our model lacks real fluid dynamics (no medium to push against), so locomotion requires drag asymmetry as a proxy for anisotropic hydrodynamic interaction. This validates the importance of per-node evolvable drag (Item 5).
