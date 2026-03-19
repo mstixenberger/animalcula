@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-19
+
 ### Added
 
 - Chain-extension mutation operator that can grow linear appendages (flagella, arms, stalks) from terminal nodes in a single mutation step, with motorized joints and inherited node types
