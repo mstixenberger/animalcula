@@ -32,6 +32,7 @@ from animalcula.sim.physics import (
     apply_motor_forces,
     apply_node_repulsion,
     apply_overdamped_dynamics,
+    creature_heading,
     spring_force,
 )
 from animalcula.sim.seeding import build_demo_archetypes
@@ -96,6 +97,8 @@ class CreatureSnapshot:
     glyph_scale: float
     band_count: int
     band_offset: float
+    heading_x: float = 1.0
+    heading_y: float = 0.0
 
 
 @dataclass(slots=True, frozen=True)
@@ -611,6 +614,8 @@ class World:
                 glyph_scale=creature.genome.visuals.glyph_scale if creature.genome is not None else 1.0,
                 band_count=creature.genome.visuals.band_count if creature.genome is not None else 2,
                 band_offset=creature.genome.visuals.band_offset if creature.genome is not None else 0.0,
+                heading_x=creature_heading(self.nodes, creature).x,
+                heading_y=creature_heading(self.nodes, creature).y,
             )
             for creature in self.creatures
         )
