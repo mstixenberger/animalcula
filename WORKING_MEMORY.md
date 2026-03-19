@@ -56,3 +56,12 @@ Key insight: our model lacks real fluid dynamics (no medium to push against), so
 - Chain extension inherits terminal node's drag; structural mutation gets default 1.0
 - `genome_distance` includes mean drag difference (weight 0.5) for species clustering
 - Config field: `evolution.drag_mutation_sigma` (default 0.15 in all YAML profiles)
+
+### Finite Nutrient Throughput (2026-03-19)
+
+- Nutrient sources now use `add_value_capped` instead of `set_value` — emission is additive per tick, not snap-to-strength
+- New config fields: `nutrient_emission_rate` (how much to add per tick) and `nutrient_max_density` (hard cap per cell)
+- Backward compat: old configs without these fields get `emission_rate = nutrient_source_strength` and `max_density = 10.0`
+- `nutrient_source_strength` is retained but only used for backward compat default of emission rate
+- Default config: emission_rate=0.5, max_density=10.0 (much lower throughput than the old snap model)
+- Nursery config gets higher values (emission=2.0, max=15.0) to avoid starvation during bootstrapping

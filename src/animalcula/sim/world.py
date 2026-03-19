@@ -1011,14 +1011,17 @@ class World:
         if not self._reseed_nutrient_sources_if_due():
             self._shift_nutrient_sources_if_due()
         self._apply_dominance_perturbation_if_due()
-        nutrient_source_strength = (
-            self.config.environment.nutrient_source_strength * self.current_nutrient_source_strength_multiplier()
+        emission = (
+            self.config.environment.nutrient_emission_rate
+            * self.current_nutrient_source_strength_multiplier()
         )
+        cap = self.config.environment.nutrient_max_density
         for col, row in self._nutrient_source_cells:
-            self.nutrient_grid.set_value(
+            self.nutrient_grid.add_value_capped(
                 col=col,
                 row=row,
-                value=nutrient_source_strength,
+                amount=emission,
+                cap=cap,
             )
         light_direction, light_intensity = self.current_light_state()
         self.light_grid.fill_light_gradient(

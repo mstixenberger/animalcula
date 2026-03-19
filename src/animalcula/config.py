@@ -33,6 +33,8 @@ class EnvironmentConfig:
     nutrient_source_count: int
     nutrient_source_strength: float
     nutrient_decay_rate: float
+    nutrient_emission_rate: float
+    nutrient_max_density: float
     nutrient_shift_interval: int
     nutrient_shift_count: int
     nutrient_epoch_interval: int
@@ -142,6 +144,11 @@ class Config:
         environment_raw.setdefault("light_season_steps", 1)
         environment_raw.setdefault("drag_shift_interval", 0)
         environment_raw.setdefault("drag_shift_multipliers", [1.0])
+        environment_raw.setdefault(
+            "nutrient_emission_rate",
+            environment_raw.get("nutrient_source_strength", 2.0),
+        )
+        environment_raw.setdefault("nutrient_max_density", 10.0)
         return cls(
             world=WorldConfig(**raw["world"]),
             physics=PhysicsConfig(**raw["physics"]),

@@ -61,6 +61,10 @@ class Grid2D:
         index = (row * self.cols) + col
         self.values[index] += delta
 
+    def add_value_capped(self, col: int, row: int, amount: float, cap: float) -> None:
+        index = (row * self.cols) + col
+        self.values[index] = min(cap, self.values[index] + amount)
+
     def add_value_at_position(self, position: Vec2, delta: float) -> None:
         col, row = self.index_for_position(position)
         self.add_value(col=col, row=row, delta=delta)

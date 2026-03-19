@@ -16,6 +16,8 @@ environment:
   nutrient_source_count: 5
   nutrient_source_strength: 2.0
   nutrient_decay_rate: 0.0005
+  nutrient_emission_rate: 0.5
+  nutrient_max_density: 10.0
   nutrient_shift_interval: 1000
   nutrient_shift_count: 1
   nutrient_epoch_interval: 100000
