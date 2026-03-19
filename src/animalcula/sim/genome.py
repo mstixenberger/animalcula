@@ -26,6 +26,7 @@ class GenomeNodeGene:
     position: Vec2
     radius: float
     node_type: NodeType
+    drag_coeff: float = 1.0
 
 
 @dataclass(slots=True, frozen=True)
@@ -274,6 +275,9 @@ def genome_distance(left: CreatureGenome | None, right: CreatureGenome | None) -
         left_mean_radius = sum(node.radius for node in left.nodes) / len(left.nodes)
         right_mean_radius = sum(node.radius for node in right.nodes) / len(right.nodes)
         distance += abs(left_mean_radius - right_mean_radius)
+        left_mean_drag = sum(node.drag_coeff for node in left.nodes) / len(left.nodes)
+        right_mean_drag = sum(node.drag_coeff for node in right.nodes) / len(right.nodes)
+        distance += abs(left_mean_drag - right_mean_drag) * 0.5
     distance += abs(left.visuals.silhouette_scale - right.visuals.silhouette_scale) * 0.2
     distance += abs(left.visuals.glyph_scale - right.visuals.glyph_scale) * 0.15
     distance += abs(left.visuals.band_count - right.visuals.band_count) * 0.1
@@ -337,6 +341,7 @@ def encode_creature_genome(
             position=nodes[node_index].position - anchor,
             radius=nodes[node_index].radius,
             node_type=nodes[node_index].node_type,
+            drag_coeff=nodes[node_index].drag_coeff,
         )
         for node_index in creature.node_indices
     )
@@ -381,7 +386,7 @@ def decode_genome(
             position=anchor_position + node.position,
             velocity=Vec2.zero(),
             accumulated_force=Vec2.zero(),
-            drag_coeff=drag_coeff,
+            drag_coeff=node.drag_coeff,
             radius=node.radius,
             node_type=node.node_type,
         )
@@ -431,6 +436,7 @@ def mutate_genome(
     structural_mutation_rate: float = 0.0,
     hidden_neuron_mutation_rate: float = 0.0,
     max_hidden_neurons: int = 24,
+    drag_mutation_sigma: float = 0.0,
     chain_extension_mutation_rate: float = 0.0,
     max_nodes_per_creature: int = 16,
     color_sigma: float = 6.0,
@@ -448,6 +454,11 @@ def mutate_genome(
                 if rng.random() < node_type_mutation_rate
                 else node.node_type
             ),
+            drag_coeff=_clamp(
+                node.drag_coeff + rng.gauss(0.0, drag_mutation_sigma),
+                0.5,
+                5.0,
+            ) if drag_mutation_sigma > 0.0 else node.drag_coeff,
         )
         for node in genome.nodes
     ]
@@ -538,6 +549,7 @@ def mutate_genome(
                 position=terminal_node.position + offset,
                 radius=terminal_node.radius,
                 node_type=terminal_node.node_type,
+                drag_coeff=terminal_node.drag_coeff,
             )
             new_node_index = len(mutated_nodes)
             mutated_nodes.append(new_node)
@@ -661,6 +673,7 @@ def genome_to_dict(genome: CreatureGenome | None) -> dict[str, Any] | None:
                 "position": [node.position.x, node.position.y],
                 "radius": node.radius,
                 "node_type": node.node_type.value,
+                "drag_coeff": node.drag_coeff,
             }
             for node in genome.nodes
         ],
@@ -699,6 +712,7 @@ def genome_from_dict(payload: dict[str, Any] | None) -> CreatureGenome | None:
                 position=Vec2(*node["position"]),
                 radius=node["radius"],
                 node_type=NodeType(node["node_type"]),
+                drag_coeff=float(node.get("drag_coeff", 1.0)),
             )
             for node in payload["nodes"]
         ),

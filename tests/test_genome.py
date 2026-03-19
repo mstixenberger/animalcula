@@ -701,3 +701,113 @@ def test_chain_extension_offsets_time_constant() -> None:
     # The new motor's time constant should differ from 1.0 (the default)
     taus = mutated.brain.time_constants
     assert any(tau != 1.0 for tau in taus), "Expected at least one offset time constant from warm-start"
+
+
+def test_genome_node_gene_has_drag_coeff_with_default() -> None:
+    """GenomeNodeGene should support an optional drag_coeff field."""
+    node = CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY)
+    assert node.drag_coeff == 1.0  # default
+
+    node_custom = CreatureGenome.NodeGene(
+        position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY, drag_coeff=2.5
+    )
+    assert node_custom.drag_coeff == 2.5
+
+
+def test_decode_genome_uses_per_node_drag() -> None:
+    """decode_genome should use the node gene's drag_coeff, not the config default."""
+    genome = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY, drag_coeff=2.0),
+            CreatureGenome.NodeGene(position=Vec2(3.0, 0.0), radius=1.0, node_type=NodeType.BODY, drag_coeff=4.0),
+        ),
+        edges=(),
+        brain=None,
+    )
+
+    nodes, _, _ = decode_genome(genome=genome, anchor_position=Vec2.zero(), drag_coeff=1.0)
+
+    assert nodes[0].drag_coeff == 2.0
+    assert nodes[1].drag_coeff == 4.0
+
+
+def test_encode_creature_genome_preserves_drag_coeff() -> None:
+    """encode_creature_genome should capture drag_coeff from runtime nodes."""
+    nodes = [
+        NodeState(
+            position=Vec2(10.0, 10.0), velocity=Vec2.zero(),
+            accumulated_force=Vec2.zero(), drag_coeff=3.5, radius=1.0,
+        ),
+    ]
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+
+    genome = encode_creature_genome(nodes=nodes, edges=[], creature=creature)
+    assert genome.nodes[0].drag_coeff == 3.5
+
+
+def test_mutate_genome_perturbs_drag_within_bounds() -> None:
+    """Drag mutation should perturb drag and clamp to [0.5, 5.0]."""
+    rng = random.Random(42)
+    genome = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY, drag_coeff=1.0),
+        ),
+        edges=(),
+        brain=None,
+    )
+
+    saw_change = False
+    for _ in range(50):
+        mutated = mutate_genome(
+            genome=genome, rng=rng,
+            position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+            bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+            drag_mutation_sigma=0.3,
+        )
+        if mutated.nodes[0].drag_coeff != genome.nodes[0].drag_coeff:
+            saw_change = True
+        assert 0.5 <= mutated.nodes[0].drag_coeff <= 5.0
+
+    assert saw_change, "Expected drag to be perturbed at least once in 50 tries"
+
+
+def test_genome_dict_roundtrip_preserves_drag_coeff() -> None:
+    genome = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(
+                position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY, drag_coeff=2.5
+            ),
+        ),
+        edges=(),
+        brain=None,
+    )
+
+    restored = genome_from_dict(genome_to_dict(genome))
+    assert restored.nodes[0].drag_coeff == 2.5
+
+
+def test_genome_from_dict_backward_compat_missing_drag() -> None:
+    """Old genome dicts without drag_coeff should default to 1.0."""
+    payload = {
+        "nodes": [{"position": [0.0, 0.0], "radius": 1.0, "node_type": "body"}],
+        "edges": [],
+        "brain": None,
+    }
+    genome = genome_from_dict(payload)
+    assert genome.nodes[0].drag_coeff == 1.0
+
+
+def test_genome_distance_includes_drag_difference() -> None:
+    """genome_distance should account for mean drag difference."""
+    genome_a = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY, drag_coeff=1.0),),
+        edges=(), brain=None,
+    )
+    genome_b = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY, drag_coeff=3.0),),
+        edges=(), brain=None,
+    )
+
+    dist = genome_distance(genome_a, genome_b)
+    dist_same = genome_distance(genome_a, genome_a)
+    assert dist > dist_same

@@ -1420,6 +1420,7 @@ class World:
                 structural_mutation_rate=self.config.evolution.structural_mutation_rate,
                 hidden_neuron_mutation_rate=self.config.evolution.hidden_neuron_mutation_rate,
                 max_hidden_neurons=self.config.evolution.max_hidden_neurons,
+                drag_mutation_sigma=self.config.evolution.drag_mutation_sigma,
                 chain_extension_mutation_rate=self.config.evolution.chain_extension_mutation_rate,
                 max_nodes_per_creature=self.config.evolution.max_nodes_per_creature,
             )

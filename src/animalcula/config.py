@@ -80,6 +80,7 @@ class EvolutionConfig:
     structural_mutation_rate: float
     hidden_neuron_mutation_rate: float
     max_hidden_neurons: int
+    drag_mutation_sigma: float
     chain_extension_mutation_rate: float
     max_nodes_per_creature: int
 
@@ -122,6 +123,7 @@ class Config:
         evolution_raw = {
             "hidden_neuron_mutation_rate": 0.0,
             "max_hidden_neurons": 24,
+            "drag_mutation_sigma": 0.0,
             "chain_extension_mutation_rate": 0.0,
             "max_nodes_per_creature": 16,
             **raw["evolution"],
