@@ -48,3 +48,11 @@ Validated the physics engine against the scallop theorem (Purcell 1977):
 - **Multi-DOF (3-node) + asymmetric drag**: nonzero displacement — both conditions (>1 DOF shape space AND drag asymmetry) are needed in our simplified model
 
 Key insight: our model lacks real fluid dynamics (no medium to push against), so locomotion requires drag asymmetry as a proxy for anisotropic hydrodynamic interaction. This validates the importance of per-node evolvable drag (Item 5).
+
+### Per-Node Evolvable Drag (2026-03-19)
+
+- `GenomeNodeGene.drag_coeff` defaults to 1.0, mutated with Gaussian noise (sigma from config), clamped [0.5, 5.0]
+- `decode_genome` uses per-node drag directly (not the config default); backward compat: old genomes without the field get 1.0
+- Chain extension inherits terminal node's drag; structural mutation gets default 1.0
+- `genome_distance` includes mean drag difference (weight 0.5) for species clustering
+- Config field: `evolution.drag_mutation_sigma` (default 0.15 in all YAML profiles)

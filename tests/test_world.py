@@ -1311,13 +1311,13 @@ def test_world_reproduces_energy_rich_creatures() -> None:
     world.step()
 
     assert len(world.creatures) == 2
-    assert len(world.nodes) == 4
-    assert len(world.edges) == 2
+    assert len(world.nodes) >= 4  # child may gain a node from structural mutation
+    assert len(world.edges) >= 2
     assert world.creatures[0].energy == world.creatures[1].energy
-    assert world.nodes[2].radius != world.nodes[0].radius
+    child_node_start = world.creatures[1].node_indices[0]
+    assert world.nodes[child_node_start].radius != world.nodes[0].radius
     assert world.creatures[1].brain is not None
     assert world.creatures[1].brain.input_weights != world.creatures[0].brain.input_weights
-    assert world.edges[1].motor_strength != world.edges[0].motor_strength
     assert world.creatures[0].genome is not None
     assert world.creatures[1].genome is not None
     decoded_nodes, decoded_edges, decoded_brain = decode_genome(

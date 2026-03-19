@@ -59,6 +59,7 @@ evolution:
   structural_mutation_rate: 0.05
   hidden_neuron_mutation_rate: 0.05
   max_hidden_neurons: 24
+  drag_mutation_sigma: 0.15
   chain_extension_mutation_rate: 0.05
   max_nodes_per_creature: 16
 
