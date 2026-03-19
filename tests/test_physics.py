@@ -385,3 +385,26 @@ def test_wall_repulsion_all_four_walls() -> None:
     # Near top wall
     updated = apply_wall_repulsion([_make_node(50.0, 98.0)], width, height, strength, margin)
     assert updated[0].accumulated_force.y < 0.0
+
+
+# --- Item 8: Obstacle repulsion ---
+
+from animalcula.sim.physics import apply_obstacle_repulsion
+from animalcula.config import ObstacleConfig
+
+
+def test_obstacle_repulsion_pushes_overlapping_node() -> None:
+    """A node overlapping with an obstacle should be pushed away."""
+    nodes = [_make_node(10.0, 10.0)]  # radius=1.0
+    obstacles = [ObstacleConfig(x=11.0, y=10.0, radius=2.0)]  # overlaps by 2.0
+    updated = apply_obstacle_repulsion(nodes, obstacles, strength=2.0)
+    assert updated[0].accumulated_force.x < 0.0  # pushed left
+
+
+def test_obstacle_repulsion_zero_when_no_overlap() -> None:
+    """A node far from an obstacle should get zero force."""
+    nodes = [_make_node(50.0, 50.0)]
+    obstacles = [ObstacleConfig(x=10.0, y=10.0, radius=2.0)]
+    updated = apply_obstacle_repulsion(nodes, obstacles, strength=2.0)
+    assert updated[0].accumulated_force.x == 0.0
+    assert updated[0].accumulated_force.y == 0.0

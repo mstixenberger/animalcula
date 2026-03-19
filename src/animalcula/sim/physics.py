@@ -193,6 +193,35 @@ def apply_wall_repulsion(
     return updated_nodes
 
 
+def apply_obstacle_repulsion(
+    nodes: list[NodeState],
+    obstacles: list,
+    strength: float,
+) -> list[NodeState]:
+    """Apply soft repulsion from static obstacles (same overlap pattern as node-node contact)."""
+    if strength <= 0.0 or not obstacles:
+        return list(nodes)
+
+    updated_nodes = list(nodes)
+
+    for i, node in enumerate(updated_nodes):
+        for obstacle in obstacles:
+            displacement = node.position - Vec2(obstacle.x, obstacle.y)
+            distance = displacement.magnitude()
+            minimum_distance = node.radius + obstacle.radius
+            overlap = minimum_distance - distance
+            if overlap <= 0.0:
+                continue
+            direction = displacement.normalized() if distance > 0.0 else Vec2(1.0, 0.0)
+            force = direction * (strength * overlap)
+            updated_nodes[i] = replace(
+                updated_nodes[i],
+                accumulated_force=updated_nodes[i].accumulated_force + force,
+            )
+
+    return updated_nodes
+
+
 def creature_heading(nodes: list[NodeState], creature: CreatureState) -> Vec2:
     """Return the heading unit vector for a creature: (node0_pos - COM).normalized().
 

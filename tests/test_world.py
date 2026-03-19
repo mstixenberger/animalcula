@@ -2785,3 +2785,44 @@ def test_bounded_world_nodes_stay_within_bounds() -> None:
 
     assert world.nodes[0].position.x >= 0.0
     assert world.nodes[0].position.y >= 0.0
+
+
+# --- Item 8: Static obstacles ---
+
+
+def test_world_with_obstacles_in_config() -> None:
+    """Obstacles from config should be available and affect physics."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "environment.obstacles=[{x: 500.0, y: 500.0, radius: 10.0}]",
+        "physics.wall_repulsion_strength=0.0",
+    ])
+    node = NodeState(
+        position=Vec2(505.0, 500.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=5.0,
+    )
+    world = World(config=config, nodes=[node])
+
+    assert len(world._obstacles) == 1
+
+    world.step()
+
+    # Node overlaps obstacle, should be pushed away (to the right)
+    assert world.nodes[0].position.x > 505.0
+
+
+def test_snapshot_includes_obstacles() -> None:
+    """Snapshot should include obstacle data."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "environment.obstacles=[{x: 100.0, y: 200.0, radius: 15.0}]",
+    ])
+    world = World(config=config)
+
+    snapshot = world.snapshot()
+
+    assert len(snapshot.obstacles) == 1
+    assert snapshot.obstacles[0].x == 100.0
+    assert snapshot.obstacles[0].y == 200.0
+    assert snapshot.obstacles[0].radius == 15.0

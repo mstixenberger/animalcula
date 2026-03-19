@@ -31,6 +31,7 @@ from animalcula.sim.physics import (
     apply_grip_latches,
     apply_motor_forces,
     apply_node_repulsion,
+    apply_obstacle_repulsion,
     apply_overdamped_dynamics,
     apply_wall_repulsion,
     creature_heading,
@@ -51,6 +52,13 @@ from animalcula.sim.types import (
 
 
 @dataclass(slots=True, frozen=True)
+class ObstacleSnapshot:
+    x: float
+    y: float
+    radius: float
+
+
+@dataclass(slots=True, frozen=True)
 class Snapshot:
     tick: int
     population: int
@@ -61,6 +69,7 @@ class Snapshot:
     nodes: tuple["NodeSnapshot", ...]
     edges: tuple["EdgeSnapshot", ...]
     creatures: tuple["CreatureSnapshot", ...]
+    obstacles: tuple[ObstacleSnapshot, ...] = ()
 
 
 @dataclass(slots=True, frozen=True)
@@ -240,6 +249,7 @@ class World:
             resolution=self.config.world.grid_resolution,
             boundary=grid_boundary,
         )
+        self._obstacles = list(self.config.environment.obstacles)
         self._nutrient_source_cells = self._initialize_nutrient_sources()
         self._update_environment()
 
@@ -638,6 +648,9 @@ class World:
             nodes=node_snapshots,
             edges=edge_snapshots,
             creatures=creature_snapshots,
+            obstacles=tuple(
+                ObstacleSnapshot(x=o.x, y=o.y, radius=o.radius) for o in self._obstacles
+            ),
         )
 
     def stats(self) -> Stats:
@@ -1249,6 +1262,12 @@ class World:
                 height=self.config.world.height,
                 strength=self.config.physics.wall_repulsion_strength,
                 margin=self.config.physics.wall_margin,
+            )
+        if self._obstacles:
+            self.nodes = apply_obstacle_repulsion(
+                nodes=self.nodes,
+                obstacles=self._obstacles,
+                strength=self.config.physics.contact_repulsion,
             )
         self._refresh_grip_latches()
         self.nodes = apply_grip_latches(

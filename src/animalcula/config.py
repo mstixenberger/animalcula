@@ -30,6 +30,13 @@ class PhysicsConfig:
 
 
 @dataclass(slots=True, frozen=True)
+class ObstacleConfig:
+    x: float
+    y: float
+    radius: float
+
+
+@dataclass(slots=True, frozen=True)
 class EnvironmentConfig:
     nutrient_diffusion_rate: float
     nutrient_source_count: int
@@ -54,6 +61,7 @@ class EnvironmentConfig:
     light_season_steps: int
     drag_shift_interval: int
     drag_shift_multipliers: tuple[float, ...]
+    obstacles: tuple[ObstacleConfig, ...]
 
 
 @dataclass(slots=True, frozen=True)
@@ -161,6 +169,11 @@ class Config:
             environment_raw.get("nutrient_source_strength", 2.0),
         )
         environment_raw.setdefault("nutrient_max_density", 10.0)
+        raw_obstacles = environment_raw.pop("obstacles", [])
+        obstacles = tuple(
+            ObstacleConfig(x=o["x"], y=o["y"], radius=o["radius"])
+            for o in raw_obstacles
+        )
         return cls(
             world=WorldConfig(**raw["world"]),
             physics=PhysicsConfig(
@@ -178,6 +191,7 @@ class Config:
                         environment_raw["nutrient_epoch_strength_multipliers"]
                     ),
                     "drag_shift_multipliers": tuple(environment_raw["drag_shift_multipliers"]),
+                    "obstacles": obstacles,
                 }
             ),
             energy=EnergyConfig(
