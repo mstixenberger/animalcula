@@ -328,3 +328,8 @@ When making a meaningful architectural or workflow decision:
 3. Add a changelog note if the change affects contributors or users.
 
 If this file drifts from reality, fix the file rather than working around it.
+
+## Known Mistakes & Lessons Learned
+
+- **Scallop theorem physics**: The initial implementation plan assumed a 2-node swimmer with unequal drag would achieve locomotion. In an overdamped regime with purely internal forces, a 1-DOF system *cannot* swim regardless of drag asymmetry — `dx_com ∝ d(separation)` returns to zero over any complete cycle. Locomotion in this model requires both multi-DOF shape changes AND drag asymmetry. Always verify physics intuitions against the actual equations before writing test expectations.
+- **Seed-sensitive tests**: Tests that assert exact counts (like `len(world.nodes) == 4`) break when new genome fields change the RNG consumption sequence. Prefer range assertions or structural checks over exact counts when testing through the mutation system.
