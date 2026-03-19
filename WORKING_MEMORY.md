@@ -73,3 +73,36 @@ Key insight: our model lacks real fluid dynamics (no medium to push against), so
 - Structural rates (node add, chain extension, hidden neuron, motor toggle, node type) remain config-driven and unaffected
 - Self-adaptation happens first in `mutate_genome`, before any other mutations consume the RNG
 - Serialized in genome dict; backward compat: missing field defaults to 0.05
+
+## Phase 5 Batch 2: Structural Mutations, Bounded World, Obstacles, Health (2026-03-19)
+
+### Bidirectional Morphology Mutations
+
+- Three new mutation operators: remove-node, remove-edge, add-edge
+- Remove-node uses `_find_articulation_points()` (Tarjan's DFS) to avoid disconnecting the graph; head (node 0) is always protected; minimum 2 nodes enforced
+- Remove-edge uses `_find_bridge_edges()` to avoid removing edges whose loss disconnects the graph
+- Add-edge finds unconnected node pairs and adds a passive edge (has_motor=False)
+- All rates default 0.0 for backward compat; YAML defaults: 0.003, 0.005, 0.01
+
+### Health Axis
+
+- `CreatureState.health` sentinel -1.0 → initialized to `max_health` on first step tick
+- Passive regen in `_apply_energy`: `health += regen_rate` if `energy > regen_cost` and `health < max_health`
+- Motor output scaled by `0.5 + 0.5 * (health / max_health)` — zero health halves motor force
+- Predation reduces victim health by `bite_health_damage` per bite; health ≤ 0 triggers death
+- `health / max_health` is brain input index 16 (sensing vector grows from 16 to 17)
+- Children born at `max_health`; checkpoint save/load preserves health
+
+### Bounded World
+
+- `Grid2D.boundary` param: "toroidal" (default, wraps) or "bounded" (clamps coordinates, zero-flux diffusion)
+- `apply_wall_repulsion()`: 1/r² repulsive force from each wall within `wall_margin`, capped to prevent explosion
+- Position clamping after overdamped dynamics ensures no node escapes `[0, width] × [0, height]`
+- Default YAML configs changed from toroidal to bounded
+
+### Static Obstacles
+
+- `ObstacleConfig(x, y, radius)` in EnvironmentConfig, parsed from YAML list
+- `apply_obstacle_repulsion()` uses same overlap-based pattern as node-node repulsion
+- `ObstacleSnapshot` included in `Snapshot` for viewer/analysis use
+- YAML default: `obstacles: []` (empty, scenarios add them)

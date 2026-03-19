@@ -318,6 +318,11 @@ Current implementation baseline:
 - `animalcula view` now also shows a second `recording html viewer` TTY progress phase when the HTML fallback is baking frames, so the terminal no longer appears stalled after warmup
 - both debug viewer backends now surface a compact ecology HUD/history layer with species/diversity, recent lifecycle-event deltas, short population/species/predator traces, and selected-creature speed/energy-trend readouts
 - the permanent frontend path now starts in earnest with `animalcula web`: a live FastAPI/WebSocket browser app shell; Tk remains a fallback/debug viewer and should not absorb product-facing UI work that belongs in the browser
+- bidirectional morphology mutations (remove-node, remove-edge, add-edge) now allow evolution to both grow and shrink creature graphs, with graph-connectivity protection via articulation-point and bridge-edge detection
+- a separate health axis now exists alongside energy: passive regen costs energy, predation damages health, motor output scales with health fraction, and death occurs when either energy or health reaches zero
+- the world now defaults to bounded boundary mode with soft 1/r² wall repulsion instead of toroidal wrapping; Grid2D supports both modes via the `boundary` parameter
+- static obstacles can now be configured in YAML as circles with position and radius, and apply the same soft overlap repulsion as node-node contact
+- the brain sensing vector is now 17 elements (was 16): index 16 is `health / max_health`
 
 ## Update Protocol
 

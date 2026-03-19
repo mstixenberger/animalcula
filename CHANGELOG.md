@@ -20,8 +20,18 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - Per-node evolvable `drag_coeff` on `GenomeNodeGene` (default 1.0, clamped [0.5, 5.0]) with `drag_mutation_sigma` config field — enables drag-based niche differentiation and locomotion via asymmetric drag
 - Finite nutrient throughput: nutrient sources now emit at `nutrient_emission_rate` per tick (additive, capped at `nutrient_max_density`) instead of snapping to source strength — bounds total ecosystem energy for stable long runs
 - Self-adaptive `mutation_rate` meta-gene on `CreatureGenome` (default 0.05, clamped [0.001, 0.2]) that evolves via log-normal perturbation and scales parametric sigmas (weight, bias, tau, motor_strength, drag) while leaving structural rates config-driven
+- Remove-node, remove-edge, and add-edge mutation operators for bidirectional morphology evolution: remove-node uses Tarjan's algorithm to protect articulation points, remove-edge protects bridge edges, add-edge connects unconnected pairs with passive edges
+- Health axis separate from energy: creatures now have health (default 100) with passive regen, predation bite damage reduces health, motor output scales with health fraction, death occurs when health OR energy reaches zero
+- Bounded world with soft 1/r² repulsive walls: Grid2D supports bounded boundary mode with clamped coordinates and zero-flux diffusion, node positions clamped to world bounds after physics integration
+- Static obstacles with soft repulsion: configurable obstacle circles in YAML, same overlap-based push as node-node contact, included in simulation snapshots
+- New config fields: `remove_node_mutation_rate`, `remove_edge_mutation_rate`, `add_edge_mutation_rate` (evolution), `max_health`, `health_regen_rate`, `health_regen_cost`, `bite_health_damage` (energy), `wall_repulsion_strength`, `wall_margin` (physics), `obstacles` (environment), all with backward-compatible defaults
+- Health/max_health added as brain input index 16, expanding the sensing vector from 16 to 17 elements
+- `ObstacleSnapshot` in world snapshots and `health` field on `CreatureSnapshot`
 
 ### Changed
+
+- Default world boundary changed from toroidal to bounded with wall repulsion
+- Brain `default_input_size` updated from 16 to 17 in all YAML configs to match the expanded sensing vector
 
 - The README landing section is now much more compact and scan-friendly, with grouped capabilities, clearer viewer-path guidance, and shorter runnable examples
 - Existing structural mutation is now also gated by `max_nodes_per_creature`
