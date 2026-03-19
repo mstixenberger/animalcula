@@ -65,3 +65,11 @@ Key insight: our model lacks real fluid dynamics (no medium to push against), so
 - `nutrient_source_strength` is retained but only used for backward compat default of emission rate
 - Default config: emission_rate=0.5, max_density=10.0 (much lower throughput than the old snap model)
 - Nursery config gets higher values (emission=2.0, max=15.0) to avoid starvation during bootstrapping
+
+### Self-Adaptive Mutation Rate (2026-03-19)
+
+- `CreatureGenome.mutation_rate` (default 0.05) evolves via `rate *= exp(gauss(0, 0.1))`, clamped [0.001, 0.2]
+- Parametric sigmas (weight, bias, tau, motor_strength, drag) are scaled by `mutation_rate / 0.05` — higher rates produce larger perturbations
+- Structural rates (node add, chain extension, hidden neuron, motor toggle, node type) remain config-driven and unaffected
+- Self-adaptation happens first in `mutate_genome`, before any other mutations consume the RNG
+- Serialized in genome dict; backward compat: missing field defaults to 0.05
