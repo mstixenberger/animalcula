@@ -67,6 +67,10 @@ class EnergyConfig:
     reproduction_threshold: float
     mouth_reach_bonus: float
     gripper_reach_bonus: float
+    max_health: float
+    health_regen_rate: float
+    health_regen_cost: float
+    bite_health_damage: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -172,6 +176,10 @@ class Config:
                 **{
                     "mouth_reach_bonus": 0.0,
                     "gripper_reach_bonus": 0.0,
+                    "max_health": 0.0,
+                    "health_regen_rate": 0.0,
+                    "health_regen_cost": 0.0,
+                    "bite_health_damage": 0.0,
                     **raw["energy"],
                 }
             ),

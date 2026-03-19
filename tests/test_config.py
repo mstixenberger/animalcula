@@ -45,7 +45,7 @@ def test_loads_default_config() -> None:
     assert config.evolution.hidden_neuron_mutation_rate == 0.05
     assert config.evolution.max_hidden_neurons == 24
     assert config.brain.motor_force_scale == 1.0
-    assert config.brain.default_input_size == 16
+    assert config.brain.default_input_size == 17
     assert config.creatures.min_population == 0
     assert config.creatures.max_population == 500
     assert config.simulation.initial_seed == 42

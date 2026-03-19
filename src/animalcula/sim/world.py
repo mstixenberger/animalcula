@@ -99,6 +99,7 @@ class CreatureSnapshot:
     band_offset: float
     heading_x: float = 1.0
     heading_y: float = 0.0
+    health: float = 0.0
 
 
 @dataclass(slots=True, frozen=True)
@@ -616,6 +617,7 @@ class World:
                 band_offset=creature.genome.visuals.band_offset if creature.genome is not None else 0.0,
                 heading_x=creature_heading(self.nodes, creature).x,
                 heading_y=creature_heading(self.nodes, creature).y,
+                health=creature.health,
             )
             for creature in self.creatures
         )
@@ -900,6 +902,7 @@ class World:
                     id=creature.get("id", -1),
                     parent_id=creature.get("parent_id"),
                     age_ticks=creature.get("age_ticks", 0),
+                    health=creature.get("health", -1.0),
                     genome=genome_from_dict(creature.get("genome")),
                     color_rgb=tuple(creature.get("color_rgb", [160, 175, 190])),
                 )
@@ -984,6 +987,7 @@ class World:
 
     def _step_once(self) -> Snapshot:
         self._phase_trace = []
+        self._initialize_health_if_needed()
         self._run_phase("environment", self._update_environment)
         self._run_phase("sensing", self._sense_environment)
         self._run_phase("brain", self._update_brains)
@@ -993,6 +997,16 @@ class World:
         self._record_population_observation()
         self.tick += 1
         return self.snapshot()
+
+    def _initialize_health_if_needed(self) -> None:
+        max_health = self.config.energy.max_health
+        if max_health <= 0.0:
+            return
+        updated = False
+        for i, creature in enumerate(self.creatures):
+            if creature.health < 0.0:
+                self.creatures[i] = replace(creature, health=max_health)
+                updated = True
 
     def _run_phase(self, name: str, func: Callable[[], None]) -> None:
         self._phase_trace.append(name)
@@ -1141,6 +1155,8 @@ class World:
             )
             grip_contact = self._gripper_contact_signal(creature)
             grip_active = self._grip_active_signal(creature)
+            max_health = self.config.energy.max_health
+            normalized_health = (creature.health / max_health) if max_health > 0.0 else 1.0
             updated_creatures.append(
                 replace(
                     creature,
@@ -1161,6 +1177,7 @@ class World:
                         average_chemical_b_gradient.y,
                         grip_contact,
                         grip_active,
+                        normalized_health,
                     ),
                 )
             )
@@ -1186,19 +1203,26 @@ class World:
             )
         self.creatures = updated_creatures
 
+    def _health_motor_scale(self, creature: CreatureState) -> float:
+        max_health = self.config.energy.max_health
+        if max_health <= 0.0:
+            return 1.0
+        return 0.5 + 0.5 * (max(0.0, creature.health) / max_health)
+
     def _apply_physics(self) -> None:
         edge_outputs: dict[int, float] = {}
         for creature in self.creatures:
             if not creature.last_brain_outputs:
                 continue
+            health_scale = self._health_motor_scale(creature)
             motor_edges = self._motor_edge_indices_for_creature(creature)
             if motor_edges:
                 motor_outputs, _, _, _, _ = self._control_outputs_for_creature(creature)
                 for output, edge_index in zip(motor_outputs, motor_edges, strict=False):
-                    edge_outputs[edge_index] = (2.0 * output) - 1.0
+                    edge_outputs[edge_index] = ((2.0 * output) - 1.0) * health_scale
             elif not self._mouth_nodes_for_creature(creature):
                 drive = (2.0 * creature.last_brain_outputs[0]) - 1.0
-                force = Vec2(self.config.brain.motor_force_scale * drive, 0.0)
+                force = Vec2(self.config.brain.motor_force_scale * drive * health_scale, 0.0)
                 per_node_force = force / max(len(creature.node_indices), 1)
                 for node_index in creature.node_indices:
                     self.nodes[node_index] = replace(
@@ -1309,10 +1333,19 @@ class World:
                     motor_cost_per_unit=self.config.energy.motor_cost_per_unit,
                 )
             cost += self.config.energy.grip_cost * self._active_grip_count(creature)
+            new_energy = creature.energy + gain - (cost * crowding_multiplier)
+            new_health = creature.health
+            max_health = self.config.energy.max_health
+            regen_rate = self.config.energy.health_regen_rate
+            regen_cost = self.config.energy.health_regen_cost
+            if max_health > 0.0 and regen_rate > 0.0 and new_health < max_health and new_energy > regen_cost:
+                new_health = min(max_health, new_health + regen_rate)
+                new_energy -= regen_cost
             updated_creatures.append(
                 replace(
                     creature,
-                    energy=creature.energy + gain - (cost * crowding_multiplier),
+                    energy=new_energy,
+                    health=new_health,
                 )
             )
 
@@ -1325,7 +1358,7 @@ class World:
             return None
 
         self._reproduce_creatures()
-        dead_creatures = [creature for creature in self.creatures if creature.energy <= 0.0]
+        dead_creatures = [creature for creature in self.creatures if creature.energy <= 0.0 or (self.config.energy.max_health > 0.0 and creature.health <= 0.0)]
         for creature in dead_creatures:
             self._deposit_detritus(creature)
             if creature.id in self._predation_kill_ids:
@@ -1345,7 +1378,7 @@ class World:
                 genome_hash_value=genome_hash(creature.genome),
                 color_rgb_value=creature.color_rgb,
             )
-        living_creatures = [creature for creature in self.creatures if creature.energy > 0.0]
+        living_creatures = [creature for creature in self.creatures if creature.energy > 0.0 and not (self.config.energy.max_health > 0.0 and creature.health <= 0.0)]
         if len(living_creatures) == len(self.creatures):
             self._record_speciation_events()
             return None
@@ -1455,6 +1488,7 @@ class World:
             split_energy = creature.energy / 2.0
             updated_creatures.append(replace(creature, energy=split_energy, genome=parent_genome))
             child_id = self._allocate_creature_id()
+            child_health = self.config.energy.max_health if self.config.energy.max_health > 0.0 else -1.0
             new_creatures.append(
                 CreatureState(
                     node_indices=child_node_indices,
@@ -1462,6 +1496,7 @@ class World:
                     brain=child_brain,
                     genome=child_genome,
                     color_rgb=child_genome.color_rgb,
+                    health=child_health,
                     id=child_id,
                     parent_id=creature.id,
                 )
@@ -1784,6 +1819,8 @@ class World:
             return creatures
 
         energies = [creature.energy for creature in creatures]
+        healths = [creature.health for creature in creatures]
+        bite_health_damage = self.config.energy.bite_health_damage
         self._predation_kill_ids = set()
         for predator_index, predator in enumerate(creatures):
             if not self._gripper_node_indices_for_creature(predator):
@@ -1807,12 +1844,17 @@ class World:
                     )
                     energies[victim_index] -= damage
                     energies[predator_index] += damage * self.config.energy.predation_transfer_efficiency
+                    if bite_health_damage > 0.0:
+                        healths[victim_index] -= bite_health_damage
                     self._emit_alarm_chemicals(victim)
-                    if energies[victim_index] <= 0.0:
+                    if energies[victim_index] <= 0.0 or healths[victim_index] <= 0.0:
                         self._predation_kill_ids.add(victim.id)
                     break
 
-        return [replace(creature, energy=energy) for creature, energy in zip(creatures, energies, strict=True)]
+        return [
+            replace(creature, energy=energy, health=health)
+            for creature, energy, health in zip(creatures, energies, healths, strict=True)
+        ]
 
     def _emit_chemicals(self, creatures: list[CreatureState]) -> None:
         for creature in creatures:
@@ -2098,6 +2140,7 @@ class World:
         ]
         return {
             "energy": creature.energy,
+            "health": creature.health,
             "id": creature.id,
             "parent_id": creature.parent_id,
             "age_ticks": creature.age_ticks,

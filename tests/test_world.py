@@ -288,7 +288,7 @@ def test_world_sensing_tracks_field_gradients() -> None:
     world.step()
 
     sensed = world.creatures[0].last_sensed_inputs
-    assert len(sensed) == 16
+    assert len(sensed) == 17
     assert sensed[3] > 0.0
     assert sensed[5] > 0.0
     assert sensed[7] > 0.0
@@ -2507,3 +2507,248 @@ def test_gripper_reach_bonus_extends_capture() -> None:
 
     # Far gripper has 50% more capture range
     assert far_rm > near_rm
+
+
+# --- Item 9: Health axis ---
+
+
+def test_creature_state_has_health_field() -> None:
+    """CreatureState should have a health field defaulting to -1.0 (sentinel)."""
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    assert creature.health == -1.0
+
+
+def test_health_regen_increases_health_and_costs_energy() -> None:
+    """Passive regen should increase health and cost energy."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.max_health=100.0",
+        "energy.health_regen_rate=5.0",
+        "energy.health_regen_cost=1.0",
+    ])
+    node = NodeState(
+        position=Vec2(500.0, 500.0), velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=50.0, health=80.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    assert world.creatures[0].health > 80.0
+    assert world.creatures[0].energy < 50.0
+
+
+def test_health_regen_skips_when_insufficient_energy() -> None:
+    """Regen should not happen if creature can't afford the cost."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.max_health=100.0",
+        "energy.health_regen_rate=5.0",
+        "energy.health_regen_cost=1000.0",
+    ])
+    node = NodeState(
+        position=Vec2(500.0, 500.0), velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=50.0, health=80.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    # Health should not have increased by regen (may still be 80.0 or close)
+    assert world.creatures[0].health <= 80.0
+
+
+def test_health_regen_clamps_at_max() -> None:
+    """Health should never exceed max_health."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.max_health=100.0",
+        "energy.health_regen_rate=50.0",
+        "energy.health_regen_cost=0.001",
+    ])
+    node = NodeState(
+        position=Vec2(500.0, 500.0), velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=50.0, health=99.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    assert world.creatures[0].health <= 100.0
+
+
+def test_death_when_health_reaches_zero() -> None:
+    """A creature with health <= 0 should die."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.max_health=100.0",
+        "energy.health_regen_rate=0.0",
+        "energy.health_regen_cost=0.0",
+    ])
+    node = NodeState(
+        position=Vec2(500.0, 500.0), velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=50.0, health=0.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    assert len(world.creatures) == 0
+
+
+def test_predation_reduces_victim_health() -> None:
+    """Bite damage should reduce victim health."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.predation_rate=0.05",
+        "energy.max_health=100.0",
+        "energy.bite_health_damage=20.0",
+        "energy.health_regen_rate=0.0",
+        "energy.health_regen_cost=0.0",
+    ])
+    # Predator: gripper + mouth + motor
+    predator_nodes = [
+        NodeState(position=Vec2(100.0, 100.0), velocity=Vec2.zero(),
+                  accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=2.0,
+                  node_type=NodeType.GRIPPER),
+        NodeState(position=Vec2(102.0, 100.0), velocity=Vec2.zero(),
+                  accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=2.0,
+                  node_type=NodeType.MOUTH),
+    ]
+    # Victim overlapping with predator mouth
+    victim_nodes = [
+        NodeState(position=Vec2(103.0, 100.0), velocity=Vec2.zero(),
+                  accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=2.0,
+                  node_type=NodeType.BODY),
+    ]
+    nodes = predator_nodes + victim_nodes
+    edges = [
+        EdgeState(a=0, b=1, rest_length=2.0, stiffness=1.0, has_motor=True, motor_strength=1.0),
+    ]
+    # Predator brain with motor + grip + bite outputs all high
+    brain = BrainState(
+        input_weights=tuple((0.0,) * 17 for _ in range(3)),
+        recurrent_weights=tuple(tuple(0.0 for _ in range(3)) for _ in range(3)),
+        biases=(10.0, 10.0, 10.0),
+        time_constants=(1.0, 1.0, 1.0),
+        states=(0.0, 0.0, 0.0),
+        output_size=3,
+    )
+    predator = CreatureState(node_indices=(0, 1), energy=50.0, brain=brain, health=100.0)
+    victim = CreatureState(node_indices=(2,), energy=50.0, health=100.0)
+    world = World(config=config, nodes=nodes, edges=edges, creatures=[predator, victim])
+
+    world.step()
+
+    # Victim health should have decreased
+    victims = [c for c in world.creatures if len(c.node_indices) == 1]
+    if victims:
+        assert victims[0].health < 100.0
+
+
+def test_motor_output_scaled_by_health_fraction() -> None:
+    """Motor output should be scaled by 0.5 + 0.5 * (health / max_health)."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.max_health=100.0",
+        "energy.health_regen_rate=0.0",
+        "energy.health_regen_cost=0.0",
+    ])
+    # Two creatures: one at full health, one at half
+    node_full = NodeState(position=Vec2(0.0, 0.0), velocity=Vec2.zero(),
+                          accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0)
+    node_full2 = NodeState(position=Vec2(3.0, 0.0), velocity=Vec2.zero(),
+                           accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0)
+    node_half = NodeState(position=Vec2(50.0, 0.0), velocity=Vec2.zero(),
+                          accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0)
+    node_half2 = NodeState(position=Vec2(53.0, 0.0), velocity=Vec2.zero(),
+                           accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0)
+    nodes = [node_full, node_full2, node_half, node_half2]
+    edges = [
+        EdgeState(a=0, b=1, rest_length=3.0, stiffness=1.0, has_motor=True, motor_strength=5.0),
+        EdgeState(a=2, b=3, rest_length=3.0, stiffness=1.0, has_motor=True, motor_strength=5.0),
+    ]
+    brain = BrainState(
+        input_weights=tuple((0.0,) * 17 for _ in range(1)),
+        recurrent_weights=((0.0,),),
+        biases=(10.0,),
+        time_constants=(1.0,),
+        states=(0.0,),
+        output_size=1,
+    )
+    creature_full = CreatureState(node_indices=(0, 1), energy=50.0, brain=brain, health=100.0)
+    creature_half = CreatureState(node_indices=(2, 3), energy=50.0, brain=brain, health=1.0)
+    world = World(config=config, nodes=nodes, edges=edges, creatures=[creature_full, creature_half])
+
+    world.step()
+
+    # Full health creature should have moved more than zero-health creature
+    full_displacement = abs(world.nodes[0].position.x - 0.0) + abs(world.nodes[1].position.x - 3.0)
+    half_displacement = abs(world.nodes[2].position.x - 50.0) + abs(world.nodes[3].position.x - 53.0)
+    assert full_displacement > half_displacement
+
+
+def test_child_born_at_full_health() -> None:
+    """Offspring should be born at max_health."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.max_health=100.0",
+        "energy.reproduction_threshold=10.0",
+        "energy.health_regen_rate=0.0",
+        "energy.health_regen_cost=0.0",
+    ])
+    node = NodeState(
+        position=Vec2(500.0, 500.0), velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=200.0, health=100.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    if len(world.creatures) > 1:
+        child = world.creatures[-1]
+        assert child.health == 100.0
+
+
+def test_health_in_brain_inputs() -> None:
+    """Health/max_health should be brain input index 16."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.max_health=100.0",
+        "energy.health_regen_rate=0.0",
+        "energy.health_regen_cost=0.0",
+    ])
+    node = NodeState(
+        position=Vec2(500.0, 500.0), velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=50.0, health=50.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    world.step()
+
+    sensed = world.creatures[0].last_sensed_inputs
+    assert len(sensed) == 17
+    assert sensed[16] == pytest.approx(0.5, abs=0.01)
+
+
+def test_snapshot_includes_health() -> None:
+    """CreatureSnapshot should include a health field."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "energy.max_health=100.0",
+    ])
+    node = NodeState(
+        position=Vec2(500.0, 500.0), velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(), drag_coeff=1.0, radius=1.0,
+        node_type=NodeType.PHOTORECEPTOR,
+    )
+    creature = CreatureState(node_indices=(0,), energy=50.0, health=75.0)
+    world = World(config=config, nodes=[node], creatures=[creature])
+
+    snapshot = world.snapshot()
+
+    assert len(snapshot.creatures) == 1
+    assert snapshot.creatures[0].health == pytest.approx(75.0)

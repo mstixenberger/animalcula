@@ -90,6 +90,7 @@ class CreatureState:
     brain: BrainState | None = None
     genome: "CreatureGenome | None" = None
     color_rgb: tuple[int, int, int] = DEFAULT_LINEAGE_COLOR_RGB
+    health: float = -1.0
     mean_speed_recent: float = 0.0
     last_sensed_inputs: tuple[float, ...] = ()
     last_brain_outputs: tuple[float, ...] = ()

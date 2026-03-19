@@ -48,6 +48,10 @@ energy:
   reproduction_threshold: 100.0
   mouth_reach_bonus: 0.15
   gripper_reach_bonus: 0.15
+  max_health: 100.0
+  health_regen_rate: 0.1
+  health_regen_cost: 0.002
+  bite_health_damage: 5.0
 
 evolution:
   position_mutation_sigma: 0.5
@@ -69,7 +73,7 @@ evolution:
   add_edge_mutation_rate: 0.01
 
 brain:
-  default_input_size: 16
+  default_input_size: 17
   motor_force_scale: 1.0
 
 creatures:
