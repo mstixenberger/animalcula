@@ -64,6 +64,9 @@ evolution:
   drag_mutation_sigma: 0.15
   chain_extension_mutation_rate: 0.05
   max_nodes_per_creature: 16
+  remove_node_mutation_rate: 0.003
+  remove_edge_mutation_rate: 0.005
+  add_edge_mutation_rate: 0.01
 
 brain:
   default_input_size: 16

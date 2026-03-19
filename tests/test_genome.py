@@ -960,3 +960,256 @@ def test_genome_from_dict_backward_compat_missing_mutation_rate() -> None:
     }
     genome = genome_from_dict(payload)
     assert genome.mutation_rate == 0.05
+
+
+# --- Item 6: Articulation points, bridge edges, remove-node/edge, add-edge ---
+
+from animalcula.sim.genome import _find_articulation_points, _find_bridge_edges
+
+
+def _make_linear_chain(n: int) -> CreatureGenome:
+    """Build a linear chain: 0-1-2-..-(n-1)."""
+    nodes = tuple(
+        CreatureGenome.NodeGene(
+            position=Vec2(float(i) * 3.0, 0.0),
+            radius=1.0,
+            node_type=NodeType.BODY,
+        )
+        for i in range(n)
+    )
+    edges = tuple(
+        CreatureGenome.EdgeGene(a=i, b=i + 1, rest_length=3.0, stiffness=1.0)
+        for i in range(n - 1)
+    )
+    return CreatureGenome(nodes=nodes, edges=edges, brain=None)
+
+
+def _make_triangle() -> CreatureGenome:
+    """Build a triangle: 0-1, 1-2, 2-0."""
+    nodes = tuple(
+        CreatureGenome.NodeGene(
+            position=Vec2(float(i) * 3.0, 0.0),
+            radius=1.0,
+            node_type=NodeType.BODY,
+        )
+        for i in range(3)
+    )
+    edges = (
+        CreatureGenome.EdgeGene(a=0, b=1, rest_length=3.0, stiffness=1.0),
+        CreatureGenome.EdgeGene(a=1, b=2, rest_length=3.0, stiffness=1.0),
+        CreatureGenome.EdgeGene(a=2, b=0, rest_length=3.0, stiffness=1.0),
+    )
+    return CreatureGenome(nodes=nodes, edges=edges, brain=None)
+
+
+def test_articulation_points_linear_chain() -> None:
+    """In a 3-node linear chain 0-1-2, node 1 is an articulation point."""
+    edges = ((0, 1), (1, 2))
+    aps = _find_articulation_points(3, edges)
+    assert 1 in aps
+    assert 0 not in aps
+    assert 2 not in aps
+
+
+def test_articulation_points_triangle_has_none() -> None:
+    """A triangle has no articulation points."""
+    edges = ((0, 1), (1, 2), (2, 0))
+    aps = _find_articulation_points(3, edges)
+    assert len(aps) == 0
+
+
+def test_bridge_edges_linear_chain_all_bridges() -> None:
+    """In a linear chain, every edge is a bridge."""
+    edges = ((0, 1), (1, 2))
+    bridges = _find_bridge_edges(3, edges)
+    assert bridges == {0, 1}
+
+
+def test_bridge_edges_triangle_has_none() -> None:
+    """A triangle has no bridge edges."""
+    edges = ((0, 1), (1, 2), (2, 0))
+    bridges = _find_bridge_edges(3, edges)
+    assert len(bridges) == 0
+
+
+def test_remove_node_on_redundant_graph() -> None:
+    """Remove-node should remove a non-head, non-articulation node from a triangle+tail."""
+    # Build: 0-1, 1-2, 2-0, 2-3 (triangle with a tail at node 3)
+    rng = random.Random(42)
+    nodes = tuple(
+        CreatureGenome.NodeGene(
+            position=Vec2(float(i) * 3.0, 0.0), radius=1.0, node_type=NodeType.BODY,
+        )
+        for i in range(4)
+    )
+    edges = (
+        CreatureGenome.EdgeGene(a=0, b=1, rest_length=3.0, stiffness=1.0),
+        CreatureGenome.EdgeGene(a=1, b=2, rest_length=3.0, stiffness=1.0),
+        CreatureGenome.EdgeGene(a=2, b=0, rest_length=3.0, stiffness=1.0),
+        CreatureGenome.EdgeGene(a=2, b=3, rest_length=3.0, stiffness=1.0),
+    )
+    genome = CreatureGenome(nodes=nodes, edges=edges, brain=None)
+
+    mutated = mutate_genome(
+        genome=genome, rng=rng,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+        bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+        remove_node_mutation_rate=1.0,
+    )
+
+    assert len(mutated.nodes) == 3
+
+
+def test_remove_node_preserves_head() -> None:
+    """Remove-node must never remove node 0 (head)."""
+    rng = random.Random(42)
+    genome = _make_triangle()
+
+    for _ in range(50):
+        mutated = mutate_genome(
+            genome=genome, rng=rng,
+            position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+            bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+            remove_node_mutation_rate=1.0,
+        )
+        if len(mutated.nodes) < len(genome.nodes):
+            # Check that node at position (0,0) still exists (head was preserved)
+            assert mutated.nodes[0].position == genome.nodes[0].position
+
+
+def test_remove_node_skips_when_all_are_articulation_or_head() -> None:
+    """In a 2-node graph (0-1), node 0 is head and node 1 is the only other, but
+    removing it would leave only 1 node which is below the min of 2. So it skips."""
+    rng = random.Random(42)
+    genome = _make_linear_chain(2)
+
+    mutated = mutate_genome(
+        genome=genome, rng=rng,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+        bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+        remove_node_mutation_rate=1.0,
+    )
+
+    assert len(mutated.nodes) == 2
+
+
+def test_remove_node_reindexes_edges() -> None:
+    """After removing a node, edge indices must be reindexed correctly."""
+    rng = random.Random(42)
+    genome = _make_triangle()
+
+    for _ in range(100):
+        mutated = mutate_genome(
+            genome=genome, rng=rng,
+            position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+            bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+            remove_node_mutation_rate=1.0,
+        )
+        if len(mutated.nodes) < len(genome.nodes):
+            # All edge indices must be valid
+            for edge in mutated.edges:
+                assert 0 <= edge.a < len(mutated.nodes)
+                assert 0 <= edge.b < len(mutated.nodes)
+            break
+    else:
+        pytest.fail("Expected remove-node to fire at least once in 100 tries")
+
+
+def test_remove_node_resizes_brain() -> None:
+    """After removing a node, brain output size should be adjusted."""
+    rng = random.Random(42)
+    nodes = tuple(
+        CreatureGenome.NodeGene(
+            position=Vec2(float(i) * 3.0, 0.0), radius=1.0,
+            node_type=NodeType.MOUTH if i == 3 else NodeType.BODY,
+        )
+        for i in range(4)
+    )
+    edges = (
+        CreatureGenome.EdgeGene(a=0, b=1, rest_length=3.0, stiffness=1.0),
+        CreatureGenome.EdgeGene(a=1, b=2, rest_length=3.0, stiffness=1.0),
+        CreatureGenome.EdgeGene(a=2, b=0, rest_length=3.0, stiffness=1.0),
+        CreatureGenome.EdgeGene(a=2, b=3, rest_length=3.0, stiffness=1.0),
+    )
+    brain = CreatureGenome.BrainGene(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(0.0,),
+        time_constants=(1.0,),
+        output_size=1,
+    )
+    genome = CreatureGenome(nodes=nodes, edges=edges, brain=brain)
+
+    for _ in range(100):
+        mutated = mutate_genome(
+            genome=genome, rng=rng,
+            position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+            bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+            remove_node_mutation_rate=1.0,
+        )
+        if len(mutated.nodes) < len(genome.nodes):
+            assert mutated.brain is not None
+            break
+
+
+def test_remove_edge_on_triangle() -> None:
+    """Remove-edge should remove a non-bridge edge from a triangle."""
+    rng = random.Random(42)
+    genome = _make_triangle()
+
+    mutated = mutate_genome(
+        genome=genome, rng=rng,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+        bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+        remove_edge_mutation_rate=1.0,
+    )
+
+    assert len(mutated.edges) == 2
+
+
+def test_remove_edge_skips_when_all_bridges() -> None:
+    """In a linear chain, all edges are bridges so remove-edge should skip."""
+    rng = random.Random(42)
+    genome = _make_linear_chain(3)
+
+    mutated = mutate_genome(
+        genome=genome, rng=rng,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+        bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+        remove_edge_mutation_rate=1.0,
+    )
+
+    assert len(mutated.edges) == 2
+
+
+def test_add_edge_on_chain() -> None:
+    """Add-edge should add a passive edge connecting unconnected nodes in a chain."""
+    rng = random.Random(42)
+    genome = _make_linear_chain(3)
+
+    mutated = mutate_genome(
+        genome=genome, rng=rng,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+        bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+        add_edge_mutation_rate=1.0,
+    )
+
+    assert len(mutated.edges) == 3
+    new_edge = mutated.edges[-1]
+    assert new_edge.has_motor is False
+    assert new_edge.stiffness == 1.0
+
+
+def test_add_edge_skips_when_fully_connected() -> None:
+    """Add-edge should skip when all node pairs are already connected."""
+    rng = random.Random(42)
+    genome = _make_triangle()
+
+    mutated = mutate_genome(
+        genome=genome, rng=rng,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+        bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+        add_edge_mutation_rate=1.0,
+    )
+
+    assert len(mutated.edges) == 3

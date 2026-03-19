@@ -85,6 +85,9 @@ class EvolutionConfig:
     drag_mutation_sigma: float
     chain_extension_mutation_rate: float
     max_nodes_per_creature: int
+    remove_node_mutation_rate: float
+    remove_edge_mutation_rate: float
+    add_edge_mutation_rate: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -128,6 +131,9 @@ class Config:
             "drag_mutation_sigma": 0.0,
             "chain_extension_mutation_rate": 0.0,
             "max_nodes_per_creature": 16,
+            "remove_node_mutation_rate": 0.0,
+            "remove_edge_mutation_rate": 0.0,
+            "add_edge_mutation_rate": 0.0,
             **raw["evolution"],
         }
         environment_raw = {

@@ -81,6 +81,80 @@ MUTABLE_NODE_TYPES: tuple[NodeType, ...] = (
 )
 
 
+def _find_articulation_points(num_nodes: int, edges: tuple[tuple[int, int], ...] | list[tuple[int, int]]) -> set[int]:
+    """Find articulation points using Tarjan's DFS algorithm."""
+    adj: dict[int, list[int]] = {i: [] for i in range(num_nodes)}
+    for a, b in edges:
+        adj[a].append(b)
+        adj[b].append(a)
+
+    visited = [False] * num_nodes
+    disc = [0] * num_nodes
+    low = [0] * num_nodes
+    parent = [-1] * num_nodes
+    ap: set[int] = set()
+    timer = [0]
+
+    def _dfs(u: int) -> None:
+        visited[u] = True
+        disc[u] = low[u] = timer[0]
+        timer[0] += 1
+        children = 0
+        for v in adj[u]:
+            if not visited[v]:
+                children += 1
+                parent[v] = u
+                _dfs(v)
+                low[u] = min(low[u], low[v])
+                if parent[u] == -1 and children > 1:
+                    ap.add(u)
+                if parent[u] != -1 and low[v] >= disc[u]:
+                    ap.add(u)
+            elif v != parent[u]:
+                low[u] = min(low[u], disc[v])
+
+    for i in range(num_nodes):
+        if not visited[i]:
+            _dfs(i)
+
+    return ap
+
+
+def _find_bridge_edges(num_nodes: int, edges: tuple[tuple[int, int], ...] | list[tuple[int, int]]) -> set[int]:
+    """Find bridge edge indices whose removal disconnects the graph."""
+    adj: dict[int, list[tuple[int, int]]] = {i: [] for i in range(num_nodes)}
+    for idx, (a, b) in enumerate(edges):
+        adj[a].append((b, idx))
+        adj[b].append((a, idx))
+
+    visited = [False] * num_nodes
+    disc = [0] * num_nodes
+    low = [0] * num_nodes
+    parent_edge = [-1] * num_nodes
+    bridges: set[int] = set()
+    timer = [0]
+
+    def _dfs(u: int) -> None:
+        visited[u] = True
+        disc[u] = low[u] = timer[0]
+        timer[0] += 1
+        for v, edge_idx in adj[u]:
+            if not visited[v]:
+                parent_edge[v] = edge_idx
+                _dfs(v)
+                low[u] = min(low[u], low[v])
+                if low[v] > disc[u]:
+                    bridges.add(edge_idx)
+            elif edge_idx != parent_edge[u]:
+                low[u] = min(low[u], disc[v])
+
+    for i in range(num_nodes):
+        if not visited[i]:
+            _dfs(i)
+
+    return bridges
+
+
 def required_control_outputs(genome: CreatureGenome) -> int:
     return (
         sum(1 for edge in genome.edges if edge.has_motor)
@@ -441,6 +515,9 @@ def mutate_genome(
     chain_extension_mutation_rate: float = 0.0,
     max_nodes_per_creature: int = 16,
     color_sigma: float = 6.0,
+    remove_node_mutation_rate: float = 0.0,
+    remove_edge_mutation_rate: float = 0.0,
+    add_edge_mutation_rate: float = 0.0,
 ) -> CreatureGenome:
     # Self-adapt mutation rate via log-normal perturbation
     new_mutation_rate = genome.mutation_rate * math.exp(rng.gauss(0.0, 0.1))
@@ -583,6 +660,74 @@ def mutate_genome(
                         chain_extension_parent_motor_idx = motor_count
                     motor_count += 1
             chain_extension_new_motor_idx = sum(1 for e in mutated_edges if e.has_motor) - 1
+    # --- Remove-node mutation ---
+    if (
+        remove_node_mutation_rate > 0.0
+        and rng.random() < remove_node_mutation_rate
+        and len(mutated_nodes) > 2
+    ):
+        edge_tuples = [(e.a, e.b) for e in mutated_edges]
+        aps = _find_articulation_points(len(mutated_nodes), edge_tuples)
+        candidates = [
+            i for i in range(1, len(mutated_nodes))  # skip head (index 0)
+            if i not in aps
+        ]
+        if candidates:
+            removed = rng.choice(candidates)
+            mutated_nodes = [n for i, n in enumerate(mutated_nodes) if i != removed]
+            # Remove edges touching the removed node, reindex remaining
+            new_edges: list[GenomeEdgeGene] = []
+            for edge in mutated_edges:
+                if edge.a == removed or edge.b == removed:
+                    continue
+                new_a = edge.a if edge.a < removed else edge.a - 1
+                new_b = edge.b if edge.b < removed else edge.b - 1
+                new_edges.append(GenomeEdgeGene(
+                    a=new_a, b=new_b,
+                    rest_length=edge.rest_length, stiffness=edge.stiffness,
+                    has_motor=edge.has_motor, motor_strength=edge.motor_strength,
+                ))
+            mutated_edges = new_edges
+
+    # --- Remove-edge mutation ---
+    if (
+        remove_edge_mutation_rate > 0.0
+        and rng.random() < remove_edge_mutation_rate
+        and len(mutated_edges) > 1
+    ):
+        edge_tuples = [(e.a, e.b) for e in mutated_edges]
+        bridges = _find_bridge_edges(len(mutated_nodes), edge_tuples)
+        non_bridge_indices = [i for i in range(len(mutated_edges)) if i not in bridges]
+        if non_bridge_indices:
+            remove_idx = rng.choice(non_bridge_indices)
+            mutated_edges = [e for i, e in enumerate(mutated_edges) if i != remove_idx]
+
+    # --- Add-edge mutation ---
+    if (
+        add_edge_mutation_rate > 0.0
+        and rng.random() < add_edge_mutation_rate
+        and len(mutated_nodes) >= 2
+    ):
+        connected = set()
+        for edge in mutated_edges:
+            connected.add((min(edge.a, edge.b), max(edge.a, edge.b)))
+        unconnected = [
+            (i, j)
+            for i in range(len(mutated_nodes))
+            for j in range(i + 1, len(mutated_nodes))
+            if (i, j) not in connected
+        ]
+        if unconnected:
+            a_idx, b_idx = rng.choice(unconnected)
+            dist = (mutated_nodes[a_idx].position - mutated_nodes[b_idx].position).magnitude()
+            mutated_edges.append(GenomeEdgeGene(
+                a=a_idx, b=b_idx,
+                rest_length=max(dist, 0.1),
+                stiffness=1.0,
+                has_motor=False,
+                motor_strength=0.0,
+            ))
+
     mutated_genome_without_brain = CreatureGenome(
         nodes=tuple(mutated_nodes),
         edges=tuple(mutated_edges),

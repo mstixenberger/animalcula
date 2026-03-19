@@ -1426,6 +1426,9 @@ class World:
                 drag_mutation_sigma=self.config.evolution.drag_mutation_sigma,
                 chain_extension_mutation_rate=self.config.evolution.chain_extension_mutation_rate,
                 max_nodes_per_creature=self.config.evolution.max_nodes_per_creature,
+                remove_node_mutation_rate=self.config.evolution.remove_node_mutation_rate,
+                remove_edge_mutation_rate=self.config.evolution.remove_edge_mutation_rate,
+                add_edge_mutation_rate=self.config.evolution.add_edge_mutation_rate,
             )
             child_offset = Vec2(2.0 * (creature_index + 1), 2.0 * (creature_index + 1))
             child_anchor = self.nodes[creature.node_indices[0]].position + child_offset
