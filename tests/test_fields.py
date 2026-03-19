@@ -115,3 +115,73 @@ def test_grid_gradient_estimates_local_directional_change() -> None:
 
     assert gradient.x > 0.0
     assert gradient.y == 0.0
+
+
+def test_add_value_capped_respects_maximum() -> None:
+    """add_value_capped should not exceed the cap."""
+    grid = Grid2D(width=10.0, height=10.0, resolution=5.0)
+    grid.set_value(col=0, row=0, value=8.0)
+
+    grid.add_value_capped(col=0, row=0, amount=5.0, cap=10.0)
+
+    assert grid.values[0] == 10.0
+
+
+def test_add_value_capped_adds_when_below_cap() -> None:
+    grid = Grid2D(width=10.0, height=10.0, resolution=5.0)
+    grid.set_value(col=0, row=0, value=3.0)
+
+    grid.add_value_capped(col=0, row=0, amount=2.0, cap=10.0)
+
+    assert grid.values[0] == 5.0
+
+
+def test_add_value_capped_does_nothing_when_at_cap() -> None:
+    grid = Grid2D(width=10.0, height=10.0, resolution=5.0)
+    grid.set_value(col=0, row=0, value=10.0)
+
+    grid.add_value_capped(col=0, row=0, amount=5.0, cap=10.0)
+
+    assert grid.values[0] == 10.0
+
+
+def test_nutrient_emission_increases_by_rate_per_tick() -> None:
+    """With finite throughput, nutrient cells increase by emission rate, not snap to strength."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "environment.nutrient_source_count=1",
+        "environment.nutrient_source_strength=2.0",
+        "environment.nutrient_emission_rate=0.5",
+        "environment.nutrient_max_density=10.0",
+        "environment.nutrient_diffusion_rate=0.0",
+        "environment.nutrient_decay_rate=0.0",
+    ])
+    world = World(config=config)
+
+    # Find the source cell and zero it out
+    source_col, source_row = world._nutrient_source_cells[0]
+    world.nutrient_grid.set_value(col=source_col, row=source_row, value=0.0)
+
+    world.step(1)
+
+    value = world.nutrient_grid.values[source_row * world.nutrient_grid.cols + source_col]
+    # Should have increased by emission_rate * strength, not snapped to strength
+    assert value > 0.0
+    assert value < 2.0  # less than the full source_strength
+
+
+def test_nutrient_density_never_exceeds_cap() -> None:
+    """Even with repeated emissions, nutrient density cannot exceed max_density."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "environment.nutrient_source_count=1",
+        "environment.nutrient_source_strength=2.0",
+        "environment.nutrient_emission_rate=5.0",
+        "environment.nutrient_max_density=3.0",
+        "environment.nutrient_diffusion_rate=0.0",
+        "environment.nutrient_decay_rate=0.0",
+    ])
+    world = World(config=config)
+
+    world.step(10)
+
+    for value in world.nutrient_grid.values:
+        assert value <= 3.0
