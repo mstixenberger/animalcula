@@ -811,3 +811,152 @@ def test_genome_distance_includes_drag_difference() -> None:
     dist = genome_distance(genome_a, genome_b)
     dist_same = genome_distance(genome_a, genome_a)
     assert dist > dist_same
+
+
+def test_creature_genome_has_mutation_rate_with_default() -> None:
+    """CreatureGenome should have a mutation_rate field defaulting to 0.05."""
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(), brain=None,
+    )
+    assert genome.mutation_rate == 0.05
+
+
+def test_mutation_rate_meta_gene_mutates_each_generation() -> None:
+    """The mutation_rate should self-adapt via log-normal perturbation."""
+    rng = random.Random(42)
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(), brain=None,
+        mutation_rate=0.05,
+    )
+
+    saw_change = False
+    for _ in range(20):
+        mutated = mutate_genome(
+            genome=genome, rng=rng,
+            position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.1,
+            bias_sigma=0.05, tau_sigma=0.02, motor_strength_sigma=0.2,
+        )
+        if mutated.mutation_rate != genome.mutation_rate:
+            saw_change = True
+            break
+
+    assert saw_change, "Expected mutation_rate to self-adapt"
+
+
+def test_mutation_rate_stays_in_bounds() -> None:
+    """mutation_rate should be clamped to [0.001, 0.2]."""
+    rng = random.Random(42)
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(), brain=None,
+        mutation_rate=0.05,
+    )
+
+    for _ in range(200):
+        genome = mutate_genome(
+            genome=genome, rng=rng,
+            position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.1,
+            bias_sigma=0.05, tau_sigma=0.02, motor_strength_sigma=0.2,
+        )
+        assert 0.001 <= genome.mutation_rate <= 0.2
+
+
+def test_mutation_rate_scales_parametric_sigmas() -> None:
+    """Parametric mutations (weight, bias, tau, drag) should scale with mutation_rate."""
+    rng_low = random.Random(99)
+    rng_high = random.Random(99)
+
+    brain = CreatureGenome.BrainGene(
+        input_weights=((0.0,) * 16,),
+        recurrent_weights=((0.0,),),
+        biases=(0.0,),
+        time_constants=(1.0,),
+        output_size=1,
+    )
+    genome_low = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(), brain=brain, mutation_rate=0.01,
+    )
+    genome_high = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(), brain=brain, mutation_rate=0.2,
+    )
+
+    mutated_low = mutate_genome(
+        genome=genome_low, rng=rng_low,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.1,
+        bias_sigma=0.05, tau_sigma=0.02, motor_strength_sigma=0.2,
+    )
+    mutated_high = mutate_genome(
+        genome=genome_high, rng=rng_high,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.1,
+        bias_sigma=0.05, tau_sigma=0.02, motor_strength_sigma=0.2,
+    )
+
+    # Higher mutation_rate should produce larger weight deviations on average
+    low_delta = abs(mutated_low.brain.biases[0] - brain.biases[0])
+    high_delta = abs(mutated_high.brain.biases[0] - brain.biases[0])
+    assert high_delta > low_delta
+
+
+def test_structural_rates_unaffected_by_mutation_rate() -> None:
+    """Structural mutation rates stay config-driven, not scaled by mutation_rate."""
+    rng_a = random.Random(42)
+    rng_b = random.Random(42)
+
+    genome = CreatureGenome(
+        nodes=(
+            CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),
+            CreatureGenome.NodeGene(position=Vec2(3.0, 0.0), radius=1.0, node_type=NodeType.BODY),
+        ),
+        edges=(CreatureGenome.EdgeGene(a=0, b=1, rest_length=3.0, stiffness=1.0),),
+        brain=None,
+    )
+
+    genome_low = CreatureGenome(
+        nodes=genome.nodes, edges=genome.edges, brain=genome.brain,
+        mutation_rate=0.001,
+    )
+    genome_high = CreatureGenome(
+        nodes=genome.nodes, edges=genome.edges, brain=genome.brain,
+        mutation_rate=0.2,
+    )
+
+    # With identical seeds and structural_mutation_rate=1.0, both should add a node
+    mutated_low = mutate_genome(
+        genome=genome_low, rng=rng_a,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+        bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+        structural_mutation_rate=1.0,
+    )
+    mutated_high = mutate_genome(
+        genome=genome_high, rng=rng_b,
+        position_sigma=0.0, radius_sigma=0.0, weight_sigma=0.0,
+        bias_sigma=0.0, tau_sigma=0.0, motor_strength_sigma=0.0,
+        structural_mutation_rate=1.0,
+    )
+
+    assert len(mutated_low.nodes) == 3
+    assert len(mutated_high.nodes) == 3
+
+
+def test_genome_dict_roundtrip_preserves_mutation_rate() -> None:
+    genome = CreatureGenome(
+        nodes=(CreatureGenome.NodeGene(position=Vec2.zero(), radius=1.0, node_type=NodeType.BODY),),
+        edges=(), brain=None, mutation_rate=0.08,
+    )
+
+    restored = genome_from_dict(genome_to_dict(genome))
+    assert restored.mutation_rate == 0.08
+
+
+def test_genome_from_dict_backward_compat_missing_mutation_rate() -> None:
+    """Old genome dicts without mutation_rate should default to 0.05."""
+    payload = {
+        "nodes": [{"position": [0.0, 0.0], "radius": 1.0, "node_type": "body"}],
+        "edges": [], "brain": None,
+    }
+    genome = genome_from_dict(payload)
+    assert genome.mutation_rate == 0.05

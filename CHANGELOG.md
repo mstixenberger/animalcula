@@ -19,6 +19,7 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `heading_x` / `heading_y` fields on `CreatureSnapshot` for viewer use
 - Per-node evolvable `drag_coeff` on `GenomeNodeGene` (default 1.0, clamped [0.5, 5.0]) with `drag_mutation_sigma` config field — enables drag-based niche differentiation and locomotion via asymmetric drag
 - Finite nutrient throughput: nutrient sources now emit at `nutrient_emission_rate` per tick (additive, capped at `nutrient_max_density`) instead of snapping to source strength — bounds total ecosystem energy for stable long runs
+- Self-adaptive `mutation_rate` meta-gene on `CreatureGenome` (default 0.05, clamped [0.001, 0.2]) that evolves via log-normal perturbation and scales parametric sigmas (weight, bias, tau, motor_strength, drag) while leaving structural rates config-driven
 
 ### Changed
 

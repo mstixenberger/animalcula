@@ -64,6 +64,7 @@ class CreatureGenome:
     brain: GenomeBrainGene | None = None
     color_rgb: tuple[int, int, int] = DEFAULT_LINEAGE_COLOR_RGB
     visuals: GenomeVisualGene = GenomeVisualGene()
+    mutation_rate: float = 0.05
 
 
 CreatureGenome.NodeGene = GenomeNodeGene  # type: ignore[attr-defined]
@@ -441,6 +442,18 @@ def mutate_genome(
     max_nodes_per_creature: int = 16,
     color_sigma: float = 6.0,
 ) -> CreatureGenome:
+    # Self-adapt mutation rate via log-normal perturbation
+    new_mutation_rate = genome.mutation_rate * math.exp(rng.gauss(0.0, 0.1))
+    new_mutation_rate = _clamp(new_mutation_rate, 0.001, 0.2)
+
+    # Scale parametric sigmas by mutation_rate relative to default (0.05)
+    rate_scale = new_mutation_rate / 0.05
+    weight_sigma *= rate_scale
+    bias_sigma *= rate_scale
+    tau_sigma *= rate_scale
+    motor_strength_sigma *= rate_scale
+    drag_mutation_sigma *= rate_scale
+
     mutated_nodes = [
         GenomeNodeGene(
             position=node.position
@@ -624,6 +637,7 @@ def mutate_genome(
         brain=mutated_brain,
         color_rgb=_mutate_color_rgb(genome.color_rgb, rng=rng, sigma=color_sigma),
         visuals=_mutate_visuals(genome.visuals, rng=rng),
+        mutation_rate=new_mutation_rate,
     )
 
 
@@ -661,6 +675,7 @@ def genome_to_dict(genome: CreatureGenome | None) -> dict[str, Any] | None:
     if genome is None:
         return None
     return {
+        "mutation_rate": genome.mutation_rate,
         "color_rgb": list(genome.color_rgb),
         "visuals": {
             "silhouette_scale": genome.visuals.silhouette_scale,
@@ -744,6 +759,7 @@ def genome_from_dict(payload: dict[str, Any] | None) -> CreatureGenome | None:
             band_count=int(visuals_payload.get("band_count", 2)),
             band_offset=float(visuals_payload.get("band_offset", 0.0)),
         ),
+        mutation_rate=float(payload.get("mutation_rate", 0.05)),
     )
 
 
