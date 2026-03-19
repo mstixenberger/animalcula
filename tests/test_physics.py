@@ -334,3 +334,54 @@ def test_creature_heading_fallback_when_node0_at_com() -> None:
     creature = CreatureState(node_indices=(0,), energy=1.0)
     heading = creature_heading(nodes, creature)
     assert heading == Vec2(1.0, 0.0)
+
+
+# --- Item 7: Wall repulsion ---
+
+from animalcula.sim.physics import apply_wall_repulsion
+
+
+def test_wall_repulsion_pushes_node_from_left_wall() -> None:
+    """A node near the left wall (x=0) should be pushed to the right."""
+    nodes = [_make_node(2.0, 50.0)]
+    updated = apply_wall_repulsion(nodes, width=100.0, height=100.0, strength=50.0, margin=20.0)
+    assert updated[0].accumulated_force.x > 0.0
+
+
+def test_wall_repulsion_zero_outside_margin() -> None:
+    """A node far from all walls should get zero wall repulsion."""
+    nodes = [_make_node(50.0, 50.0)]
+    updated = apply_wall_repulsion(nodes, width=100.0, height=100.0, strength=50.0, margin=20.0)
+    assert updated[0].accumulated_force.x == 0.0
+    assert updated[0].accumulated_force.y == 0.0
+
+
+def test_wall_repulsion_increases_near_wall() -> None:
+    """1/r² falloff: closer to wall should mean stronger force."""
+    nodes_close = [_make_node(1.0, 50.0)]
+    nodes_far = [_make_node(10.0, 50.0)]
+    updated_close = apply_wall_repulsion(nodes_close, width=100.0, height=100.0, strength=50.0, margin=20.0)
+    updated_far = apply_wall_repulsion(nodes_far, width=100.0, height=100.0, strength=50.0, margin=20.0)
+    assert abs(updated_close[0].accumulated_force.x) > abs(updated_far[0].accumulated_force.x)
+
+
+def test_wall_repulsion_all_four_walls() -> None:
+    """Nodes near each wall should be pushed inward."""
+    width, height = 100.0, 100.0
+    strength, margin = 50.0, 20.0
+
+    # Near left wall
+    updated = apply_wall_repulsion([_make_node(2.0, 50.0)], width, height, strength, margin)
+    assert updated[0].accumulated_force.x > 0.0
+
+    # Near right wall
+    updated = apply_wall_repulsion([_make_node(98.0, 50.0)], width, height, strength, margin)
+    assert updated[0].accumulated_force.x < 0.0
+
+    # Near bottom wall
+    updated = apply_wall_repulsion([_make_node(50.0, 2.0)], width, height, strength, margin)
+    assert updated[0].accumulated_force.y > 0.0
+
+    # Near top wall
+    updated = apply_wall_repulsion([_make_node(50.0, 98.0)], width, height, strength, margin)
+    assert updated[0].accumulated_force.y < 0.0

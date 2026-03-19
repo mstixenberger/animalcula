@@ -13,6 +13,7 @@ class Grid2D:
     width: float
     height: float
     resolution: float
+    boundary: str = "toroidal"
     cols: int = field(init=False)
     rows: int = field(init=False)
     values: list[float] = field(init=False)
@@ -23,10 +24,16 @@ class Grid2D:
         self.values = [0.0] * (self.cols * self.rows)
 
     def index_for_position(self, position: Vec2) -> tuple[int, int]:
-        wrapped_x = position.x % self.width
-        wrapped_y = position.y % self.height
-        col = min(int(wrapped_x / self.resolution), self.cols - 1)
-        row = min(int(wrapped_y / self.resolution), self.rows - 1)
+        if self.boundary == "bounded":
+            clamped_x = max(0.0, min(position.x, self.width - 1e-9))
+            clamped_y = max(0.0, min(position.y, self.height - 1e-9))
+            col = min(int(clamped_x / self.resolution), self.cols - 1)
+            row = min(int(clamped_y / self.resolution), self.rows - 1)
+        else:
+            wrapped_x = position.x % self.width
+            wrapped_y = position.y % self.height
+            col = min(int(wrapped_x / self.resolution), self.cols - 1)
+            row = min(int(wrapped_y / self.resolution), self.rows - 1)
         return col, row
 
     def sample(self, position: Vec2) -> float:
@@ -96,15 +103,26 @@ class Grid2D:
 
         original = list(self.values)
         updated = [0.0] * len(self.values)
+        bounded = self.boundary == "bounded"
         for row in range(self.rows):
             for col in range(self.cols):
                 index = (row * self.cols) + col
                 center = original[index]
+                if bounded:
+                    left_col = max(0, col - 1)
+                    right_col = min(self.cols - 1, col + 1)
+                    up_row = max(0, row - 1)
+                    down_row = min(self.rows - 1, row + 1)
+                else:
+                    left_col = (col - 1) % self.cols
+                    right_col = (col + 1) % self.cols
+                    up_row = (row - 1) % self.rows
+                    down_row = (row + 1) % self.rows
                 neighbor_total = (
-                    original[(row * self.cols) + ((col - 1) % self.cols)]
-                    + original[(row * self.cols) + ((col + 1) % self.cols)]
-                    + original[(((row - 1) % self.rows) * self.cols) + col]
-                    + original[(((row + 1) % self.rows) * self.cols) + col]
+                    original[(row * self.cols) + left_col]
+                    + original[(row * self.cols) + right_col]
+                    + original[(up_row * self.cols) + col]
+                    + original[(down_row * self.cols) + col]
                 )
                 neighbor_average = neighbor_total / 4.0
                 updated[index] = (center * (1.0 - rate)) + (neighbor_average * rate)

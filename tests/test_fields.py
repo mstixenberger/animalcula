@@ -15,7 +15,7 @@ def test_grid_dimensions_follow_world_size_and_resolution() -> None:
 
 
 def test_grid_sampling_wraps_toroidal_coordinates() -> None:
-    grid = Grid2D(width=10.0, height=10.0, resolution=5.0)
+    grid = Grid2D(width=10.0, height=10.0, resolution=5.0, boundary="toroidal")
     grid.set_value(col=0, row=1, value=7.0)
 
     assert grid.sample(Vec2(10.1, 7.5)) == 7.0
@@ -185,3 +185,43 @@ def test_nutrient_density_never_exceeds_cap() -> None:
 
     for value in world.nutrient_grid.values:
         assert value <= 3.0
+
+
+# --- Item 7: Bounded world ---
+
+
+def test_bounded_grid_clamps_instead_of_wrapping() -> None:
+    """A bounded grid should clamp coordinates instead of wrapping."""
+    grid = Grid2D(width=10.0, height=10.0, resolution=5.0, boundary="bounded")
+    grid.set_value(col=0, row=0, value=7.0)
+
+    # Position just past the right edge should clamp to last column, not wrap
+    col, row = grid.index_for_position(Vec2(10.5, 0.5))
+    assert col == 1  # clamped to max col
+    assert row == 0
+
+    # Negative position should clamp to 0
+    col, row = grid.index_for_position(Vec2(-1.0, -1.0))
+    assert col == 0
+    assert row == 0
+
+
+def test_bounded_diffusion_no_wrap_at_edges() -> None:
+    """Bounded diffusion should use zero-flux boundary, not wrap around."""
+    grid = Grid2D(width=15.0, height=15.0, resolution=5.0, boundary="bounded")
+    # Put value in top-right corner
+    grid.set_value(col=2, row=2, value=9.0)
+
+    grid.diffuse(rate=0.25)
+
+    # The bottom-left corner should NOT have received any value
+    # (which would happen with toroidal wrapping)
+    assert grid.values[0] == 0.0  # (row=0, col=0)
+
+
+def test_toroidal_grid_still_wraps() -> None:
+    """Explicit toroidal boundary should still wrap like the default."""
+    grid = Grid2D(width=10.0, height=10.0, resolution=5.0, boundary="toroidal")
+    grid.set_value(col=0, row=1, value=7.0)
+
+    assert grid.sample(Vec2(10.1, 7.5)) == 7.0

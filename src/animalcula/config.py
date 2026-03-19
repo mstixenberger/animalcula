@@ -25,6 +25,8 @@ class PhysicsConfig:
     contact_repulsion: float
     grip_spring_stiffness: float
     grip_yield_force: float
+    wall_repulsion_strength: float
+    wall_margin: float
 
 
 @dataclass(slots=True, frozen=True)
@@ -161,7 +163,13 @@ class Config:
         environment_raw.setdefault("nutrient_max_density", 10.0)
         return cls(
             world=WorldConfig(**raw["world"]),
-            physics=PhysicsConfig(**raw["physics"]),
+            physics=PhysicsConfig(
+                **{
+                    "wall_repulsion_strength": 0.0,
+                    "wall_margin": 0.0,
+                    **raw["physics"],
+                }
+            ),
             environment=EnvironmentConfig(
                 **{
                     **environment_raw,

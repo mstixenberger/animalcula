@@ -9,7 +9,7 @@ def test_loads_default_config() -> None:
     config = Config.from_yaml(Path("config/default.yaml"))
 
     assert config.world.width == 1000.0
-    assert config.world.boundary == "toroidal"
+    assert config.world.boundary == "bounded"
     assert config.physics.dt == 0.01
     assert config.physics.grip_spring_stiffness == 200.0
     assert config.physics.grip_yield_force == 50.0

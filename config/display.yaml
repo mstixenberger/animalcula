@@ -2,7 +2,7 @@ world:
   width: 1000.0
   height: 1000.0
   grid_resolution: 5.0
-  boundary: toroidal
+  boundary: bounded
 
 physics:
   dt: 0.01
@@ -10,6 +10,8 @@ physics:
   contact_repulsion: 2.0
   grip_spring_stiffness: 200.0
   grip_yield_force: 50.0
+  wall_repulsion_strength: 50.0
+  wall_margin: 20.0
 
 environment:
   nutrient_diffusion_rate: 0.15

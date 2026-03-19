@@ -32,6 +32,7 @@ from animalcula.sim.physics import (
     apply_motor_forces,
     apply_node_repulsion,
     apply_overdamped_dynamics,
+    apply_wall_repulsion,
     creature_heading,
     spring_force,
 )
@@ -208,30 +209,36 @@ class World:
         self._peak_grip_latch_count = 0
         self._update_species_dominance_metrics(self._species_labels())
         self._record_population_observation()
+        grid_boundary = self.config.world.boundary
         self.nutrient_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
             resolution=self.config.world.grid_resolution,
+            boundary=grid_boundary,
         )
         self.light_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
             resolution=self.config.world.grid_resolution,
+            boundary=grid_boundary,
         )
         self.chemical_a_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
             resolution=self.config.world.grid_resolution,
+            boundary=grid_boundary,
         )
         self.chemical_b_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
             resolution=self.config.world.grid_resolution,
+            boundary=grid_boundary,
         )
         self.detritus_grid = Grid2D(
             width=self.config.world.width,
             height=self.config.world.height,
             resolution=self.config.world.grid_resolution,
+            boundary=grid_boundary,
         )
         self._nutrient_source_cells = self._initialize_nutrient_sources()
         self._update_environment()
@@ -1235,6 +1242,14 @@ class World:
             nodes=self.nodes,
             strength=self.config.physics.contact_repulsion,
         )
+        if self.config.world.boundary == "bounded" and self.config.physics.wall_repulsion_strength > 0.0:
+            self.nodes = apply_wall_repulsion(
+                nodes=self.nodes,
+                width=self.config.world.width,
+                height=self.config.world.height,
+                strength=self.config.physics.wall_repulsion_strength,
+                margin=self.config.physics.wall_margin,
+            )
         self._refresh_grip_latches()
         self.nodes = apply_grip_latches(
             nodes=self.nodes,
@@ -1250,6 +1265,17 @@ class World:
             )
             for node in self.nodes
         ]
+        if self.config.world.boundary == "bounded":
+            w, h = self.config.world.width, self.config.world.height
+            self.nodes = [
+                replace(node, position=Vec2(
+                    max(0.0, min(w, node.position.x)),
+                    max(0.0, min(h, node.position.y)),
+                ))
+                if node.position.x < 0.0 or node.position.x > w or node.position.y < 0.0 or node.position.y > h
+                else node
+                for node in self.nodes
+            ]
         self.creatures = self._update_recent_speeds(self.creatures)
 
     def _apply_energy(self) -> None:

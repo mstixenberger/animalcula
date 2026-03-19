@@ -142,6 +142,57 @@ def apply_grip_latches(
     return updated_nodes
 
 
+def apply_wall_repulsion(
+    nodes: list[NodeState],
+    width: float,
+    height: float,
+    strength: float,
+    margin: float,
+) -> list[NodeState]:
+    """Apply soft 1/r² repulsive force from world boundaries."""
+    if strength <= 0.0 or margin <= 0.0:
+        return list(nodes)
+
+    epsilon = 0.01
+    max_force = strength * 100.0  # cap to prevent explosion
+    updated_nodes = list(nodes)
+
+    for i, node in enumerate(updated_nodes):
+        fx, fy = 0.0, 0.0
+        # Left wall (x=0)
+        dist = node.position.x
+        if 0.0 < dist < margin:
+            fx += min(strength / max(dist * dist, epsilon), max_force)
+        elif dist <= 0.0:
+            fx += max_force
+        # Right wall (x=width)
+        dist = width - node.position.x
+        if 0.0 < dist < margin:
+            fx -= min(strength / max(dist * dist, epsilon), max_force)
+        elif dist <= 0.0:
+            fx -= max_force
+        # Bottom wall (y=0)
+        dist = node.position.y
+        if 0.0 < dist < margin:
+            fy += min(strength / max(dist * dist, epsilon), max_force)
+        elif dist <= 0.0:
+            fy += max_force
+        # Top wall (y=height)
+        dist = height - node.position.y
+        if 0.0 < dist < margin:
+            fy -= min(strength / max(dist * dist, epsilon), max_force)
+        elif dist <= 0.0:
+            fy -= max_force
+
+        if fx != 0.0 or fy != 0.0:
+            updated_nodes[i] = replace(
+                node,
+                accumulated_force=node.accumulated_force + Vec2(fx, fy),
+            )
+
+    return updated_nodes
+
+
 def creature_heading(nodes: list[NodeState], creature: CreatureState) -> Vec2:
     """Return the heading unit vector for a creature: (node0_pos - COM).normalized().
 

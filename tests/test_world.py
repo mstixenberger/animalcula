@@ -92,7 +92,9 @@ def test_world_random_stream_is_deterministic_for_the_same_seed() -> None:
 
 
 def test_world_step_applies_overdamped_physics_to_nodes() -> None:
-    config = Config.from_yaml(Path("config/default.yaml"))
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "physics.wall_repulsion_strength=0.0",
+    ])
     node = NodeState(
         position=Vec2.zero(),
         velocity=Vec2.zero(),
@@ -114,6 +116,7 @@ def test_world_drag_regime_shift_changes_physics_multiplier() -> None:
         [
             "environment.drag_shift_interval=2",
             "environment.drag_shift_multipliers=[1.0, 2.0]",
+            "physics.wall_repulsion_strength=0.0",
         ]
     )
     node = NodeState(
@@ -183,7 +186,9 @@ def test_world_nutrient_epoch_reseeds_are_deterministic_for_same_seed() -> None:
 
 
 def test_world_step_applies_edge_springs_before_integration() -> None:
-    config = Config.from_yaml(Path("config/default.yaml"))
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "physics.wall_repulsion_strength=0.0",
+    ])
     nodes = [
         NodeState(
             position=Vec2(0.0, 0.0),
@@ -749,7 +754,9 @@ def test_world_brain_phase_updates_brain_state_and_moves_creature() -> None:
 
 
 def test_world_brain_outputs_can_drive_motorized_edges() -> None:
-    config = Config.from_yaml(Path("config/default.yaml"))
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "physics.wall_repulsion_strength=0.0",
+    ])
     brain = BrainState(
         input_weights=((2.0, 0.0, 0.0),),
         recurrent_weights=((0.0,),),
@@ -2752,3 +2759,29 @@ def test_snapshot_includes_health() -> None:
 
     assert len(snapshot.creatures) == 1
     assert snapshot.creatures[0].health == pytest.approx(75.0)
+
+
+# --- Item 7: Bounded world integration ---
+
+
+def test_bounded_world_nodes_stay_within_bounds() -> None:
+    """In a bounded world, nodes near edges should stay within [0, width] x [0, height]."""
+    config = Config.from_yaml(Path("config/default.yaml")).with_overrides([
+        "world.boundary=bounded",
+        "physics.wall_repulsion_strength=50.0",
+        "physics.wall_margin=20.0",
+    ])
+    # Place a node near the left edge with a force pushing it further left
+    node = NodeState(
+        position=Vec2(1.0, 500.0),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2(-10.0, 0.0),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+    world = World(config=config, nodes=[node])
+
+    world.step(10)
+
+    assert world.nodes[0].position.x >= 0.0
+    assert world.nodes[0].position.y >= 0.0
