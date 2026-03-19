@@ -15,6 +15,8 @@ The format is based on Keep a Changelog, and this project will adopt semantic ve
 - `max_nodes_per_creature` config limit (default 16) that gates both structural and chain-extension mutations to prevent unbounded morphology growth
 - New config fields: `chain_extension_mutation_rate`, `max_nodes_per_creature` (evolution), `mouth_reach_bonus`, `gripper_reach_bonus` (energy), all with backward-compatible defaults
 - Scallop theorem validation tests: confirms 1-DOF swimmers produce zero net displacement (even with asymmetric drag), and that multi-DOF + asymmetric drag enables locomotion
+- `creature_heading()` helper in physics module: returns unit vector from COM to node 0, with fallback to (1, 0) for degenerate cases
+- `heading_x` / `heading_y` fields on `CreatureSnapshot` for viewer use
 
 ### Changed
 

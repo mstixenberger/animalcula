@@ -7,9 +7,10 @@ from animalcula.sim.physics import (
     apply_node_repulsion,
     apply_motor_forces,
     apply_overdamped_dynamics,
+    creature_heading,
     spring_force,
 )
-from animalcula.sim.types import EdgeState, NodeState, Vec2
+from animalcula.sim.types import CreatureState, EdgeState, NodeState, Vec2
 
 
 def test_spring_force_is_zero_at_rest_length() -> None:
@@ -299,3 +300,37 @@ def test_multi_dof_asymmetric_drag_enables_locomotion() -> None:
     assert abs(displacement) > 0.01, (
         f"expected nonzero displacement from multi-DOF + asymmetric drag, got {displacement}"
     )
+
+
+def _make_node(x: float, y: float) -> NodeState:
+    return NodeState(
+        position=Vec2(x, y),
+        velocity=Vec2.zero(),
+        accumulated_force=Vec2.zero(),
+        drag_coeff=1.0,
+        radius=1.0,
+    )
+
+
+def test_creature_heading_points_from_com_toward_node0() -> None:
+    """Heading should be the unit vector from COM to node 0."""
+    nodes = [_make_node(10.0, 0.0), _make_node(0.0, 0.0)]
+    creature = CreatureState(node_indices=(0, 1), energy=1.0)
+    heading = creature_heading(nodes, creature)
+    assert math.isclose(heading.x, 1.0, abs_tol=1e-9)
+    assert math.isclose(heading.y, 0.0, abs_tol=1e-9)
+
+
+def test_creature_heading_is_unit_vector() -> None:
+    nodes = [_make_node(3.0, 4.0), _make_node(0.0, 0.0)]
+    creature = CreatureState(node_indices=(0, 1), energy=1.0)
+    heading = creature_heading(nodes, creature)
+    assert math.isclose(heading.magnitude(), 1.0, rel_tol=1e-9)
+
+
+def test_creature_heading_fallback_when_node0_at_com() -> None:
+    """When node 0 is exactly at the COM, heading should fall back to (1, 0)."""
+    nodes = [_make_node(5.0, 5.0)]
+    creature = CreatureState(node_indices=(0,), energy=1.0)
+    heading = creature_heading(nodes, creature)
+    assert heading == Vec2(1.0, 0.0)

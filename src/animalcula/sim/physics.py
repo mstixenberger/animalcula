@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from animalcula.sim.types import EdgeState, GripLatch, NodeState, Vec2
+from animalcula.sim.types import CreatureState, EdgeState, GripLatch, NodeState, Vec2
 
 
 def spring_force(a: Vec2, b: Vec2, rest_length: float, stiffness: float) -> Vec2:
@@ -140,3 +140,22 @@ def apply_grip_latches(
         )
 
     return updated_nodes
+
+
+def creature_heading(nodes: list[NodeState], creature: CreatureState) -> Vec2:
+    """Return the heading unit vector for a creature: (node0_pos - COM).normalized().
+
+    Falls back to Vec2(1, 0) when the creature has a single node or node 0
+    coincides with the COM.
+    """
+    if not creature.node_indices:
+        return Vec2(1.0, 0.0)
+
+    com_x = sum(nodes[i].position.x for i in creature.node_indices) / len(creature.node_indices)
+    com_y = sum(nodes[i].position.y for i in creature.node_indices) / len(creature.node_indices)
+    node0 = nodes[creature.node_indices[0]].position
+    direction = Vec2(node0.x - com_x, node0.y - com_y)
+    normalized = direction.normalized()
+    if normalized == Vec2.zero():
+        return Vec2(1.0, 0.0)
+    return normalized
